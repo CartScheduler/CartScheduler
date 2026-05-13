@@ -43,10 +43,17 @@ jobs:
             *.git*
             /*node_modules/*
             .editorconfig
+            .env.ci
+            .env
             vite.config.js
+            vitest.config.ts
+            eslint.config.js
+            tsconfig.json
+            tsconfig.test.json
             phpunit.xml
             postcss.config.cjs
             docker-compose.yml
+            docker-compose.testing.yml
             jsconfig.json
             tailwind.config.js
             web-types.json
