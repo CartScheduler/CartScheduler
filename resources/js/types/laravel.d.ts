@@ -67,6 +67,10 @@ declare namespace App.Data {
     shifts_filled: number;
     shifts_available: number;
   };
+  export type IdAndNameData = {
+    id: number;
+    name: string;
+  };
   export type LocationAdminData = {
     id?: number;
     name: string;
@@ -127,7 +131,7 @@ declare namespace App.Data {
     comments?: string;
     shift_was_cancelled: boolean;
     tags: Array<{ id: int; name: { [lang: string]: string }; slug: { [lang: string]: string } }>;
-    metadata: App.Data.ReportMetadataData;
+    metadata?: App.Data.ReportMetadataData;
   };
   export type ShiftAdminData = {
     id?: number;

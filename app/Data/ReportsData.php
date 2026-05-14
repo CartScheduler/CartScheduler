@@ -20,7 +20,7 @@ class ReportsData extends Data
         public bool $shift_was_cancelled = false,
         #[LiteralTypeScriptType('Array<{id: int, name: {[lang: string]: string}, slug: {[lang: string]: string}}>')]
         public Collection $tags = new Collection,
-        public ReportMetadataData $metadata,
+        public ?ReportMetadataData $metadata = null,
     ) {
     }
 }
