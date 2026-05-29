@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import { onClickOutside } from "@vueuse/core";
 import { ref, useTemplateRef } from "vue";
 import { useDarkMode } from "@/Composables/useDarkMode.js";
 import type { ColorMode } from "@/Composables/useDarkMode.js";
 
 const { colorMode, setMode } = useDarkMode();
 
-const themeToggleContainer = useTemplateRef("themeToggleContainer");
+const popover = useTemplateRef("color-mode-buttons");
 const themeToggle = useTemplateRef("themeToggle");
 const buttonContainer = useTemplateRef("buttonContainer");
 
@@ -83,6 +84,12 @@ const onLeave = (el: Element, done: () => void) => {
   themeToggle.value.style.opacity = "1";
   el.style.zIndex = "-1";
 };
+
+onClickOutside(popover, () => {
+  if (!expand.value) return;
+  expand.value = false;
+});
+
 const setColorMode = async (mode: ColorMode) => {
   await setMode(mode);
   expand.value = false;
@@ -90,7 +97,7 @@ const setColorMode = async (mode: ColorMode) => {
 </script>
 
 <template>
-  <div ref="themeToggleContainer" class="relative">
+  <div class="relative">
     <button id="theme-toggle"
             ref="themeToggle"
             type="button"

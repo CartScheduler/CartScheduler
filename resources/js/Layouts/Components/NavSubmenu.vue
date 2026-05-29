@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from "@inertiajs/vue3";
-import { computed, onMounted, onUnmounted, useId } from "vue";
+import { onClickOutside } from "@vueuse/core";
+import { computed, onMounted, onUnmounted, useId, useTemplateRef } from "vue";
 import useCurrentPageInfo from "@/Composables/useCurrentPageInfo";
 import useNavEvents from "./Composables/useNavEvents";
 import type { CssClass } from "@/types/types";
@@ -55,10 +56,14 @@ const isSubmenuOpen = computed(() => !!submenuOpen(label).value);
 const isSubmenuItemActive = computed(() => submenuItems.value && submenuItems.value.some((subItem) => isActive(subItem.routeName)));
 
 const toggle = () => {
-  if (!isSubmenuOpen.value) {
-    toggleSubmenu(label.value);
-  }
+  toggleSubmenu(label.value);
 };
+
+const submenu = useTemplateRef("submenu");
+onClickOutside(submenu, () => {
+  if (!isSubmenuOpen.value) return;
+  closeNav(label.value);
+});
 
 onMounted(() => {
   addEscapeHandler("mobile-nav", (event: KeyboardEvent) => {
@@ -91,7 +96,7 @@ onUnmounted(() => {
             :aria-label="`${label} menu`"
             :aria-expanded="openSubmenus[label] ? 'true' : 'false'"
             :aria-controls="id">
-      <template v-if="!$slots.button">
+      <template v-if="!$slots['button']">
         <span v-if="myIcon" :class="myIcon" class="text-xs me-1" />
         <span>{{ label }}</span>
         <span class="duration-500 iconify mdi--chevron-down esee-in-out transition-rotate"
