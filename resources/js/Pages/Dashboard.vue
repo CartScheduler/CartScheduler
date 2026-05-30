@@ -14,7 +14,7 @@ const showReportsModal = ref(false);
 <template>
   <PageHeader title="Dashboard">
     <div class="flex flex-col justify-between w-full sm:flex-row">
-      <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">Dashboard</h2>
+      <h2 class="hidden sm:block text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">Dashboard</h2>
       <div>
         <PButton v-if="outstandingReportCount"
                  :label="`${ outstandingReportCount } ${ reportsLabel } Outstanding`"
