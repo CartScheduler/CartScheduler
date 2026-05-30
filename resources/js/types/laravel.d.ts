@@ -194,13 +194,13 @@ declare namespace App.Data {
     shift_date?: string;
     is_unrestricted?: boolean;
     last_shift_date?: string;
-    last_shift_start_time?: string;
+    last_shift_start_time?: TwentyFourHourTime;
   };
   export type UserShiftData = {
     volunteer_id: number;
     location_id: number;
     location_name: string;
-    start_time: string;
+    start_time: TwentyFourHourTime;
     max_volunteers: number;
     available_from?: string;
     available_to?: string;

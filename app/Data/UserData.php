@@ -2,9 +2,9 @@
 
 namespace App\Data;
 
-use App\Models\User;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Optional;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 #[TypeScript]
@@ -21,6 +21,7 @@ class UserData extends Data
         public string|Optional $shift_date,
         public bool|Optional $is_unrestricted,
         public string|Optional $last_shift_date,
+        #[LiteralTypeScriptType('TwentyFourHourTime')]
         public string|Optional $last_shift_start_time,
     ) {
     }

@@ -5,6 +5,7 @@ namespace App\Data;
 use Illuminate\Support\Carbon;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\Hidden;
+use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 use stdClass;
 
@@ -19,6 +20,7 @@ class UserShiftData extends Data
         public int $volunteer_id,
         public int $location_id,
         public string $location_name,
+        #[LiteralTypeScriptType('TwentyFourHourTime')]
         public string $start_time,
         public int $max_volunteers,
         public ?string $available_from = null,

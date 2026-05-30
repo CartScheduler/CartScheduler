@@ -5,6 +5,7 @@ import { format, formatISO, set } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 import relativeDateToNow from "@/Utils/relativeDateToNow";
+import type { TwentyFourHourTime } from "@/types/types";
 
 export type ShiftItem = {
   date: Date;
@@ -28,18 +29,31 @@ const page = usePage();
 
 const shiftAvailability = computed(() => page.props.shiftAvailability);
 
+/**
+ * @param time "HH:MM:SS"
+ */
+const tupleTime = (time: TwentyFourHourTime): [number, number, number] => {
+  const [hours, minutes, seconds] = time.split(":");
+
+  if (!hours || !minutes || !seconds || Number.isNaN(hours) || Number.isNaN(minutes) || Number.isNaN(seconds)) {
+    throw new Error(`Unexpected Error! Invalid time format: '${time}'`);
+  }
+  return [parseInt(hours), parseInt(minutes), parseInt(seconds)];
+};
+
 const parseShiftsOnDate = (shiftGroup: App.Data.AvailableShiftsData["shifts"][string], currentDate: Date): ShiftItem[] => {
   return Object.values(shiftGroup)
     .flat()
     .map((shift) => {
-      const startTime = shift.start_time; // as "HH:MM:SS"
-      const split = startTime.split(":");
+      const [hours, minutes, seconds] = tupleTime(shift.start_time);
+
       const modifiedDate = set(currentDate, {
-        hours: parseInt(split[0]),
-        minutes: parseInt(split[1]),
-        seconds: parseInt(split[2]),
+        hours,
+        minutes,
+        seconds,
         milliseconds: 0,
       });
+
       return {
         date: modifiedDate,
         formattedDate: formatISO(modifiedDate, { representation: "date" }),
@@ -67,10 +81,16 @@ const shifts = computed<Map<string, Array<ShiftItem>>>(() => {
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   for (const date of mappedShifts) {
+    if (!date.shiftGroup) continue;
+
     const shiftDate = utcToZonedTime(date.date, shiftAvailability.value.timezone);
 
     map.set(
-      [relativeDateToNow(shiftDate, now), format(shiftDate, "do"), format(shiftDate, "MMM")],
+      [
+        relativeDateToNow(shiftDate, now),
+        format(shiftDate, "do"),
+        format(shiftDate, "MMM"),
+      ],
       parseShiftsOnDate(date.shiftGroup, shiftDate),
     );
   }
@@ -154,7 +174,7 @@ const isShiftSelected = (shift: ShiftItem) => selectedShift.value?.locationId ==
   && selectedShift.value?.formattedTime === shift.formattedTime
   && selectedShift.value?.formattedDate === shift.formattedDate;
 
-const doesDateHaveShifts = (shift: ShiftItem) => shift.formattedDate === selectedShift.value?.formattedDate;
+const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDate === selectedShift.value?.formattedDate;
 </script>
 
 <template>
@@ -204,21 +224,23 @@ const doesDateHaveShifts = (shift: ShiftItem) => shift.formattedDate === selecte
             class="mt-12 sm:mt-0 flex flex-col gap-1 relative ps-12 pb-8 mb-8
                     before:absolute before:left-11 before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400 before:dark:border-l-neutral-600 before:border-dashed
                     after:absolute after:left-7 after:w-8 after:bottom-0 after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed">
-          <template v-for="([date, shiftsForDate]) of shifts"
-                    :key="date">
+          <template v-for="([[relativeDay, dayOfMonth, month], shiftsForDate]) of shifts" :key="dayOfMonth! + month!">
             <dt class="flex items-center h-12 font-semibold relative ps-8 size [&:not(:first-child)]:mt-0">
-              {{ date[0] }}
-              <span class="sr-only">{{ date[1] }} {{ date[2] }}</span>
+              <span>{{ relativeDay }}</span>
+              <span class="sr-only">{{ dayOfMonth }} {{ month }}</span>
               <div aria-hidden="true"
                    class="absolute -ml-1 -left-6 top-0 size-12 flex flex-col items-center justify-center z-0 before:transition-colors before:duration-500
                           before:rounded-full before:absolute before:inset-0 before:border before:border-neutral-400  before:-z-10"
-                   :class="[doesDateHaveShifts(shiftsForDate[0]) ? 'group selected before:bg-orange-200 before:dark:bg-orange-600'
-                     : 'before:bg-white before:dark:bg-panel-dark']">
+                   :class="[
+                     doesDateHaveShifts(shiftsForDate[0])
+                       ? 'group selected before:bg-orange-200 before:dark:bg-orange-600'
+                       : 'before:bg-white before:dark:bg-panel-dark'
+                   ]">
                 <div class="text-center leading-none text-sm dark:text-neutral-200 group-[.selected]:dark:text-neutral-900">
-                  {{ date[1] }}
+                  {{ dayOfMonth }}
                 </div>
                 <div class="text-center leading-none text-xs text-neutral-500 dark:text-neutral-300 group-[.selected]:dark:text-neutral-800">
-                  {{ date[2] }}
+                  {{ month }}
                 </div>
               </div>
             </dt>
