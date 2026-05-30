@@ -129,13 +129,6 @@ const showList = computed(() => {
 
 const list = useTemplateRef("list");
 
-const toggleShiftList = () => {
-  expandShiftList.value = !expandShiftList.value;
-  if (isMobile.value) return;
-
-  void toggleLargeStyle(list.value as HTMLElement);
-};
-
 const borderTransition = "border-color 500ms ease-in-out";
 const transition = `height 500ms ease-in-out, margin 500ms ease-in-out, ${borderTransition}`;
 const hideMobileList = (el: Element) => {
@@ -154,10 +147,6 @@ const showMobileList = (el: Element) => {
   element.style.height = "0px";
   element.style.transition = transition;
   element.style.height = `${element.scrollHeight}px`;
-};
-
-const toggleLargeStyle = async (element: HTMLElement) => {
-  element.style.transition = "height 500ms ease-out";
 };
 
 function resetStyle(el: Element) {
@@ -184,30 +173,6 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
          'pt-7': !expandShiftList && isMobile,
          'pt-0': expandShiftList && isMobile,
        }]">
-    <PButton v-if="isMobile"
-             type="button"
-             variant="outlined"
-             size="small"
-             severity="secondary"
-             class="absolute [transition:transform_.5s,border-color_1s]flex items-center gap-1 z-10"
-             :class="[{
-               'top-2 right-2 border-neutral-200 dark:border-neutral-800': expandShiftList,
-               '-translate-y-7 std-border py-1 right-0': !expandShiftList,
-             }]"
-             @click="toggleShiftList">
-      <div class="inline-grid grid-flow-col gap-1">
-        <span class="iconify mdi--arrow-collapse-up transition-transform duration-500 delay-100 text-neutral-500 dark:text-neutral-300"
-              :class="[{
-                'rotate-180': !expandShiftList,
-              }]" />
-        <Transition name="slide-away" mode="out-in">
-          <span v-if="expandShiftList" class="slide-up">hide</span>
-          <span v-else-if="!expandShiftList" class="slide-down">show</span>
-        </Transition>
-        <span> your timeline</span>
-      </div>
-    </PButton>
-
     <Transition @enter="showMobileList"
                 @after-enter="resetStyle"
                 @leave="hideMobileList"
@@ -221,7 +186,7 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
              'border-transparent' : isMobile && !expandShiftList,
            }">
         <dl v-if="shifts.size"
-            class="mt-12 sm:mt-0 flex flex-col gap-1 relative ps-12 pb-8 mb-8
+            class="mt-6 sm:mt-0 pb-4 mb-6 flex flex-col gap-1 relative ps-12
                     before:absolute before:left-11 before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400 before:dark:border-l-neutral-600 before:border-dashed
                     after:absolute after:left-7 after:w-8 after:bottom-0 after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed">
           <template v-for="([[relativeDay, dayOfMonth, month], shiftsForDate]) of shifts" :key="dayOfMonth! + month!">
@@ -246,16 +211,16 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
             </dt>
             <dd v-for="(shift, idx) in shiftsForDate" :key="idx" class="ms-6">
               <button type="button"
-                      class="group cursor-pointer rounded-s ps-6 py-1 w-full flex flex-col items-start
+                      class="group cursor-pointer rounded-s ms-2 ps-2 py-1 w-full flex flex-col items-start
                     sm:hover:bg-neutral-100 dark:sm:hover:bg-neutral-800 sm:transition-[background-color,padding] sm:duration-300 sm:hover:font-bold sm:hover:ps-3"
                       :class="{
-                        'selected underline text-warning dark:text-warning-light underline-offset-4 decoration-warning dark:decoration-warning-light decoration-dotted': isShiftSelected(shift),
+                        'selected text-warning dark:text-warning-light border-l-2 border-l-warning dark:border-l-warning-light': isShiftSelected(shift),
                       }"
                       @click="selectShift(shift)">
                 <span class="group-hover:font-medium transition-[font-weight] duration-300">
                   {{ shift.formattedTime }}
                 </span>
-                <span class="text-neutral-500 dark:text-neutral-300 group-[.selected]:text-warning dark:group-[.selected]:text-warning-light font-light group-hover:font-medium transition-[font-weight] duration-300 underline underline-offset-4 decoration-neutral-950/50 dark:decoration-neutral-50/50 decoration-dotted sm:no-underline">
+                <span class="text-neutral-500 dark:text-neutral-300 group-[.selected]:text-warning dark:group-[.selected]:text-warning-light font-light group-hover:font-medium transition-[font-weight] duration-300">
                   {{ shift.location }}
                 </span>
               </button>
