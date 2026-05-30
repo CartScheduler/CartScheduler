@@ -128,6 +128,15 @@ export default defineConfigWithVueTs([
     ignores: ["./resources/js/__tests__/**/*.test.{ts,js}"],
   },
   {
+    name: "e18e",
+    files: ["./*.ts", "./resources/js/**/*.{ts,vue}"],
+    rules: {
+      "e18e/ban-dependencies": ["error", {
+        allowed: ["axios"],
+      }],
+    },
+  },
+  {
     name: "eslint-ts-testing",
     ...baseTsConfig,
     files: ["./resources/js/__tests__/**/*.test.{ts,js}"],
