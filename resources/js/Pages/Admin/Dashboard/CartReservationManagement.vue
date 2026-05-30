@@ -235,10 +235,7 @@ const rowClass = (gender?: string) => {
 };
 
 type ShiftLocation = { shift: Shift; location: Location };
-const assignUserData = reactive<Partial<ShiftLocation>>({
-  shift: undefined,
-  location: undefined,
-});
+const assignUserData = reactive<Partial<ShiftLocation>>({});
 
 const doShowAssignVolunteerModal = (shift: Shift, location: Location) => {
   assignUserData.shift = shift;
