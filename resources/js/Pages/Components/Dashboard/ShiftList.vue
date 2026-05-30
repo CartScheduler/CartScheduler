@@ -16,10 +16,10 @@ export type ShiftItem = {
 };
 
 const { markerDates } = defineProps<{
-  markerDates?: App.Data.AvailableShiftsData["shifts"];
+  markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
 }>();
 
-const selectedShift = defineModel<ShiftItem | undefined>({ required: true });
+const selectedShift = defineModel<ShiftItem | undefined>({ required: false });
 
 const emit = defineEmits<{
   clicked: [shift: ShiftItem];

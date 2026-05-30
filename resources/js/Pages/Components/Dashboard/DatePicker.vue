@@ -31,10 +31,10 @@ const {
   canViewHistorical = false,
 } = defineProps<{
   date: Date;
-  maxDate?: Date;
+  maxDate?: Date | undefined;
   shiftMarkers?: DateMark[];
-  markerDates?: App.Data.AvailableShiftsData["shifts"];
-  freeShifts?: App.Data.AvailableShiftsData["freeShifts"];
+  markerDates?: App.Data.AvailableShiftsData["shifts"] | undefined;
+  freeShifts?: App.Data.AvailableShiftsData["freeShifts"] | undefined;
   canViewHistorical?: boolean;
 }>();
 
@@ -68,10 +68,10 @@ const highlights = computed(() => {
   if (!freeShifts) return highlighted;
 
   for (const key in freeShifts) {
-    if (!Object.prototype.hasOwnProperty.call(freeShifts, key)) {
+    if (!Object.hasOwn(freeShifts, key)) {
       continue;
     }
-    if (!freeShifts[key].has_availability) {
+    if (!freeShifts[key]?.has_availability) {
       continue;
     }
     highlighted.push(parseISO(key));

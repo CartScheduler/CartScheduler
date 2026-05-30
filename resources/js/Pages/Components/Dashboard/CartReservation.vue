@@ -181,7 +181,7 @@ const scrollToLocation = async (itemKey: App.Data.LocationData["id"]) => {
   }
   const element = locationRefs.value[itemKey];
 
-  element.scrollIntoView({ behavior: "smooth" });
+  element?.scrollIntoView({ behavior: "smooth" });
 };
 
 let prefersReducedMotion: boolean;
@@ -290,7 +290,7 @@ debouncedWatch(locations, () => {
     </ComponentSpinner>
     <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
       <Accordion v-model="expandedAccordionPanelIndex"
-                 :hasInitialised
+                 :hasInitialised="hasInitialised"
                  class="border std-border rounded border-b-0">
         <AccordionPanel v-for="location in locations"
                         :key="location.id"
