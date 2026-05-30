@@ -141,7 +141,7 @@ export default function(timezone: Ref<string>, canAdmin = false) {
       existingLocation.filterShifts = [];
     }
 
-    if (!existingLocation.filterShifts.find((s) => s.id === shift.id)) {
+    if (!existingLocation.filterShifts?.find((s) => s.id === shift.id)) {
       addShift(existingLocation.filterShifts, shift);
     }
   };
