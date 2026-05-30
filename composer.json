@@ -38,7 +38,7 @@
     "ergebnis/phpunit-slow-test-detector": "^2.19",
     "fakerphp/faker": "^1.23.1",
     "fruitcake/laravel-debugbar": "^4.0",
-    "laravel/boost": "^2.1",
+    "laravel/boost": "^v2.4.8",
     "laravel/pail": "^1.2",
     "laravel/pint": "^1.17.2",
     "laravel/sail": "^1.31.1",
@@ -70,7 +70,6 @@
       "@php artisan package:discover --ansi",
       "@php -r \"if (getenv('COMPOSER_DEV_MODE')) passthru('composer audit');\"",
       "@php -r \"if (getenv('COMPOSER_DEV_MODE')) passthru('which npm > /dev/null && npm audit || echo \\'npm not found, skipping npm audit\\'');\"",
-      "which npm > /dev/null && npm audit || echo 'npm not found, skipping npm audit'",
       "# *** DON'T FORGET TO RUN: snyk test ***"
     ],
     "post-update-cmd": [
