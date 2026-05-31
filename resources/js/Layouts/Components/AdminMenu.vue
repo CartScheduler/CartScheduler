@@ -74,6 +74,10 @@ const hasUpdate = computed(() => {
                         Reports
                     </JetDropdownLink>
 
+                    <JetDropdownLink :href="route('admin.exports')" is-menu>
+                        Exports
+                    </JetDropdownLink>
+
                     <JetDropdownLink v-if="permissions.canEditSettings" :href="route('admin.settings')" is-menu
                                      inner-classes="flex content-center items-center">
                         <template v-if="hasUpdate">

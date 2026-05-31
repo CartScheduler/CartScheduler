@@ -199,6 +199,11 @@ const checkLater = () => {
                                     Reports
                                 </JetResponsiveNavLink>
 
+                                <JetResponsiveNavLink :href="route('admin.exports')"
+                                                      :active="route().current('admin.exports')">
+                                    Exports
+                                </JetResponsiveNavLink>
+
                                 <JetResponsiveNavLink v-if="permissions.canEditSettings"
                                                       :href="route('admin.settings')"
                                                       :active="route().current('admin.settings')">
