@@ -131,5 +131,22 @@ describe("ShiftList", () => {
     expect(selected).toMatchObject({ location: "Station St", locationId: 3 });
     expect(container.querySelectorAll("button")[0].classList.contains("selected")).toBe(true);
     expect(container.querySelector("dt .selected")).not.toBeNull();
+
+    const buttons = container.querySelectorAll("button");
+    expect(buttons[0].classList.contains("md:before:w-0.5")).toBe(true);
+    expect(buttons[0].classList.contains("md:before:w-px")).toBe(false);
+    expect(buttons[1].classList.contains("md:before:w-px")).toBe(true);
+  });
+
+  it("lays the timeline out horizontally on md+ via responsive classes", () => {
+    const { container } = renderShiftList();
+
+    const timeline = container.querySelector("dl");
+
+    expect(timeline).not.toBeNull();
+    // Lane flips to a row, rail flips to a horizontal dashed line, end-cap hidden.
+    expect(timeline?.classList.contains("md:flex-row")).toBe(true);
+    expect(timeline?.classList.contains("md:before:border-t")).toBe(true);
+    expect(timeline?.classList.contains("md:after:hidden")).toBe(true);
   });
 });
