@@ -7,6 +7,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    env: {
+      TZ: "Australia/Melbourne",
+    },
     setupFiles: [
       'vitest-localstorage-mock',
     ],
