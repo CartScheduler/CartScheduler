@@ -8,6 +8,8 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     env: {
+      // Pin the test-process timezone so date assertions (and snapshots) don't
+      // depend on the host machine's TZ — e.g. the UTC Sail container vs local dev.
       TZ: "Australia/Melbourne",
     },
     setupFiles: [
