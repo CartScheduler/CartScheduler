@@ -234,32 +234,30 @@ debouncedWatch(locations, () => {
 </script>
 
 <template>
-  <div class="flex-1 grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
-    <ComponentSpinner ref="transitionContainer"
-                      :show="!locations"
-                      class="transition-container flex flex-col sm:h-0 sm:min-h-full">
-      <Transition mode="out-in"
-                  @before-enter="beforeEnter"
-                  @enter="enter"
-                  @after-enter="afterEnter"
-                  @before-leave="beforeLeave">
-        <div v-if="shiftView === 'list'"
-             class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 sm:h-0 sm:min-h-full"
-             key="list">
-          <PButton size="small"
-                   class="shadow-sm"
-                   variant="outlined"
-                   severity="info"
-                   @click="shiftView = 'calendar'">
-            <span class="iconify mdi--calendar-month-outline" />
-            Switch to Calendar view
-          </PButton>
-          <ShiftList v-model="selectedShift"
-                     :marker-dates="serverDates"
-                     :locations="locations"
-                     @clicked="scrollToLocation($event.locationId)" />
-        </div>
-        <div v-else class="grid grid-cols-1 gap-2" key="calendar">
+  <div class="flex-1 grid gap-3 grid-cols-1 sm:grid-rows-1 sm:min-h-full">
+    <Transition mode="out-in"
+                @before-enter="beforeEnter"
+                @enter="enter"
+                @after-enter="afterEnter"
+                @before-leave="beforeLeave">
+      <div v-if="shiftView === 'list'"
+           class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 sm:h-0 sm:min-h-full"
+           key="list">
+        <PButton size="small"
+                 class="shadow-sm"
+                 variant="outlined"
+                 severity="info"
+                 @click="shiftView = 'calendar'">
+          <span class="iconify mdi--calendar-month-outline" />
+          Switch to Calendar view
+        </PButton>
+        <ShiftList v-model="selectedShift"
+                   :marker-dates="serverDates"
+                   :locations="locations"
+                   @clicked="scrollToLocation($event.locationId)" />
+      </div>
+      <div v-else key="calendar" class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
+        <div class="grid grid-col grid-cols-1 gap-2 grid-rows-[auto_1fr]">
           <PButton size="small"
                    class="shadow-sm"
                    variant="outlined"
@@ -270,53 +268,54 @@ debouncedWatch(locations, () => {
           </PButton>
           <DatePicker v-model:date="date"
                       :shiftMarkers
+                      :isLoading="!!locations"
                       :max-date="maxReservationDate"
                       :free-shifts="freeShifts"
                       :marker-dates="serverDates"
                       @locations-for-day="setLocationMarkers" />
         </div>
-      </Transition>
-    </ComponentSpinner>
-    <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
-      <Accordion v-model="expandedAccordionPanelIndex"
-                 :hasInitialised="hasInitialised"
-                 class="border std-border rounded border-b-0">
-        <AccordionPanel v-for="location in locations"
-                        :key="location.id"
-                        :unique-id="location.id"
-                        :contentTrigger="`${location.id}-${shiftDate}`">
-          <template #title>
-            <div :ref="(el) => setLocationRef(location.id,el as HTMLElement)"
-                 class="flex items-center text-base font-bold p-2">
-              <span class="location-name"
-                    :class="[
-                      userShiftLocations.has(location.id)
-                        ? 'text-green-800 dark:text-green-300 border-b-2 border-green-500'
-                        : 'dark:text-gray-200'
-                    ]"
-                    v-tooltip="userShiftLocations.has(location.id) ? 'You have at least one shift' : undefined">
-                {{ location.name }}
-              </span>
-              <div class="flex items-center py-1.5 ml-2 group"
-                   v-if="!isRestricted && location.freeShifts">
-                <div class="mr-3 ml-1 w-2 h-2 bg-amber-500 rounded-full transition-colors group-hover:bg-amber-600 group-hover:dark:bg-amber-200"></div>
-                <div class="hidden min-w-5 sm:block">
-                  <div class="overflow-x-hidden w-0 text-sm text-gray-600 whitespace-nowrap transition-[width] group-hover:w-full dark:text-gray-400">
-                    shifts still available
+        <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
+          <Accordion v-model="expandedAccordionPanelIndex"
+                     :hasInitialised="hasInitialised"
+                     class="border std-border rounded border-b-0">
+            <AccordionPanel v-for="location in locations"
+                            :key="location.id"
+                            :unique-id="location.id"
+                            :contentTrigger="`${location.id}-${shiftDate}`">
+              <template #title>
+                <div :ref="(el) => setLocationRef(location.id,el as HTMLElement)"
+                     class="flex items-center text-base font-bold p-2">
+                  <span class="location-name"
+                        :class="[
+                          userShiftLocations.has(location.id)
+                            ? 'text-green-800 dark:text-green-300 border-b-2 border-green-500'
+                            : 'dark:text-gray-200'
+                        ]"
+                        v-tooltip="userShiftLocations.has(location.id) ? 'You have at least one shift' : undefined">
+                    {{ location.name }}
+                  </span>
+                  <div class="flex items-center py-1.5 ml-2 group"
+                       v-if="!isRestricted && location.freeShifts">
+                    <div class="mr-3 ml-1 w-2 h-2 bg-amber-500 rounded-full transition-colors group-hover:bg-amber-600 group-hover:dark:bg-amber-200"></div>
+                    <div class="hidden min-w-5 sm:block">
+                      <div class="overflow-x-hidden w-0 text-sm text-gray-600 whitespace-nowrap transition-[width] group-hover:w-full dark:text-gray-400">
+                        shifts still available
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </template>
+              </template>
 
-          <LocationDetails :location="location"
-                           :is-restricted="isRestricted"
-                           :date="date"
-                           :user="user"
-                           @toggle-reservation="toggleReservation" />
-        </AccordionPanel>
-      </Accordion>
-    </ComponentSpinner>
+              <LocationDetails :location="location"
+                               :is-restricted="isRestricted"
+                               :date="date"
+                               :user="user"
+                               @toggle-reservation="toggleReservation" />
+            </AccordionPanel>
+          </Accordion>
+        </ComponentSpinner>
+      </div>
+    </Transition>
   </div>
 </template>
 

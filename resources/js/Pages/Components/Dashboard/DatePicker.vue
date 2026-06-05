@@ -36,6 +36,7 @@ const {
   markerDates?: App.Data.AvailableShiftsData["shifts"] | undefined;
   freeShifts?: App.Data.AvailableShiftsData["freeShifts"] | undefined;
   canViewHistorical?: boolean;
+  isLoading?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -185,44 +186,48 @@ const canGoForward = computed(() => {
 
 <template>
   <div>
-    <PDatePicker v-model="selectedDate"
-                 inline
-                 selectOtherMonths
-                 :minDate="notBefore"
-                 :maxDate="notAfter"
-                 :disabled="false"
-                 :showIcon="false"
-                 :showButtonBar="false"
-                 :manualInput="false"
-                 :dateFormat="'mm/dd/yy'"
-                 :disabledDates="restrictedDates"
-                 @month-change="updateMonthYear"
-                 @year-change="updateMonthYear">
-      <template #prevbutton="{ actionCallback }">
-        <button v-if="canGoBack"
-                @click="actionCallback"
-                class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
-        <div v-else class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
-      </template>
+    <ComponentSpinner ref="transitionContainer"
+                      :show="!isLoading"
+                      class="transition-container flex flex-col sm:h-0 sm:min-h-full">
+      <PDatePicker v-model="selectedDate"
+                   inline
+                   selectOtherMonths
+                   :minDate="notBefore"
+                   :maxDate="notAfter"
+                   :disabled="false"
+                   :showIcon="false"
+                   :showButtonBar="false"
+                   :manualInput="false"
+                   :dateFormat="'mm/dd/yy'"
+                   :disabledDates="restrictedDates"
+                   @month-change="updateMonthYear"
+                   @year-change="updateMonthYear">
+        <template #prevbutton="{ actionCallback }">
+          <button v-if="canGoBack"
+                  @click="actionCallback"
+                  class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
+          <div v-else class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
+        </template>
 
-      <template #nextbutton="{ actionCallback }">
-        <button v-if="canGoForward"
-                @click="actionCallback"
-                class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
-        <div v-else
-             class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
-      </template>
+        <template #nextbutton="{ actionCallback }">
+          <button v-if="canGoForward"
+                  @click="actionCallback"
+                  class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
+          <div v-else
+               class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
+        </template>
 
-      <template #date="{ date }">
-        <span class="formatted-date"
-              :class="{
-                'highlighted-date': isDateHighlighted(date),
-                'marker-date': hasMarker(date)
-              }">
-          {{ date.day }}
-        </span>
-      </template>
-    </PDatePicker>
-    <div v-if="freeShifts" class="text-sm text-center text-gray-500">Blue squares indicate free shifts</div>
+        <template #date="{ date }">
+          <span class="formatted-date"
+                :class="{
+                  'highlighted-date': isDateHighlighted(date),
+                  'marker-date': hasMarker(date)
+                }">
+            {{ date.day }}
+          </span>
+        </template>
+      </PDatePicker>
+      <div v-if="freeShifts" class="text-sm text-center text-gray-500">Blue squares indicate free shifts</div>
+    </ComponentSpinner>
   </div>
 </template>
