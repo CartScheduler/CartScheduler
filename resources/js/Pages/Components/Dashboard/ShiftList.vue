@@ -172,7 +172,7 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
 </script>
 
 <template>
-  <div class="sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500"
+  <div class="scroll-edge-scope sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500"
        :class="[{
          'relative sm:max-md:scroll-gradient' : isNotMobile && !fullHeightList,
          'pt-7': !expandShiftList && isMobile,
@@ -180,14 +180,14 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
        }]">
     <ComponentSpinner ref="transitionContainer"
                       :show="!locations"
-                      class="transition-container flex flex-col sm:h-0 sm:min-h-full md:h-auto md:min-h-0">
+                      class="transition-container scroll-gradient-x flex flex-col sm:h-0 sm:min-h-full md:h-auto md:min-h-0">
       <Transition @enter="showMobileList"
                   @after-enter="resetStyle"
                   @leave="hideMobileList"
                   @after-leave="resetStyle">
         <div ref="list"
              v-show="showList"
-             class="sm:h-0 sm:min-h-full overflow-hidden sm:overflow-y-auto sm:pt-5 md:h-auto md:min-h-0 md:overflow-y-hidden md:overflow-x-auto md:pt-3 bg-white dark:bg-sub-panel-dark rounded justify-start border std-border"
+             class="scroll-edge-source sm:h-0 sm:min-h-full overflow-hidden sm:overflow-y-auto sm:pt-5 md:h-auto md:min-h-0 md:overflow-y-hidden md:overflow-x-auto md:pt-3 bg-white dark:bg-sub-panel-dark rounded justify-start border std-border"
              :class="{
                '' : isNotMobile && !fullHeightList,
                'std-border' : isMobile && expandShiftList,

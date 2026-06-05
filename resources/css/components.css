@@ -5,6 +5,45 @@
         @apply after:bg-gradient-to-t after:from-white after:dark:from-sub-panel-dark after:to-transparent;
     }
 
+    .scroll-gradient-x {
+        @apply before:absolute before:inset-y-0 before:left-0 before:w-16 before:z-10 before:opacity-0;
+        @apply before:pointer-events-none before:rounded-s before:bg-no-repeat;
+        @apply before:bg-gradient-to-r before:from-white before:dark:from-sub-panel-dark before:to-transparent;
+
+        @apply after:absolute after:inset-y-0 after:right-0 after:w-16 after:z-10 after:opacity-0;
+        @apply after:pointer-events-none after:rounded-e after:bg-no-repeat;
+        @apply after:bg-gradient-to-l after:from-white after:dark:from-sub-panel-dark after:to-transparent;
+
+        /* Progressive enhancement: base opacity-0 means unsupporting browsers and
+           no-overflow states (inactive timeline) show nothing. Left fade appears
+           over the first 4rem of scroll; right fade disappears over the last 4rem. */
+        @supports (animation-timeline: scroll()) {
+            &::before {
+                animation: scroll-edge-fade-in linear both;
+                animation-timeline: --shift-x;
+                animation-range: 0 4rem;
+            }
+
+            &::after {
+                animation: scroll-edge-fade-out linear both;
+                animation-timeline: --shift-x;
+                animation-range: calc(100% - 4rem) 100%;
+            }
+        }
+    }
+
+    /* Lifts the scroller's named timelines so ancestor-hosted overlays can bind
+       to them (covers the declaring element and its subtree). */
+    .scroll-edge-scope {
+        timeline-scope: --shift-x, --shift-y;
+    }
+
+    /* Declared by the scroll container the gradients react to. */
+    .scroll-edge-source {
+        scroll-timeline-name: --shift-x, --shift-y;
+        scroll-timeline-axis: x, y;
+    }
+
     .std-border {
         @apply border-neutral-300/75 dark:border-neutral-700/75;
     }
@@ -74,5 +113,32 @@
         display: grid;
         grid-template-columns: minmax(0, theme(screens.xl));
         justify-content: center;
+    }
+}
+
+@keyframes scroll-edge-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scroll-edge-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Progressive enhancement for the vertical scroll gradient: fade out on
+   approach to the end of the scroll. Targets the escaped sm:max-md variant
+   selector directly because Tailwind's variant generator does not carry
+   nested @supports rules into generated variants (verified in the compiled
+   bundle). The ::after only has content within the sm–md media window, so no
+   extra media wrapping is needed. Deliberately NOT applied to the bare
+   .scroll-gradient class so other consumers (e.g. MoveUserField's listbox)
+   keep the purely static gradient.
+   NOTE: animation-timeline must come AFTER the animation shorthand. */
+@supports (animation-timeline: scroll()) {
+    .sm\:max-md\:scroll-gradient::after {
+        animation: scroll-edge-fade-out linear both;
+        animation-timeline: --shift-y;
+        animation-range: calc(100% - 4rem) 100%;
     }
 }

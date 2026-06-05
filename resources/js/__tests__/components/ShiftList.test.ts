@@ -149,4 +149,20 @@ describe("ShiftList", () => {
     expect(timeline?.classList.contains("md:before:border-t")).toBe(true);
     expect(timeline?.classList.contains("md:after:hidden")).toBe(true);
   });
+
+  it("wires up the scroll-aware edge gradients", () => {
+    const { container } = renderShiftList();
+
+    // Root wrapper lifts the scroller's named timelines into scope.
+    expect(container.firstElementChild?.classList.contains("scroll-edge-scope")).toBe(true);
+
+    // The panel-hugging wrapper hosts the left/right gradient pseudo-elements.
+    const gradientHost = container.querySelector(".scroll-gradient-x");
+    expect(gradientHost).not.toBeNull();
+
+    // The scroll container declares the timelines and contains the timeline lane.
+    const scroller = gradientHost?.querySelector(".scroll-edge-source");
+    expect(scroller).not.toBeNull();
+    expect(scroller?.querySelector("dl")).not.toBeNull();
+  });
 });
