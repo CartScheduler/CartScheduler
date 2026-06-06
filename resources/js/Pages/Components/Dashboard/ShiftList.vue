@@ -166,7 +166,8 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
 </script>
 
 <template>
-  <div class="scroll-edge-scope sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500"
+  <div class="scroll-edge-scope sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500
+bg-white dark:bg-sub-panel-dark rounded border std-border"
        :class="[{
          'pt-7': !expandShiftList && isMobile,
          'pt-0': expandShiftList && isMobile,
@@ -180,27 +181,30 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
                   @after-leave="resetStyle">
         <div ref="list"
              v-show="showList"
-             class="scroll-edge-source overflow-hidden sm:overflow-x-auto sm:pt-3 bg-white dark:bg-sub-panel-dark rounded justify-start border std-border"
+             class="scroll-edge-source overflow-hidden sm:overflow-x-auto sm:pt-3 flex justify-center"
              :class="{
                'std-border' : isMobile && expandShiftList,
                'border-transparent' : isMobile && !expandShiftList,
              }">
           <dl v-if="shifts.size"
-              class="mt-6 sm:mt-0 pb-4 mb-6 flex flex-col gap-1 relative ps-12
-                    before:absolute before:left-11 before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400 before:dark:border-l-neutral-600 before:border-dashed
-                    after:absolute after:left-7 after:w-8 after:bottom-0 after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed
-                    sm:flex-row sm:items-start sm:gap-6 sm:w-max sm:min-w-full sm:ps-6 sm:pe-6 sm:pb-3 sm:mb-0
-                    sm:before:border-l-0 sm:before:border-t sm:before:border-t-neutral-400 sm:before:dark:border-t-neutral-600 sm:before:left-0 sm:before:right-0 sm:before:top-11 sm:before:bottom-auto
-                    sm:after:hidden">
+              class="mt-6 sm:mt-0 pb-4 mb-6 flex flex-col gap-1 relative ps-12 before:absolute before:left-11
+              before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400
+            before:dark:border-l-neutral-600 before:border-dashed after:absolute after:left-7 after:w-8 after:bottom-0
+              after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed
+              sm:flex-row sm:items-start sm:gap-6 sm:w-max sm:min-w-full sm:ps-6 sm:pe-6 sm:pb-3 sm:mb-0
+              sm:before:border-l-0 sm:before:border-t sm:before:border-t-neutral-400
+            sm:before:dark:border-t-neutral-600 sm:before:left-0 sm:before:right-0 sm:before:top-11
+              sm:before:bottom-auto sm:after:hidden">
             <template v-for="([[relativeDay, dayOfMonth, month], shiftsForDate]) of shifts" :key="dayOfMonth! + month!">
               <dt class="flex items-center h-12 font-semibold relative ps-8 size [&:not(:first-child)]:mt-0
                          sm:flex-col sm:h-auto sm:ps-0 sm:shrink-0 sm:whitespace-nowrap">
                 <span class="sm:h-5 sm:text-sm sm:leading-5">{{ relativeDay }}</span>
                 <span class="sr-only">{{ dayOfMonth }} {{ month }}</span>
                 <div aria-hidden="true"
-                     class="absolute -ml-1 -left-6 top-0 size-12 flex flex-col items-center justify-center z-0 before:transition-colors before:duration-500
-                          before:rounded-full before:absolute before:inset-0 before:border before:border-neutral-400 before:-z-10
-                          sm:relative sm:left-auto sm:top-auto sm:ml-0"
+                     class="absolute -ml-1 -left-6 top-0 size-12 flex flex-col items-center justify-center z-0
+                     before:transition-colors before:duration-500 before:rounded-full before:absolute before:inset-0
+                     before:border before:border-neutral-400 before:-z-10 sm:relative sm:left-auto sm:top-auto sm:ml-0
+                     "
                      :class="[
                        doesDateHaveShifts(shiftsForDate[0])
                          ? 'group selected before:bg-orange-200 before:dark:bg-orange-600'
