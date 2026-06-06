@@ -133,21 +133,21 @@ describe("ShiftList", () => {
     expect(container.querySelector("dt .selected")).not.toBeNull();
 
     const buttons = container.querySelectorAll("button");
-    expect(buttons[0].classList.contains("md:before:w-0.5")).toBe(true);
-    expect(buttons[0].classList.contains("md:before:w-px")).toBe(false);
-    expect(buttons[1].classList.contains("md:before:w-px")).toBe(true);
+    expect(buttons[0].classList.contains("sm:before:w-0.5")).toBe(true);
+    expect(buttons[0].classList.contains("sm:before:w-px")).toBe(false);
+    expect(buttons[1].classList.contains("sm:before:w-px")).toBe(true);
   });
 
-  it("lays the timeline out horizontally on md+ via responsive classes", () => {
+  it("lays the timeline out horizontally on sm+ via responsive classes", () => {
     const { container } = renderShiftList();
 
     const timeline = container.querySelector("dl");
 
     expect(timeline).not.toBeNull();
     // Lane flips to a row, rail flips to a horizontal dashed line, end-cap hidden.
-    expect(timeline?.classList.contains("md:flex-row")).toBe(true);
-    expect(timeline?.classList.contains("md:before:border-t")).toBe(true);
-    expect(timeline?.classList.contains("md:after:hidden")).toBe(true);
+    expect(timeline?.classList.contains("sm:flex-row")).toBe(true);
+    expect(timeline?.classList.contains("sm:before:border-t")).toBe(true);
+    expect(timeline?.classList.contains("sm:after:hidden")).toBe(true);
   });
 
   it("wires up the scroll-aware edge gradients", () => {

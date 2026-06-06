@@ -32,16 +32,16 @@
         }
     }
 
-    /* Lifts the scroller's named timelines so ancestor-hosted overlays can bind
-       to them (covers the declaring element and its subtree). */
+    /* Lifts the scroller's named timeline so ancestor-hosted overlays can bind
+       to it (covers the declaring element and its subtree). */
     .scroll-edge-scope {
-        timeline-scope: --shift-x, --shift-y;
+        timeline-scope: --shift-x;
     }
 
     /* Declared by the scroll container the gradients react to. */
     .scroll-edge-source {
-        scroll-timeline-name: --shift-x, --shift-y;
-        scroll-timeline-axis: x, y;
+        scroll-timeline-name: --shift-x;
+        scroll-timeline-axis: x;
     }
 
     .std-border {
@@ -126,19 +126,3 @@
     to { opacity: 0; }
 }
 
-/* Progressive enhancement for the vertical scroll gradient: fade out on
-   approach to the end of the scroll. Targets the escaped sm:max-md variant
-   selector directly because Tailwind's variant generator does not carry
-   nested @supports rules into generated variants (verified in the compiled
-   bundle). The ::after only has content within the sm–md media window, so no
-   extra media wrapping is needed. Deliberately NOT applied to the bare
-   .scroll-gradient class so other consumers (e.g. MoveUserField's listbox)
-   keep the purely static gradient.
-   NOTE: animation-timeline must come AFTER the animation shorthand. */
-@supports (animation-timeline: scroll()) {
-    .sm\:max-md\:scroll-gradient::after {
-        animation: scroll-edge-fade-out linear both;
-        animation-timeline: --shift-y;
-        animation-range: calc(100% - 4rem) 100%;
-    }
-}

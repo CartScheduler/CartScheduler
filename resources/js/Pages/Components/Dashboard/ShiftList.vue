@@ -115,12 +115,6 @@ const isMobile = breakpoints.smaller("sm");
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
 const expandShiftList = ref(true);
-const fullHeightList = computed({
-  get: () => !expandShiftList.value,
-  set: (value) => {
-    expandShiftList.value = !value;
-  },
-});
 
 const showList = computed(() => {
   if (isNotMobile.value) {
@@ -174,22 +168,20 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
 <template>
   <div class="scroll-edge-scope sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500"
        :class="[{
-         'relative sm:max-md:scroll-gradient' : isNotMobile && !fullHeightList,
          'pt-7': !expandShiftList && isMobile,
          'pt-0': expandShiftList && isMobile,
        }]">
     <ComponentSpinner ref="transitionContainer"
                       :show="!locations"
-                      class="transition-container scroll-gradient-x flex flex-col sm:h-0 sm:min-h-full md:h-auto md:min-h-0">
+                      class="transition-container scroll-gradient-x flex flex-col">
       <Transition @enter="showMobileList"
                   @after-enter="resetStyle"
                   @leave="hideMobileList"
                   @after-leave="resetStyle">
         <div ref="list"
              v-show="showList"
-             class="scroll-edge-source sm:h-0 sm:min-h-full overflow-hidden sm:overflow-y-auto sm:pt-5 md:h-auto md:min-h-0 md:overflow-y-hidden md:overflow-x-auto md:pt-3 bg-white dark:bg-sub-panel-dark rounded justify-start border std-border"
+             class="scroll-edge-source overflow-hidden sm:overflow-x-auto sm:pt-3 bg-white dark:bg-sub-panel-dark rounded justify-start border std-border"
              :class="{
-               '' : isNotMobile && !fullHeightList,
                'std-border' : isMobile && expandShiftList,
                'border-transparent' : isMobile && !expandShiftList,
              }">
@@ -197,18 +189,18 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
               class="mt-6 sm:mt-0 pb-4 mb-6 flex flex-col gap-1 relative ps-12
                     before:absolute before:left-11 before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400 before:dark:border-l-neutral-600 before:border-dashed
                     after:absolute after:left-7 after:w-8 after:bottom-0 after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed
-                    md:flex-row md:items-start md:gap-6 md:w-max md:min-w-full md:ps-6 md:pe-6 md:pb-3 md:mb-0
-                    md:before:border-l-0 md:before:border-t md:before:border-t-neutral-400 md:before:dark:border-t-neutral-600 md:before:left-0 md:before:right-0 md:before:top-11 md:before:bottom-auto
-                    md:after:hidden">
+                    sm:flex-row sm:items-start sm:gap-6 sm:w-max sm:min-w-full sm:ps-6 sm:pe-6 sm:pb-3 sm:mb-0
+                    sm:before:border-l-0 sm:before:border-t sm:before:border-t-neutral-400 sm:before:dark:border-t-neutral-600 sm:before:left-0 sm:before:right-0 sm:before:top-11 sm:before:bottom-auto
+                    sm:after:hidden">
             <template v-for="([[relativeDay, dayOfMonth, month], shiftsForDate]) of shifts" :key="dayOfMonth! + month!">
               <dt class="flex items-center h-12 font-semibold relative ps-8 size [&:not(:first-child)]:mt-0
-                         md:flex-col md:h-auto md:ps-0 md:shrink-0 md:whitespace-nowrap">
-                <span class="md:h-5 md:text-sm md:leading-5">{{ relativeDay }}</span>
+                         sm:flex-col sm:h-auto sm:ps-0 sm:shrink-0 sm:whitespace-nowrap">
+                <span class="sm:h-5 sm:text-sm sm:leading-5">{{ relativeDay }}</span>
                 <span class="sr-only">{{ dayOfMonth }} {{ month }}</span>
                 <div aria-hidden="true"
                      class="absolute -ml-1 -left-6 top-0 size-12 flex flex-col items-center justify-center z-0 before:transition-colors before:duration-500
                           before:rounded-full before:absolute before:inset-0 before:border before:border-neutral-400 before:-z-10
-                          md:relative md:left-auto md:top-auto md:ml-0"
+                          sm:relative sm:left-auto sm:top-auto sm:ml-0"
                      :class="[
                        doesDateHaveShifts(shiftsForDate[0])
                          ? 'group selected before:bg-orange-200 before:dark:bg-orange-600'
@@ -222,16 +214,16 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
                   </div>
                 </div>
               </dt>
-              <dd v-for="(shift, idx) in shiftsForDate" :key="idx" class="ms-6 md:ms-0 md:shrink-0 md:pt-11">
+              <dd v-for="(shift, idx) in shiftsForDate" :key="idx" class="ms-6 sm:ms-0 sm:shrink-0 sm:pt-11">
                 <button type="button"
                         class="group cursor-pointer rounded-s ms-2 ps-2 py-1 w-full flex flex-col items-start
-                    sm:hover:bg-neutral-100 dark:sm:hover:bg-neutral-800 sm:transition-[background-color,padding] sm:duration-300 sm:hover:font-bold sm:hover:ps-3
-                    md:items-center md:ms-0 md:w-auto md:pe-2 md:pt-0 md:rounded md:text-sm md:hover:ps-2
-                    md:before:h-3 md:before:bg-neutral-400 md:before:dark:bg-neutral-600 md:before:transition-colors md:before:duration-300"
+                    sm:hover:bg-neutral-100 dark:sm:hover:bg-neutral-800 sm:transition-[background-color,padding] sm:duration-300 sm:hover:font-bold
+                    sm:items-center sm:ms-0 sm:w-auto sm:pe-2 sm:pt-0 sm:rounded sm:text-sm
+                    sm:before:h-3 sm:before:bg-neutral-400 sm:before:dark:bg-neutral-600 sm:before:transition-colors sm:before:duration-300"
                         :class="[
                           isShiftSelected(shift)
-                            ? 'selected text-warning dark:text-warning-light border-l-2 border-l-warning dark:border-l-warning-light md:border-l-0 md:before:w-0.5 md:before:bg-warning md:before:dark:bg-warning-light'
-                            : 'md:before:w-px',
+                            ? 'selected text-warning dark:text-warning-light border-l-2 border-l-warning dark:border-l-warning-light sm:border-l-0 sm:before:w-0.5 sm:before:bg-warning sm:before:dark:bg-warning-light'
+                            : 'sm:before:w-px',
                         ]"
                         @click="selectShift(shift)">
                   <span class="group-hover:font-medium transition-[font-weight] duration-300">
