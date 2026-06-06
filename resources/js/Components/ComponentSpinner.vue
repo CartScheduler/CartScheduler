@@ -2,10 +2,12 @@
 const { show } = defineProps<{
   show: boolean;
 }>();
+
+// TODO, this really shouldn't wrap the <slot>
 </script>
 
 <template>
-  <div class="relative block">
+  <div class="spinner relative block">
     <Transition>
       <div v-if="show"
            class="rounded absolute top-0 right-0 bottom-0 left-0 bg-neutral-500/50 dark:bg-neutral-700/75 z-[50] backdrop-blur-sm">
