@@ -7,6 +7,7 @@ use App\Listeners\StreamlineNextAvailableVersionUpdatedListener;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -50,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
 
         Model::preventLazyLoading(!app()->isProduction());
         Model::preventSilentlyDiscardingAttributes(!app()->isProduction());
+        DB::prohibitDestructiveCommands(!app()->isProduction());
 
         Schema::defaultStringLength(191);
         if (config('app.is_https')) {
