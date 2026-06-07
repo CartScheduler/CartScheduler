@@ -1,5 +1,6 @@
 import axios from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isSameDay } from "date-fns";
 import * as vue from "vue";
 import { nextTick, ref } from "vue";
 import shifts from "@/__mocked-requests__/shifts.json";
@@ -197,6 +198,22 @@ describe("useLocationFilter", () => {
       "female",
       undefined,
     ]);
+  });
+
+  it("tracks the date the current data was loaded for", async () => {
+    vi.setSystemTime(new Date("2025-09-15"));
+    const { date, loadedDate, getShifts } = useLocationFilter(timezone);
+
+    // Initialised to the initial date, so same-day lookups resolve immediately.
+    expect(isSameDay(loadedDate.value, date.value)).toBe(true);
+
+    // A date change alone must NOT move loadedDate — that gap is what the
+    // detail views read as "still fetching".
+    date.value = new Date("2025-09-20T12:00:00");
+    expect(isSameDay(loadedDate.value, date.value)).toBe(false);
+
+    await getShifts();
+    expect(isSameDay(loadedDate.value, date.value)).toBe(true);
   });
 
 });

@@ -30,6 +30,8 @@ export interface EmptyShift {
 export default function(timezone: Ref<string>, canAdmin = false) {
 
   const date = ref(setHours(utcToZonedTime(new Date(), timezone.value), 12));
+  /** The date the current serverLocations/serverDates were fetched for. */
+  const loadedDate = ref<Date>(date.value);
 
   const serverLocations = shallowRef<Location[]>([]);
   const serverDates = shallowRef<App.Data.AvailableShiftsData["shifts"]>();
@@ -43,12 +45,14 @@ export default function(timezone: Ref<string>, canAdmin = false) {
     if (showLoader) {
       timeoutId = setTimeout(() => isLoading.value = true, 1000);
     }
+    const requestedDate = date.value;
     try {
       const path = canAdmin ? route("admin.assigned-shifts", formattedDate.value) : route("shifts", formattedDate.value);
 
       const response = await axios.get<App.Data.AvailableShiftsData>(path);
       serverLocations.value = response.data.locations;
       serverDates.value = response.data.shifts;
+      loadedDate.value = requestedDate;
 
       // next two props used in non-admin view
       freeShifts.value = response.data.freeShifts;
@@ -205,6 +209,7 @@ export default function(timezone: Ref<string>, canAdmin = false) {
     emptyShiftsForTime,
     freeShifts,
     isLoading,
+    loadedDate,
     locations,
     maxReservationDate,
     serverDates,
