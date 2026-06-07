@@ -216,4 +216,19 @@ describe("useLocationFilter", () => {
     expect(isSameDay(loadedDate.value, date.value)).toBe(true);
   });
 
+  it("leaves loadedDate untouched when the fetch fails", async () => {
+    vi.setSystemTime(new Date("2025-09-15"));
+    const { date, loadedDate, getShifts } = useLocationFilter(timezone);
+
+    const mockFn = vi.mocked(axios.get);
+    // Set up TWO rejections: one for the watcher's potential call, one for our explicit call
+    mockFn.mockRejectedValueOnce(new Error("network down"));
+    mockFn.mockRejectedValueOnce(new Error("network down"));
+
+    date.value = new Date("2025-09-20T12:00:00");
+
+    await expect(getShifts()).rejects.toThrow("network down");
+    expect(isSameDay(loadedDate.value, date.value)).toBe(false);
+  });
+
 });
