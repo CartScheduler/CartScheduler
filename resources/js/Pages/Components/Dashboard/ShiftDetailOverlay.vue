@@ -54,7 +54,7 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
         </button>
       </header>
 
-      <div class="flex-1 overflow-y-auto overscroll-contain">
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <ComponentSpinner v-if="!isResolved" :show="true" class="h-40" />
         <LocationDetails v-else-if="location"
                          :location="location"
