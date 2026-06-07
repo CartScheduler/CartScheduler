@@ -41,6 +41,7 @@ const renderOverlay = (props: Record<string, unknown> = {}) => render(ShiftDetai
     stubs: {
       // Auto-imported in the app build; not registered in Vitest.
       ComponentSpinner: { template: "<div data-testid='spinner' />" },
+      PButton: { template: "<button><slot /></button>" },
       User: { template: "<div />" },
       EmptySlot: { template: "<div />" },
     },
@@ -52,7 +53,7 @@ describe("ShiftDetailOverlay", () => {
     document.body.style.removeProperty("overflow");
   });
 
-  it("renders the location panel when the location is resolved", () => {
+  it("renders the location title and details when resolved", () => {
     renderOverlay();
 
     screen.getByText("Town Square");
@@ -60,12 +61,14 @@ describe("ShiftDetailOverlay", () => {
     expect(screen.queryByTestId("spinner")).toBeNull();
   });
 
-  it("shows a spinner with a plain-name header while the shift's date is loading", () => {
+  it("shows a spinner with the plain-name header while loading", () => {
     renderOverlay({ location: undefined, isResolved: false });
 
     screen.getByTestId("spinner");
     screen.getByText("Town Square");
     expect(screen.queryByText("Location details unavailable for this date.")).toBeNull();
+    // header close icon is present even while loading (Teleport renders to body, not container)
+    expect(document.body.querySelector("header button[aria-label='Close']")).not.toBeNull();
   });
 
   it("shows a fallback message when the load finished without a match", () => {
@@ -75,14 +78,25 @@ describe("ShiftDetailOverlay", () => {
     expect(screen.queryByTestId("spinner")).toBeNull();
   });
 
-  it("emits close from the back button in every state", async () => {
+  it("emits close from the header close icon", async () => {
+    const { emitted } = renderOverlay();
+
+    // Teleport renders to body, not container
+    const closeIcon = document.body.querySelector("header button");
+    await fireEvent.click(closeIcon as HTMLElement);
+
+    expect(emitted("close")).toHaveLength(1);
+  });
+
+  it("emits close from the footer Close button in every state", async () => {
     const resolved = renderOverlay();
-    await fireEvent.click(screen.getByRole("button", { name: "Back to timeline" }));
+    // Teleport renders to body, not container
+    await fireEvent.click(document.body.querySelector("footer button") as HTMLElement);
     expect(resolved.emitted("close")).toHaveLength(1);
     resolved.unmount();
 
     const loading = renderOverlay({ location: undefined, isResolved: false });
-    await fireEvent.click(screen.getByRole("button", { name: "Back to timeline" }));
+    await fireEvent.click(document.body.querySelector("footer button") as HTMLElement);
     expect(loading.emitted("close")).toHaveLength(1);
     loading.unmount();
   });
