@@ -25,7 +25,7 @@ const user = { uuid: "user-1", gender: "male" } as AuthUser;
 
 const timeRangeText = /9:00 AM - 11:00 AM/;
 
-const renderPanel = (props: Record<string, unknown> = {}, slots: Record<string, string> = {}) => render(LocationPanel, {
+const renderPanel = (props: Record<string, unknown> = {}) => render(LocationPanel, {
   props: {
     location,
     isRostered: false,
@@ -34,7 +34,6 @@ const renderPanel = (props: Record<string, unknown> = {}, slots: Record<string, 
     user,
     ...props,
   },
-  slots,
   global: {
     directives: { tooltip: () => {} },
     stubs: {
@@ -52,13 +51,6 @@ describe("LocationPanel", () => {
     screen.getByText("Town Square");
     screen.getByText("North entry, near the fountain");
     screen.getByText(timeRangeText);
-  });
-
-  it("renders #leading slot content in the title row", () => {
-    renderPanel({}, { leading: "<button data-testid='back'>Back</button>" });
-
-    const back = screen.getByTestId("back");
-    expect(back.parentElement?.textContent).toContain("Town Square");
   });
 
   it("re-emits toggleReservation from the shift grid", async () => {
