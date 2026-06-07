@@ -9,6 +9,7 @@ import useToast from "@/Composables/useToast";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
 import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
+import LocationPanel from "@/Pages/Components/Dashboard/LocationPanel.vue";
 import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
 import { useGlobalState } from "@/store";
@@ -26,6 +27,7 @@ const {
   date,
   freeShifts,
   isLoading,
+  loadedDate,
   locations,
   maxReservationDate,
   serverDates,
@@ -156,6 +158,15 @@ watch(selectedShift, (val) => {
   date.value = val.date;
 });
 
+const selectedLocation = computed(() => locations.value.find((location) => location.id === selectedShift.value?.locationId));
+
+/**
+ * True once the loaded shift data matches the selected date — distinguishes
+ * "still fetching" (spinner) from "genuinely unavailable" (fallback message)
+ * in the shift detail views.
+ */
+const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.value));
+
 const locationRefs = ref<Record<App.Data.LocationData["id"], HTMLElement>>({});
 const setLocationRef = (id: App.Data.LocationData["id"], el: HTMLElement) => {
   locationRefs.value[id] = el;
@@ -242,7 +253,7 @@ debouncedWatch(locations, () => {
                 @after-enter="afterEnter"
                 @before-leave="beforeLeave">
       <div v-if="shiftView === 'list'"
-           class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 sm:h-0 sm:min-h-full"
+           class="grid grid-cols-1 grid-rows-[auto_auto_1fr] gap-2 sm:h-0 sm:min-h-full"
            key="list">
         <PButton size="small"
                  class="shadow-sm"
@@ -256,6 +267,20 @@ debouncedWatch(locations, () => {
                    :marker-dates="serverDates"
                    :locations="locations"
                    @clicked="scrollToLocation($event.locationId)" />
+        <div v-if="selectedShift"
+             class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
+          <LocationPanel v-if="selectedLocation"
+                         :location="selectedLocation"
+                         :is-rostered="userShiftLocations.has(selectedLocation.id)"
+                         :is-restricted="isRestricted"
+                         :date="date"
+                         :user="user"
+                         @toggle-reservation="toggleReservation" />
+          <div v-else-if="isShiftDataResolved" class="p-4 text-neutral-500 dark:text-neutral-300">
+            Location details unavailable for this date.
+          </div>
+          <ComponentSpinner v-else :show="true" class="h-40" />
+        </div>
       </div>
       <div v-else key="calendar" class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
         <div class="grid grid-col grid-cols-1 gap-2 grid-rows-[auto_1fr]">
