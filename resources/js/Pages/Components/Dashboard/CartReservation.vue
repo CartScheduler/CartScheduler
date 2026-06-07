@@ -169,6 +169,22 @@ const selectedLocation = computed(() => locations.value.find((location) => locat
  */
 const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.value));
 
+/**
+ * Identity of the shift currently shown in the detail card. Drives the
+ * card's <Transition> so selecting a different shift fades out→in.
+ */
+const cardKey = computed(() => {
+  const shift = selectedShift.value;
+  return shift ? `${shift.locationId}-${shift.formattedTime}-${shift.formattedDate}` : "none";
+});
+
+/**
+ * Suppress the fade while a refetch is in flight so the spinner appears
+ * instantly; fade only when resolved (details out→in, and spinner→details
+ * once the new day's data lands).
+ */
+const cardTransitionName = computed(() => isShiftDataResolved.value ? "fade" : "");
+
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
@@ -283,17 +299,20 @@ debouncedWatch(locations, () => {
                    @clicked="openShiftDetail" />
         <div v-if="selectedShift"
              class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
-          <LocationPanel v-if="selectedLocation"
-                         :location="selectedLocation"
-                         :is-rostered="userShiftLocations.has(selectedLocation.id)"
-                         :is-restricted="isRestricted"
-                         :date="date"
-                         :user="user"
-                         @toggle-reservation="toggleReservation" />
-          <div v-else-if="isShiftDataResolved" class="p-4 text-neutral-500 dark:text-neutral-300">
-            Location details unavailable for this date.
-          </div>
-          <ComponentSpinner v-else :show="true" class="h-40" />
+          <Transition :name="cardTransitionName" mode="out-in">
+            <ComponentSpinner v-if="!isShiftDataResolved" key="loading" :show="true" class="h-40" />
+            <LocationPanel v-else-if="selectedLocation"
+                           :key="cardKey"
+                           :location="selectedLocation"
+                           :is-rostered="userShiftLocations.has(selectedLocation.id)"
+                           :is-restricted="isRestricted"
+                           :date="date"
+                           :user="user"
+                           @toggle-reservation="toggleReservation" />
+            <div v-else key="fallback" class="p-4 text-neutral-500 dark:text-neutral-300">
+              Location details unavailable for this date.
+            </div>
+          </Transition>
         </div>
       </div>
       <div v-else key="calendar" class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
@@ -363,5 +382,15 @@ debouncedWatch(locations, () => {
 
 .transition-container > div {
     transition: transform var(--timing) ease-out, opacity var(--timing) ease-out;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 150ms ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>
