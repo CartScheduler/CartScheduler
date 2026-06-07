@@ -218,14 +218,13 @@ describe("useLocationFilter", () => {
 
   it("leaves loadedDate untouched when the fetch fails", async () => {
     vi.setSystemTime(new Date("2025-09-15"));
+    // Neutralise the composable's internal date-watcher so its auto-refetch
+    // can't produce an unhandled rejection once axios rejects below.
+    vi.mocked(vue.watch).mockImplementationOnce((() => () => {}) as never);
     const { date, loadedDate, getShifts } = useLocationFilter(timezone);
 
-    const mockFn = vi.mocked(axios.get);
-    // Set up TWO rejections: one for the watcher's potential call, one for our explicit call
-    mockFn.mockRejectedValueOnce(new Error("network down"));
-    mockFn.mockRejectedValueOnce(new Error("network down"));
-
     date.value = new Date("2025-09-20T12:00:00");
+    vi.mocked(axios.get).mockRejectedValueOnce(new Error("network down"));
 
     await expect(getShifts()).rejects.toThrow("network down");
     expect(isSameDay(loadedDate.value, date.value)).toBe(false);
