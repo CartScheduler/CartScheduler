@@ -18,8 +18,8 @@ defineEmits<{
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center text-base font-bold p-2">
+  <div class="flex flex-col gap-4 justify-center items-stretch text-base font-bold p-4">
+    <div class="flex justify-start">
       <slot name="leading" />
       <LocationTitle :location="location"
                      :is-rostered="isRostered"
