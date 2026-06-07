@@ -165,4 +165,28 @@ describe("ShiftList", () => {
     expect(scroller).not.toBeNull();
     expect(scroller?.querySelector("dl")).not.toBeNull();
   });
+
+  it("marks the selected shift as the view-transition morph source", async () => {
+    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
+    await rerender({ markerDates });
+    await nextTick();
+    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
+
+    const { container } = renderShiftList({ modelValue: selected });
+
+    const buttons = container.querySelectorAll("button");
+    expect(buttons[0].classList.contains("shift-detail-morph")).toBe(true);
+    expect(buttons[1].classList.contains("shift-detail-morph")).toBe(false);
+  });
+
+  it("yields the morph source while the overlay owns the transition name", async () => {
+    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
+    await rerender({ markerDates });
+    await nextTick();
+    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
+
+    const { container } = renderShiftList({ modelValue: selected, morphSource: false });
+
+    expect(container.querySelectorAll("button")[0].classList.contains("shift-detail-morph")).toBe(false);
+  });
 });

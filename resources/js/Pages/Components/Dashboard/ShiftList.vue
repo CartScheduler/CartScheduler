@@ -16,9 +16,10 @@ export type ShiftItem = {
   locationId: number;
 };
 
-const { markerDates, locations } = defineProps<{
+const { markerDates, locations, morphSource = true } = defineProps<{
   markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
   locations: Location[] | undefined;
+  morphSource?: boolean;
 }>();
 
 const selectedShift = defineModel<ShiftItem | undefined>({ required: false });
@@ -166,7 +167,7 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
 </script>
 
 <template>
-  <div class="scroll-edge-scope sm:h-0 sm:min-h-full relative sm:pt-0 transition-[padding-top] duration-500
+  <div class="scroll-edge-scope relative sm:pt-0 transition-[padding-top] duration-500
 bg-white dark:bg-sub-panel-dark rounded border std-border"
        :class="[{
          'pt-7': !expandShiftList && isMobile,
@@ -228,6 +229,7 @@ bg-white dark:bg-sub-panel-dark rounded border std-border"
                           isShiftSelected(shift)
                             ? 'selected text-warning dark:text-warning-light border-l-2 border-l-warning dark:border-l-warning-light sm:border-l-0 sm:before:w-0.5 sm:before:bg-warning sm:before:dark:bg-warning-light'
                             : 'sm:before:w-px',
+                          { 'shift-detail-morph': isShiftSelected(shift) && morphSource },
                         ]"
                         @click="selectShift(shift)">
                   <span class="group-hover:font-medium transition-[font-weight] duration-300">
