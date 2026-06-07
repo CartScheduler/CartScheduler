@@ -9,6 +9,7 @@ import useToast from "@/Composables/useToast";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
 import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
+import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
 import { useGlobalState } from "@/store";
 import type { Location } from "@/Composables/useLocationFilter";
@@ -285,24 +286,9 @@ debouncedWatch(locations, () => {
               <template #title>
                 <div :ref="(el) => setLocationRef(location.id,el as HTMLElement)"
                      class="flex items-center text-base font-bold p-2">
-                  <span class="location-name"
-                        :class="[
-                          userShiftLocations.has(location.id)
-                            ? 'text-green-800 dark:text-green-300 border-b-2 border-green-500'
-                            : 'dark:text-gray-200'
-                        ]"
-                        v-tooltip="userShiftLocations.has(location.id) ? 'You have at least one shift' : undefined">
-                    {{ location.name }}
-                  </span>
-                  <div class="flex items-center py-1.5 ml-2 group"
-                       v-if="!isRestricted && location.freeShifts">
-                    <div class="mr-3 ml-1 w-2 h-2 bg-amber-500 rounded-full transition-colors group-hover:bg-amber-600 group-hover:dark:bg-amber-200"></div>
-                    <div class="hidden min-w-5 sm:block">
-                      <div class="overflow-x-hidden w-0 text-sm text-gray-600 whitespace-nowrap transition-[width] group-hover:w-full dark:text-gray-400">
-                        shifts still available
-                      </div>
-                    </div>
-                  </div>
+                  <LocationTitle :location="location"
+                                 :is-rostered="userShiftLocations.has(location.id)"
+                                 :is-restricted="isRestricted" />
                 </div>
               </template>
 
