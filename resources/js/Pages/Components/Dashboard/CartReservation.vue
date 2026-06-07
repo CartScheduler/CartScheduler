@@ -6,11 +6,13 @@ import { format, isSameDay } from "date-fns";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
 import useToast from "@/Composables/useToast";
+import { useViewTransition } from "@/Composables/useViewTransition";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
 import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
 import LocationPanel from "@/Pages/Components/Dashboard/LocationPanel.vue";
 import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
+import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
 import { useGlobalState } from "@/store";
 import type { Location } from "@/Composables/useLocationFilter";
@@ -167,22 +169,33 @@ const selectedLocation = computed(() => locations.value.find((location) => locat
  */
 const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.value));
 
-const locationRefs = ref<Record<App.Data.LocationData["id"], HTMLElement>>({});
-const setLocationRef = (id: App.Data.LocationData["id"], el: HTMLElement) => {
-  locationRefs.value[id] = el;
-};
-
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
-const scrollToLocation = async (itemKey: App.Data.LocationData["id"]) => {
+const isDetailOpen = ref(false);
+const { withViewTransition } = useViewTransition();
+
+const openShiftDetail = () => {
   if (isNotMobile.value) {
     return;
   }
-  const element = locationRefs.value[itemKey];
-
-  element?.scrollIntoView({ behavior: "smooth" });
+  withViewTransition(() => {
+    isDetailOpen.value = true;
+  });
 };
+
+const closeShiftDetail = () => {
+  withViewTransition(() => {
+    isDetailOpen.value = false;
+  });
+};
+
+// A stranded overlay makes no sense once the horizontal timeline takes over.
+watch(isNotMobile, (isDesktop) => {
+  if (isDesktop) {
+    isDetailOpen.value = false;
+  }
+});
 
 let prefersReducedMotion: boolean;
 onMounted(() => {
@@ -266,7 +279,8 @@ debouncedWatch(locations, () => {
         <ShiftList v-model="selectedShift"
                    :marker-dates="serverDates"
                    :locations="locations"
-                   @clicked="scrollToLocation($event.locationId)" />
+                   :morph-source="!isDetailOpen"
+                   @clicked="openShiftDetail" />
         <div v-if="selectedShift"
              class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
           <LocationPanel v-if="selectedLocation"
@@ -309,8 +323,7 @@ debouncedWatch(locations, () => {
                             :unique-id="location.id"
                             :contentTrigger="`${location.id}-${shiftDate}`">
               <template #title>
-                <div :ref="(el) => setLocationRef(location.id,el as HTMLElement)"
-                     class="flex items-center text-base font-bold p-2">
+                <div class="flex items-center text-base font-bold p-2">
                   <LocationTitle :location="location"
                                  :is-rostered="userShiftLocations.has(location.id)"
                                  :is-restricted="isRestricted" />
@@ -327,6 +340,16 @@ debouncedWatch(locations, () => {
         </ComponentSpinner>
       </div>
     </Transition>
+    <ShiftDetailOverlay :show="isDetailOpen"
+                        :shift="selectedShift"
+                        :location="selectedLocation"
+                        :is-resolved="isShiftDataResolved"
+                        :is-rostered="selectedLocation ? userShiftLocations.has(selectedLocation.id) : false"
+                        :is-restricted="isRestricted"
+                        :date="date"
+                        :user="user"
+                        @close="closeShiftDetail"
+                        @toggle-reservation="toggleReservation" />
   </div>
 </template>
 
