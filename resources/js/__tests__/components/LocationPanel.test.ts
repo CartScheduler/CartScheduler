@@ -23,6 +23,8 @@ const location = {
 
 const user = { uuid: "user-1", gender: "male" } as AuthUser;
 
+const timeRangeText = /9:00 AM - 11:00 AM/;
+
 const renderPanel = (props: Record<string, unknown> = {}, slots: Record<string, string> = {}) => render(LocationPanel, {
   props: {
     location,
@@ -49,7 +51,7 @@ describe("LocationPanel", () => {
 
     screen.getByText("Town Square");
     screen.getByText("North entry, near the fountain");
-    screen.getByText(/9:00 AM - 11:00 AM/);
+    screen.getByText(timeRangeText);
   });
 
   it("renders #leading slot content in the title row", () => {
