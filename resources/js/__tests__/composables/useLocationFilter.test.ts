@@ -1,6 +1,6 @@
 import axios from "axios";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isSameDay } from "date-fns";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vue from "vue";
 import { nextTick, ref } from "vue";
 import shifts from "@/__mocked-requests__/shifts.json";
