@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { promiseTimeout } from "@vueuse/core";
-import { computed, watch, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 const { message } = defineProps<{
-  message?: string;
+  message?: string | undefined;
 }>();
 
 const trimmedMessage = computed(() => message?.trim() || undefined);
@@ -36,6 +36,7 @@ watch(trimmedMessage, async (msg) => {
 .error-message-enter-active,
 .error-message-leave-active {
     transition: grid-template-rows 0.25s ease;
+
     > div {
         transition: opacity 0.25s ease;
     }
@@ -52,10 +53,12 @@ watch(trimmedMessage, async (msg) => {
 .error-message-enter-from,
 .error-message-leave-to {
     grid-template-rows: 0fr;
+
     > div {
         opacity: 0;
     }
 }
+
 .error-message-leave-from,
 .error-message-enter-to {
     grid-template-rows: 1fr;
