@@ -19,6 +19,7 @@ declare module 'vue' {
     Bell: typeof import('./../Components/Icons/Bell.vue')['default']
     BoldButton: typeof import('./../Components/EditorToolbar/BoldButton.vue')['default']
     CancelButton: typeof import('./../Components/Form/Buttons/CancelButton.vue')['default']
+    CloseButton: typeof import('./../Components/Form/Buttons/CloseButton.vue')['default']
     CloseCircle: typeof import('./../Components/Icons/CloseCircle.vue')['default']
     Comment: typeof import('./../Components/Icons/Comment.vue')['default']
     ComponentSpinner: typeof import('./../Components/ComponentSpinner.vue')['default']
