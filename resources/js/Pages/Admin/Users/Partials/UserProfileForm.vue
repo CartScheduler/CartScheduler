@@ -179,7 +179,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                         type="text"
                         autocomplete="off"
                         @input="form.validate('name')" />
-            <JetInputError :message="form.errors.name" class="mt-2" />
+            <JetInputError :message="form.errors['name']" class="mt-2" />
           </div>
 
           <!-- Email -->
@@ -190,7 +190,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                         type="email"
                         autocomplete="off"
                         @input="form.validate('email')" />
-            <JetInputError :message="form.errors.email" class="mt-2" />
+            <JetInputError :message="form.errors['email']" class="mt-2" />
           </div>
 
           <!-- Mobile Phone -->
@@ -200,7 +200,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                         v-model="form.mobile_phone"
                         type="tel"
                         @input="form.validate('mobile_phone')" />
-            <JetInputError :message="form.errors.mobile_phone" class="mt-2" />
+            <JetInputError :message="form.errors['mobile_phone']" class="mt-2" />
           </div>
 
           <!-- Birth Year -->
@@ -211,7 +211,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                           :use-grouping="false"
                           :maxFractionDigits="0"
                           @input="form.validate('year_of_birth')" />
-            <JetInputError :message="form.errors.year_of_birth" class="mt-2" />
+            <JetInputError :message="form.errors['year_of_birth']" class="mt-2" />
           </div>
         </div>
 
@@ -230,7 +230,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                        { label: 'Female', value: 'female' },
                      ]"
                      @change="form.validate('gender')" />
-            <JetInputError :message="form.errors.gender" class="mt-2" />
+            <JetInputError :message="form.errors['gender']" class="mt-2" />
           </div>
           <div class="flex flex-col">
             <!-- Appointment -->
@@ -246,7 +246,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                        { label: 'Ministerial Servant', value: 'ministerial servant' },
                        { label: 'Elder', value: 'elder' },
                      ]" />
-            <JetInputError :message="form.errors.appointment" class="mt-2" />
+            <JetInputError :message="form.errors['appointment']" class="mt-2" />
           </div>
           <div class="flex flex-col">
             <!-- Serving As -->
@@ -265,7 +265,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                        { label: 'Bethelite', value: 'bethel family member' },
                        { label: 'Publisher', value: 'publisher' },
                      ]" />
-            <JetInputError :message="form.errors.serving_as" class="mt-2" />
+            <JetInputError :message="form.errors['serving_as']" class="mt-2" />
           </div>
           <div class="flex flex-col">
             <!-- Marital Status -->
@@ -289,7 +289,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                 {{ user.spouse.name }}
               </Link>
             </span>
-            <JetInputError :message="form.errors.marital_status" class="mt-2" />
+            <JetInputError :message="form.errors['marital_status']" class="mt-2" />
           </div>
           <div class="mt-3 sm:col-span-2">
             <!-- Responsible Brother -->
@@ -307,7 +307,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                 trusted to oversee a shift.
               </small>
             </JetLabel>
-            <JetInputError :message="form.errors.responsible_brother" class="mt-2" />
+            <JetInputError :message="form.errors['responsible_brother']" class="mt-2" />
           </div>
         </div>
 
@@ -324,7 +324,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                              { label: 'Restricted', value: false },
                              { label: 'Unrestricted', value: true },
                            ]" />
-            <JetInputError :message="form.errors.is_unrestricted" class="col-span-2 mt-2" />
+            <JetInputError :message="form.errors['is_unrestricted']" class="col-span-2 mt-2" />
             <div class="col-span-2 text-sm">
               <span class="italic font-medium">Restricted users</span>
               cannot self-roster and can only access shifts relevant to them.
@@ -351,7 +351,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                   <span class="italic font-medium">Warning:</span>
                   Assigning an admin role to a user can grant them full access to the system.
                 </div>
-                <JetInputError :message="form.errors.role" class="mt-2" />
+                <JetInputError :message="form.errors['role']" class="mt-2" />
               </template>
             </JetLabel>
           </div>
@@ -368,7 +368,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                              { label: 'Inactive', value: false },
                              { label: 'Active', value: true },
                            ]" />
-            <JetInputError :message="form.errors.is_enabled" class="mt-2" />
+            <JetInputError :message="form.errors['is_enabled']" class="mt-2" />
             <div class="col-span-2 text-sm">
               <span class="italic font-medium">Inactive users</span> cannot log into or interact with the system.
             </div>
