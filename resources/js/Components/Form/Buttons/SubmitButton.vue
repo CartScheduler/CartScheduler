@@ -7,7 +7,7 @@ const { action, label, icon, success = false, failure = false, errors, processin
   icon?: string;
   success?: boolean;
   failure?: boolean;
-  errors?: string | string[] | Record<string, string> | Partial<Record<string, string>>;
+  errors?: string | string[] | Record<string, string>;
   processing?: boolean;
 }>();
 
@@ -54,8 +54,10 @@ const tooltip = computed(() => {
 
   } else if (typeof errors === "object" && Object.keys(errors).length > 0) {
     const keys = Object.keys(errors);
+    const firstKey = keys[0];
+    if (!firstKey) return;
     value = "Oops! The following problems were found: \n\n";
-    value += (errors as Record<string, string>)[keys[0]];
+    value += (errors as Record<string, string>)[firstKey];
     if (keys.length > 1) {
       value += ` and ${keys.length - 1} more problems found.`;
     }
