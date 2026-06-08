@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onUnmounted, watch } from "vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
-import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/ShiftList.vue";
 import type { AuthUser } from "@/types/laravel-request-helpers";
@@ -38,14 +37,10 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
 
 <template>
   <Teleport to="body">
-    <div v-if="show && shift"
-         class="shift-detail-morph fixed inset-0 z-50 flex flex-col bg-white dark:bg-sub-panel-dark">
-      <header class="flex items-center text-base font-bold p-2 border-b std-border shrink-0">
-        <LocationTitle v-if="location"
-                       :location="location"
-                       :is-rostered="isRostered"
-                       :is-restricted="isRestricted" />
-        <span v-else class="dark:text-gray-200">{{ shift.location }}</span>
+    <div v-if="show && shift && location"
+         class="text-gray-800 dark:text-gray-200 shift-detail-morph fixed inset-0 z-50 flex flex-col bg-white dark:bg-sub-panel-dark">
+      <header class="flex items-center text-base font-bold p-6 border-b std-border shrink-0">
+        <h1>{{ shift.location }}</h1>
         <button type="button"
                 class="ms-auto flex items-center"
                 aria-label="Close"
@@ -54,8 +49,8 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
         </button>
       </header>
 
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <ComponentSpinner v-if="!isResolved" :show="true" class="h-40" />
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
+        <ComponentSpinner v-if="!isResolved" :show="true" class="h-full" />
         <LocationDetails v-else-if="location"
                          :location="location"
                          :is-restricted="isRestricted"
@@ -67,10 +62,8 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
         </div>
       </div>
 
-      <footer class="shrink-0 border-t std-border p-2">
-        <PButton severity="secondary" class="w-full" @click="$emit('close')">
-          Close
-        </PButton>
+      <footer class="shrink-0 border-t std-border p-4">
+        <CloseButton class="w-full" @click="$emit('close')"/>
       </footer>
     </div>
   </Teleport>
