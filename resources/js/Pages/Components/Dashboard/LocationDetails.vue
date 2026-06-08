@@ -15,7 +15,7 @@ defineEmits<{
   toggleReservation: [locationId: number, shiftId: number, toggleOn: boolean];
 }>();
 
-const gridCols = {
+const gridCols: Record<Location["max_volunteers"], string> = {
   // See tailwind.config.js
   1: "grid-cols-sm-reservation-1 sm:grid-cols-reservation-1",
   2: "grid-cols-sm-reservation-2 sm:grid-cols-reservation-2",
@@ -42,10 +42,14 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
     <div v-html="location.description"
          class="p-3 pt-0 w-full description dark:text-gray-100"></div>
     <div class="grid gap-x-2 gap-y-2 w-full sm:gap-y-4"
-         :class="gridCols[location.max_volunteers as keyof typeof gridCols]">
-      <template v-for="shift in location.filterShifts" :key="shift.id">
-        <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col">
-          <span>{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>
+         :class="gridCols[location.max_volunteers]">
+      <div v-for="shift in location.filterShifts"
+           :key="shift.id"
+           class="grid grid-cols-subgrid col-span-full
+           group has-[.is-reserved]:outline outline-1 outline-warning/50 dark:outline-warning-light/50 rounded-md">
+        <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col
+             group-has-[.is-reserved]:text-rostered-marker dark:group-has-[.is-reserved]:text-rostered-marker-light">
+          <span class="font-bold">{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>
           <span class="text-xs">{{ relativeDateToNow(date, new Date()) }}</span>
         </div>
         <div v-for="(volunteer, index) in shift.volunteers"
@@ -55,7 +59,7 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
             <template v-if="user.uuid && volunteer.uuid === user.uuid">
               <button v-if="!isRestricted"
                       type="button"
-                      class="block"
+                      class="is-reserved block"
                       @click="$emit('toggleReservation', location.id, shift.id, false)">
                 <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
               </button>
@@ -88,7 +92,7 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
                 <div>{{ volunteer.name }}</div>
                 <div>
                   Ph:
-                  <a :href="`tel:${volunteer.mobile_phone}`">{{ volunteer.mobile_phone }}</a>
+                  <a :href="`tel:${volunteer.mobile_phone}`" class="tabular-nums">{{ volunteer.mobile_phone }}</a>
                 </div>
               </template>
 
@@ -98,7 +102,7 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
             </li>
           </ul>
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
