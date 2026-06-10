@@ -115,6 +115,20 @@ const tableHeaders = computed(() => {
       sortable: false,
     });
   }
+  if (columnFilters.value.lastLocation.value) {
+    headers.push({
+      text: "Last Location",
+      value: "lastLocation",
+      sortable: true,
+    });
+  }
+  if (columnFilters.value.comments.value) {
+    headers.push({
+      text: "Comments",
+      value: "comments",
+      sortable: true,
+    });
+  }
   headers.push({
     text: "Last Shift",
     value: "lastShift",
@@ -161,7 +175,7 @@ const tableRows = computed(() => {
       id: volunteer.id,
       name: `${prefix} ${volunteer.name}`,
       gender: volunteer.gender,
-      comment: volunteer.availability_comments,
+      comments: volunteer.availability_comments,
       lastShift: volunteer.last_shift_date ? volunteer.last_shift_date : null,
       lastShiftTime: volunteer.last_shift_start_time ? volunteer.last_shift_start_time : null,
       filledShifts: calcShiftPercentage(daysAlreadyRostered, daysAvailable),
@@ -171,6 +185,7 @@ const tableRows = computed(() => {
       maritalStatus: volunteer.marital_status,
       birthYear: volunteer.birth_year,
       mobilePhone: volunteer.mobile_phone,
+      lastLocation: volunteer.last_location_name ?? null,
       daysAlreadyRostered,
       daysAvailable,
     };
@@ -309,11 +324,16 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
         {{ header.text }}
       </template>
 
-      <template #item-name="{ name, comment }">
+      <template #item-name="{ name, comments }">
         {{ name }}
-        <div class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
-          <div>{{ comment }}</div>
+        <div v-if="!columnFilters.comments.value && comments"
+             class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
+          <div>{{ comments }}</div>
         </div>
+      </template>
+
+      <template #item-comments="{ comments }">
+        <span class="text-xs italic text-neutral-900 dark:text-neutral-200">{{ comments }}</span>
       </template>
 
       <template #item-responsibleBrother="{ responsibleBrother }">
@@ -335,6 +355,10 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
 
       <template #item-birthYear="{ birthYear }">
         {{ birthYear }}
+      </template>
+
+      <template #item-lastLocation="{ lastLocation }">
+        {{ lastLocation ?? "Never" }}
       </template>
 
       <template #item-mobilePhone="{ mobilePhone }">
