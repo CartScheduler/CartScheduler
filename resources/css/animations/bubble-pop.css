@@ -1,0 +1,111 @@
+@layer components {
+    /* Animates a series of bubbles that explode like confetti */
+    .bubble-pop {
+        --scale: 1;
+        --base-width: 140%;
+        --width: calc(var(--scale) * var(--base-width));
+        --height: calc(var(--scale) * 100%);
+        --left: 50%;
+        --translate: -50%;
+        --delay: 0s;
+    }
+
+    .bubble-pop:before, .bubble-pop:after {
+        position: absolute;
+        content: "";
+        display: block;
+        width: var(--width);
+        height: var(--height);
+        left: var(--left);
+        transform: translateX(var(--translate));
+        z-index: 10;
+        background-repeat: no-repeat;
+    }
+
+    .bubble-pop:before {
+        --top-start-position: 5% 90%, 10% 90%, 10% 90%, 15% 90%, 25% 90%, 25% 90%, 40% 90%, 55% 90%, 70% 90%;
+
+        display: none;
+        top: calc(var(--scale) * -75%);
+        /*noinspection CssInvalidFunction,CssUnresolvedCustomProperty*/
+        background-image: radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%);
+        background-size: 0% 0%;
+        background-position: var(--top-start-position);
+    }
+
+    .bubble-pop:after {
+        --bottom-start-position: 10% -10%, 30% 10%, 55% -10%, 70% -10%, 85% -10%, 70% -10%, 70% 0%;
+
+        display: none;
+        bottom: calc(var(--scale) * -75%);
+        /*noinspection CssInvalidFunction,CssUnresolvedCustomProperty*/
+        background-image: radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%),
+        radial-gradient(circle, var(--color, --p-primary-color) 20%, transparent 20%);
+        background-size: 0% 0%;
+    }
+
+    .bubble-pop.animate:before {
+        display: block;
+        animation: bubble-pop-top ease-in-out 0.75s forwards var(--delay);
+    }
+
+    .bubble-pop.animate:after {
+        display: block;
+        animation: bubble-pop-after ease-in-out 0.75s forwards var(--delay);
+    }
+
+    @keyframes bubble-pop-top {
+        0% {
+            background-position: var(--top-start-position);
+            background-size: calc(var(--scale) * 10%) calc(var(--scale) * 10%),
+            calc(var(--scale) * 20%) calc(var(--scale) * 20%),
+            calc(var(--scale) * 15%) calc(var(--scale) * 15%),
+            calc(var(--scale) * 20%) calc(var(--scale) * 20%),
+            calc(var(--scale) * 18%) calc(var(--scale) * 18%),
+            calc(var(--scale) * 10%) calc(var(--scale) * 10%),
+            calc(var(--scale) * 15%) calc(var(--scale) * 15%),
+            calc(var(--scale) * 10%) calc(var(--scale) * 10%),
+            calc(var(--scale) * 18%) calc(var(--scale) * 18%);
+        }
+        50% {
+            background-position: 0% 80%, 0% 20%, 10% 40%, 20% 0%, 30% 30%, 22% 50%, 50% 50%, 65% 20%, 90% 30%;
+        }
+        100% {
+            background-position: 0% 70%, 0% 10%, 10% 30%, 20% -10%, 30% 20%, 22% 40%, 50% 40%, 65% 10%, 90% 20%;
+            background-size: 0% 0%;
+        }
+    }
+    @keyframes bubble-pop-after {
+        0% {
+            background-position: var(--bottom-start-position);
+            background-size: calc(var(--scale) * 15%) calc(var(--scale) * 15%),
+            calc(var(--scale) * 20%) calc(var(--scale) * 20%),
+            calc(var(--scale) * 18%) calc(var(--scale) * 18%),
+            calc(var(--scale) * 20%) calc(var(--scale) * 20%),
+            calc(var(--scale) * 15%) calc(var(--scale) * 15%),
+            calc(var(--scale) * 10%) calc(var(--scale) * 10%),
+            calc(var(--scale) * 20%) calc(var(--scale) * 20%);
+        }
+        50% {
+            background-position: 0% 80%, 20% 80%, 45% 60%, 60% 100%, 75% 70%, 95% 60%, 105% 0%;
+        }
+        100% {
+            background-position: 0% 90%, 20% 90%, 45% 70%, 60% 110%, 75% 80%, 95% 70%, 110% 10%;
+            background-size: 0% 0%;
+        }
+    }
+
+}

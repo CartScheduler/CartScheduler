@@ -1,63 +1,56 @@
-<script setup>
-//https://github.com/vueform/slider
-import SelectField from "@/Components/SelectField.vue";
+<script setup lang="ts">
 import Slider from "@vueform/slider";
-import {computed} from "vue";
+import { computed } from "vue";
+import { numberOfWeeks } from "@/Composables/useAvailabilityActions";
+import type { FormattedTooltip } from "@/Composables/useAvailabilityActions";
 
-const props = defineProps({
-    hoursEachDay: Array,
-    numberOfDaysPerMonth: Number,
-    start: Number,
-    end: Number,
-    numberOfWeeks: Array,
-    label: String,
-    tooltipFormat: Function,
-});
+const { hoursEachDay, numberOfDaysPerMonth, start, end, label, tooltipFormat } = defineProps<{
+  hoursEachDay: App.Enums.AvailabilityHours[];
+  numberOfDaysPerMonth: number;
+  start: number;
+  end: number;
+  label: string;
+  tooltipFormat: FormattedTooltip;
+}>();
 
 const emit = defineEmits([
-    'update:hoursEachDay',
-    'update:numberOfDaysPerMonth',
+  "update:hoursEachDay",
+  "update:numberOfDaysPerMonth",
 ]);
 
 const hoursEachDayModel = computed({
-    get: () => props.hoursEachDay,
-    set: value => emit('update:hoursEachDay', value),
+  get: () => hoursEachDay,
+  set: (value) => emit("update:hoursEachDay", value),
 });
 
 const numberOfDaysPerMonthModel = computed({
-    get: () => props.numberOfDaysPerMonth,
-    set: value => emit('update:numberOfDaysPerMonth', value),
+  get: () => numberOfDaysPerMonth,
+  set: (value) => emit("update:numberOfDaysPerMonth", value),
 });
+
+const options = Object.entries(numberOfWeeks).map(([value, label]) => ({ value: Number(value), label }));
 </script>
 
 <template>
-    <Transition mode="out-in">
-        <div v-show="numberOfDaysPerMonthModel > 0"
-             class="col-span-2 bg-slate-200 dark:bg-slate-800 p-2 grid self-center">
-            {{ label }}
-        </div>
-    </Transition>
-    <Transition mode="out-in">
-        <SelectField v-show="numberOfDaysPerMonthModel > 0" return-object-value full-width-button
-                     v-model="numberOfDaysPerMonthModel" :options="numberOfWeeks"
-                     class="col-span-3 bg-slate-200 dark:bg-slate-800 p-2 mr-2"/>
-    </Transition>
-    <Transition mode="out-in">
-        <div v-show="numberOfDaysPerMonthModel > 0"
-             class="col-span-7 bg-slate-200 dark:bg-slate-800 p-2 grid items-center pb-6 sm:pb-0 border-b border-gray-500">
-            <Slider v-model="hoursEachDayModel" :min="start" :max="end" :format="tooltipFormat"/>
-        </div>
-    </Transition>
+  <TransitionGroup enter-from-class="opacity-0"
+                   enter-active-class="transition duration-300 ease-in"
+                   enter-to-class="opacity-100"
+                   leave-from-class="opacity-100"
+                   leave-active-class="transition duration-300 ease-in"
+                   leave-to-class="opacity-0">
+    <div v-if="numberOfDaysPerMonthModel > 0" class="col-span-6 bg-transparent lg:col-span-2">
+      {{ label }}
+    </div>
+    <PSelect v-if="numberOfDaysPerMonthModel > 0"
+             v-model="numberOfDaysPerMonthModel"
+             :options
+             option-label="label"
+             option-value="value"
+             class="col-span-6 lg:col-span-4 bg-text-input dark:bg-text-input-dark" />
+    <div v-if="numberOfDaysPerMonthModel > 0"
+         class="grid col-span-12 items-center pb-6 bg-transparent border-b border-gray-500 border-dashed lg:col-span-6 lg:pb-0 lg:border-b-0">
+      <Slider v-model="hoursEachDayModel" range :min="start" :max="end" :format="tooltipFormat" />
+    <!--      <PSlider v-model="hoursEachDayModel" range :min="start" :max="end" :format="tooltipFormat" /> -->
+    </div>
+  </TransitionGroup>
 </template>
-
-<style lang="scss" scoped>
-.v-enter-active,
-.v-leave-active {
-    transition: opacity 0.5s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-    opacity: 0;
-}
-</style>

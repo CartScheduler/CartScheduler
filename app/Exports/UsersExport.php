@@ -19,6 +19,9 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Style;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
+/*******************************************************************************************************************
+ * @see \App\Imports\UsersImport CHANGES IN THIS FILE NEED HERE MAY NEED TO BE REFLECTED HERE
+ *******************************************************************************************************************/
 class UsersExport extends DefaultValueBinder implements
     FromQuery,
     ShouldAutoSize,
@@ -55,7 +58,6 @@ class UsersExport extends DefaultValueBinder implements
 
     /**
      * @param User $row
-     * @return array
      */
     public function map($row): array
     {

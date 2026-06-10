@@ -8,11 +8,7 @@ use Illuminate\Support\Collection;
 
 class ValidateVolunteerIsAllowedToBeRosteredAction
 {
-    // TODO when updating to PHP 8.2, change the return type to `true|string`
-    /**
-     * @return true|string
-     */
-    public function execute(Location $location, User $user, Collection $currentVolunteers): bool | string
+    public function execute(Location $location, User $user, Collection $currentVolunteers): true | string
     {
         if ($location->requires_brother && $user->gender === 'female') {
             $hasBro = $currentVolunteers->contains(fn(User $existingVolunteer) => $existingVolunteer->gender === 'male');

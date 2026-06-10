@@ -1,0 +1,9 @@
+@import "./animations/bubble-pop.css";
+@import "./animations/fade-out-up.css";
+@import "./animations/pop.css";
+
+@layer components {
+    .ease-bounce-in {
+        @apply ease-[linear(0,_0.578_8.3%,_1.01_16.9%,_1.175_21.4%,_1.307_26%,_1.406_30.8%,_1.473_35.8%,_1.503_39.8%,_1.514_44%,_1.507_48.5%,_1.48_53.2%,_1.389_62.3%,_1.158_79.5%,_1.077_86.4%,_1.019_93.6%,_1)];
+    }
+}

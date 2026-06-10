@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\Shift;
 use App\Models\ShiftUser;
 use App\Models\User;
+use App\Models\UserAvailability;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -38,10 +39,16 @@ class UserReservationsTest extends TestCase
 
     public function test_admin_can_get_a_list_of_users(): void
     {
-        $admin      = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-        $users      = User::factory()->userRoleUser()->count(3)->create(['is_enabled' => true]);
+        $admin      = User::factory()->adminRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create(['is_enabled' => true]);
+        $users      = User::factory()->userRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(3)
+            ->create(['is_enabled' => true]);
         $firstUser  = $users->first();
         $secondUser = $users->get(1);
+
 
         $location = Location::factory()->requiresBrother()->create();
 
@@ -50,13 +57,12 @@ class UserReservationsTest extends TestCase
             'location_id' => $location->id,
         ]);
         $date  = '2023-01-03'; // A Tuesday
-
         $shiftId = $shift->id;
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shiftId", ['date' => $date])
             // 4 users in the system. Should have 'available' 4 users returned
-            ->assertJsonCount(4, 'data')
-            ->assertJsonPath('data.1.id', $firstUser->getKey());
+            ->assertJsonCount(4)
+            ->assertJsonPath('1.id', $firstUser->getKey());
 
         // Assign the first user to a shift
         ShiftUser::factory()->create([
@@ -67,8 +73,8 @@ class UserReservationsTest extends TestCase
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shiftId", ['date' => $date])
             // Should now only have 'available' 3 users returned
-            ->assertJsonCount(3, 'data')
-            ->assertJsonMissing(['data.*.id' => $firstUser->getKey()]);
+            ->assertJsonCount(3)
+            ->assertJsonMissing(['*.id' => $firstUser->getKey()]);
 
         //Now test that the returned data doesn't include users who are already assigned to another shift at the same time
         $location = Location::factory()->requiresBrother()->create();
@@ -84,17 +90,28 @@ class UserReservationsTest extends TestCase
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shift2->id", ['date' => $date])
             // Should now only have 'available' 3 users returned
-            ->assertJsonCount(2, 'data')
-            ->assertJsonMissing(['data.*.id' => $firstUser->getKey()])
-            ->assertJsonMissing(['data.*.id' => $secondUser->getKey()]);
+            ->assertJsonCount(2, )
+            ->assertJsonMissing(['*.id' => $firstUser->getKey()])
+            ->assertJsonMissing(['*.id' => $secondUser->getKey()]);
     }
 
     /** Make sure that when a shift is made up of sisters, the last spot returns brothers only. */
     public function test_admin_receives_male_volunteers_when_last_spot_requires_brother_shift(): void
     {
-        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-        User::factory()->male()->count(3)->create(['is_enabled' => true]);
-        $sisters = User::factory()->female()->count(3)->create(['is_enabled' => true]);
+        $admin = User::factory()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->adminRoleUser()
+            ->create(['is_enabled' => true]);
+        User::factory()
+            ->male()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(3)
+            ->create(['is_enabled' => true]);
+        $sisters = User::factory()
+            ->female()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(3)
+            ->create(['is_enabled' => true]);
 
         $this->assertDatabaseCount('users', 7);
 
@@ -120,7 +137,7 @@ class UserReservationsTest extends TestCase
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shiftId", ['date' => $date])
             // 7 users in the system, 1 female assigned. Should have 6 users returned
-            ->assertJsonCount(6, 'data');
+            ->assertJsonCount(6);
 
         // Attach another sister so now no more sisters should be returned on the next request
         ShiftUser::factory()->create([
@@ -132,18 +149,30 @@ class UserReservationsTest extends TestCase
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shiftId", ['date' => $date])
             // Should only have male users returned
-            ->assertJsonCount(4, 'data')
-            ->assertJsonPath('data.0.gender', 'male')
-            ->assertJsonPath('data.1.gender', 'male')
-            ->assertJsonPath('data.2.gender', 'male')
-            ->assertJsonPath('data.3.gender', 'male');
+            ->assertJsonCount(4)
+            ->assertJsonPath('0.gender', 'male')
+            ->assertJsonPath('1.gender', 'male')
+            ->assertJsonPath('2.gender', 'male')
+            ->assertJsonPath('3.gender', 'male');
     }
 
     public function test_list_of_users_doesnt_include_disabled(): void
     {
-        $admin       = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-        $enabledUser = User::factory()->userRoleUser()->count(4)->create(['is_enabled' => true])->get(0);
-        User::factory()->userRoleUser()->count(5)->create(['is_enabled' => false]);
+        $admin       = User::factory()
+            ->adminRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create(['is_enabled' => true]);
+        $enabledUser = User::factory()
+            ->userRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(4)
+            ->create(['is_enabled' => true])
+            ->get(0);
+        User::factory()
+            ->userRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(5)
+            ->create(['is_enabled' => false]);
 
         $this->assertDatabaseCount('users', 10);
 
@@ -159,16 +188,29 @@ class UserReservationsTest extends TestCase
         $this->actingAs($admin)
             ->json('GET', "/admin/available-users-for-shift/$shiftId", ['date' => $date])
             // 10 users in the system but should only have retrieve 5 active users because 5 are disabled
-            ->assertJsonCount(5, 'data')
-            ->assertJsonPath('data.0.id', $admin->getKey())
-            ->assertJsonPath('data.1.id', $enabledUser->getKey());
+            ->assertJsonCount(5)
+            ->assertJsonPath('0.id', $admin->getKey())
+            ->assertJsonPath('1.id', $enabledUser->getKey());
     }
 
     public function test_admin_can_assign_a_user_to_a_shift(): void
     {
-        $admin        = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-        $enabledUser  = User::factory()->userRoleUser()->count(4)->create(['is_enabled' => true])->get(0);
-        $disabledUser = User::factory()->userRoleUser()->count(5)->create(['is_enabled' => false])->get(0);
+        $admin        = User::factory()
+            ->adminRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create(['is_enabled' => true]);
+        $enabledUser  = User::factory()
+            ->userRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(4)
+            ->create(['is_enabled' => true])
+            ->get(0);
+        $disabledUser = User::factory()
+            ->userRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(5)
+            ->create(['is_enabled' => false])
+            ->get(0);
 
         $this->assertDatabaseCount('users', 10);
 
@@ -233,8 +275,15 @@ class UserReservationsTest extends TestCase
 
     public function test_gender_restrictions_are_enforced_on_shift_requiring_a_brother(): void
     {
-        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-        $users = User::factory()->female()->count(3)->create();
+        $admin = User::factory()
+            ->adminRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create(['is_enabled' => true]);
+        $users = User::factory()
+            ->female()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->count(3)
+            ->create();
 
         $this->assertDatabaseCount('users', 4);
 
@@ -285,8 +334,15 @@ class UserReservationsTest extends TestCase
 
     public function test_volunteer_cannot_be_assigned_to_an_overlapping_shift(): void
     {
-        $admin = User::factory()->enabled()->adminRoleUser()->create();
-        $user  = User::factory()->male()->create();
+        $admin = User::factory()
+            ->enabled()
+            ->adminRoleUser()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create();
+        $user  = User::factory()
+            ->male()
+            ->has(UserAvailability::factory()->weekdays9To5(), 'availability')
+            ->create();
 
         $startDate = CarbonImmutable::createFromTimeString('2023-01-15 12:00:00');
         $nextDay   = $startDate->addDay()->toDateString();

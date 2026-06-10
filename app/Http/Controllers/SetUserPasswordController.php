@@ -2,44 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\CheckHashedEmailAddress;
-use App\Interfaces\ObfuscatedErrorCode;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class SetUserPasswordController extends Controller
 {
-    public function __construct(private readonly ObfuscatedErrorCode $errorCodeAction, private readonly CheckHashedEmailAddress $checkHashedEmailAddress)
-    {
-    }
-
     /**
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
      */
-    public function show(User $user, string $hashedEmail): Response|RedirectResponse
+    public function show(User $user, string $token): Response|RedirectResponse
     {
         if (Auth::user()) {
             return Redirect::route('dashboard');
         }
 
+        /** If user already has a password set, send them to the login page so the password cannot be 're-defined' */
         if ($user->password) {
             return Redirect::route('login');
         }
 
-        abort_unless($this->checkHashedEmailAddress->execute($user, $hashedEmail), SymfonyResponse::HTTP_NOT_FOUND);
+        abort_unless(Password::tokenExists($user, $token), \Illuminate\Http\Response::HTTP_NOT_FOUND);
 
         return Inertia::render('Profile/SetPassword', [
-            'editUser'    => ['id' => $user->id, 'name' => $user->name],
-            'hashedEmail' => $hashedEmail,
-            'siteName'    => config('app.name'),
+            'editUser' => ['email' => $user->email, 'name' => $user->name],
+            'token'    => $token,
+            'siteName' => config('app.name'),
         ]);
     }
 
@@ -51,31 +49,42 @@ class SetUserPasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $data = $this->validate($request, [
-            'password_confirmation' => ['required'],
-            'password'              => ['required', 'confirmed'],
-            'hashed_email'          => ['required', 'string'],
-            'user_id'               => ['required', 'integer', 'exists:users,id'],
-        ],
-            [
-                'hashed_email.required' => $this->errorCodeAction->errorCode(100),
-                'hashed_email.string'   => $this->errorCodeAction->errorCode(200),
-                'user_id.required'      => $this->errorCodeAction->errorCode(300),
-                'user_id.integer'       => $this->errorCodeAction->errorCode(400),
-                'user_id.exists'        => $this->errorCodeAction->errorCode(500),
-            ]);
-        $user = User::findOrFail($data['user_id']);
+        $data = $this->validate(
+            request: $request,
+            rules: [
+                'password_confirmation' => ['required'],
+                'password'              => ['required', 'confirmed'],
+                'token'                 => ['required', 'string'],
+                'email'                 => ['required', 'email', 'exists:users,email'],
+            ],
+            messages: [
+                'token.required' => config('cart-scheduler.set_password_generic_error_message') . '(100)',
+                'email.required' => config('cart-scheduler.set_password_generic_error_message') . '(200)',
+            ]
+        );
 
-        abort_unless($this->checkHashedEmailAddress->execute($user, $data['hashed_email']), SymfonyResponse::HTTP_NOT_FOUND);
+        $user = User::where('email', '=', $data['email'])->firstOrFail();
 
+        abort_unless(Password::tokenExists($user, $data['token']), SymfonyResponse::HTTP_NOT_FOUND);
 
-//        if (!Hash::check($user->uuid . $user->email, base64_decode($data['hashed_email']))) {
-//            abort(404);
-//        }
+        $status = Password::reset(
+            credentials: $request->only('email', 'password', 'password_confirmation', 'token'),
+            callback: static function (User $user, string $password) {
+                $user->forceFill([
+                    'password' => Hash::make($password)
+                ])->setRememberToken(Str::random(60));
+
+                $user->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
         $user->update([
             'password' => Hash::make($data['password']),
         ]);
-        session()->flash('flash.setPassword', "Your password has been set. Please use it to log in.");
+
+        session()?->flash('flash.setPassword', "Your password has been set. Please use it to log in.");
         return Redirect::route('login');
     }
 }

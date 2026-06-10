@@ -290,10 +290,26 @@ class ReportsTest extends TestCase
         $this->actingAs($user)
             ->getJson("/get-report-tags")
             ->assertOk()
-            ->assertJsonCount(5, 'data')
-            ->assertJsonPath('data.0.id', $tags[0]->id)
-            ->assertJsonPath('data.0.name', $tags[0]->name)
-            ->assertJsonPath('data.0.sort', $tags[0]->order_column);
+            ->assertJsonCount(5)
+            ->assertJsonPath('0.id', $tags[0]->id)
+            ->assertJsonPath('0.name', $tags[0]->name)
+            ->assertJsonPath('0.order_column', $tags[0]->order_column)
+            ->assertJsonPath('0.order_column', 1)
+            ->assertJsonPath('1.id', $tags[1]->id)
+            ->assertJsonPath('1.name', $tags[1]->name)
+            ->assertJsonPath('1.order_column', $tags[1]->order_column)
+            ->assertJsonPath('1.order_column', 2)
+            ->assertJsonPath('2.id', $tags[2]->id)
+            ->assertJsonPath('2.name', $tags[2]->name)
+            ->assertJsonPath('2.order_column', $tags[2]->order_column)
+            ->assertJsonPath('2.order_column', 3)
+            ->assertJsonPath('3.id', $tags[3]->id)
+            ->assertJsonPath('3.name', $tags[3]->name)
+            ->assertJsonPath('3.order_column', 4)
+            ->assertJsonPath('4.id', $tags[4]->id)
+            ->assertJsonPath('4.name', $tags[4]->name)
+            ->assertJsonPath('4.order_column', 5)
+        ;
     }
 
 }

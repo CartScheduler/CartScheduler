@@ -1,44 +1,43 @@
 <script setup>
-import {computed} from 'vue';
-import EasyDataTable from 'vue3-easy-data-table';
+import { computed } from "vue";
+import EasyDataTable from "vue3-easy-data-table";
 
 const props = defineProps({
-    headers: Array,
-    items: Array,
-    filterOptions: Array,
-    searchField: String,
-    searchValue: String,
-    showHover: {
-        type: Boolean,
-        default: true,
-    },
+  headers: Array,
+  items: Array,
+  filterOptions: Array,
+  searchField: String,
+  searchValue: String,
+  showHover: {
+    type: Boolean,
+    default: true,
+  },
 });
 
-defineEmits(['click-row']);
+defineEmits(["click-row"]);
 
-const cursor = computed(() => props.showHover ? 'pointer' : 'default');
-const rowHoverColor = computed(() => props.showHover ? 'var(--tw-bg-200)' : 'transparent');
+const cursor = computed(() => props.showHover ? "pointer" : "default");
+const rowHoverColor = computed(() => props.showHover ? "var(--tw-bg-200)" : "transparent");
 </script>
 
 <template>
-    <EasyDataTable buttons-pagination
-                   :headers="headers"
-                   :items="items"
-                   :search-field="searchField"
-                   :search-value="searchValue"
-                   :filter-options="filterOptions"
-                   theme-color="rgb(55 65 81)"
-                   table-class-name="data-table"
-                   body-row-class-name="data-table-row"
-                   @click-row="$emit('click-row', $event)">
-        <template v-for="(slot, index) of Object.keys($slots)" :key="index" v-slot:[slot]="data">
-            <slot :name="slot" v-bind="data"></slot>
-        </template>
-
-    </EasyDataTable>
+  <EasyDataTable buttons-pagination
+                 :headers="headers"
+                 :items="items"
+                 :search-field="searchField"
+                 :search-value="searchValue"
+                 :filter-options="filterOptions"
+                 theme-color="rgb(55 65 81)"
+                 table-class-name="data-table"
+                 body-row-class-name="data-table-row"
+                 @click-row="$emit('click-row', $event)">
+    <template v-for="(slot, index) of Object.keys($slots)" :key="index" v-slot:[slot]="data">
+      <slot :name="slot" v-bind="data"></slot>
+    </template>
+  </EasyDataTable>
 </template>
 
-<style lang="scss">
+<style lang="postcss">
 @import 'vue3-easy-data-table/dist/style.css';
 
 .data-table {
@@ -53,7 +52,7 @@ const rowHoverColor = computed(() => props.showHover ? 'var(--tw-bg-200)' : 'tra
 
     --easy-table-body-row-font-size: 1rem;
     --easy-table-row-border: none;
-    --easy-table-body-item-padding: .8rem 15px;
+    --easy-table-body-item-padding: .2rem 1rem;
 
     --easy-table-body-row-background-color: transparent;
     --easy-table-body-row-hover-background-color: v-bind(rowHoverColor);
@@ -131,5 +130,4 @@ const rowHoverColor = computed(() => props.showHover ? 'var(--tw-bg-200)' : 'tra
         }
     }
 }
-
 </style>

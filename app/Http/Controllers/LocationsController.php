@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\LocationAdminData;
 use App\Http\Requests\CreateLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
-use App\Http\Resources\LocationAdminResource;
 use App\Models\Location;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +24,7 @@ class LocationsController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Locations/List', [
-            'locations' => LocationAdminResource::collection(Location::with('shifts')->get()),
+            'locations' => LocationAdminData::collect(Location::with('shifts')->get()),
         ]);
     }
 
@@ -63,9 +63,9 @@ class LocationsController extends Controller
     {
         return Inertia::render('Admin/Locations/Edit', [
             'maxVolunteers' => config('cart-scheduler.max_volunteers_per_location'),
-            'location'       => LocationAdminResource::make($location->load([
+            'location'      => LocationAdminData::from($location->load([
                 'shifts' => function ($query) {
-                    $query->orderBy('start_time', 'asc');
+                    $query->orderBy('start_time');
                 },
             ])),
         ]);
@@ -113,7 +113,7 @@ class LocationsController extends Controller
         $location->delete();
 
         session()->flash('flash.banner', "Location $name successfully deleted.");
-        session()->flash('flash.bannerStyle', 'danger');
+        session()->flash('flash.bannerStyle', 'warn');
 
         return Redirect::route('admin.locations.index');
     }

@@ -1,7 +1,7 @@
 <script setup>
 import JetActionMessage from '@/Jetstream/ActionMessage.vue';
 import JetActionSection from '@/Jetstream/ActionSection.vue';
-import JetButton from '@/Jetstream/Button.vue';
+
 import JetCheckbox from '@/Jetstream/Checkbox.vue';
 import JetConfirmationModal from '@/Jetstream/ConfirmationModal.vue';
 import JetDangerButton from '@/Jetstream/DangerButton.vue';
@@ -118,10 +118,10 @@ const deleteApiToken = () => {
                     Created.
                 </JetActionMessage>
 
-                <JetButton :class="{ 'opacity-25': createApiTokenForm.processing }"
+                <PButton :class="{ 'opacity-25': createApiTokenForm.processing }"
                            :disabled="createApiTokenForm.processing">
                     Create
-                </JetButton>
+                </PButton>
             </template>
         </JetFormSection>
 
@@ -218,14 +218,14 @@ const deleteApiToken = () => {
                     Cancel
                 </JetSecondaryButton>
 
-                <JetButton
+                <PButton
                     class="ml-3"
                     :class="{ 'opacity-25': updateApiTokenForm.processing }"
                     :disabled="updateApiTokenForm.processing"
                     @click="updateApiToken"
                 >
                     Save
-                </JetButton>
+                </PButton>
             </template>
         </JetDialogModal>
 

@@ -8,6 +8,7 @@ use App\Models\Shift;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 use Tests\Traits\SetConfig;
 
@@ -687,9 +688,11 @@ class ReservationsTest extends TestCase
             ->assertJsonCount(2, 'locations')
             ->assertJsonCount(7, 'freeShifts')
             ->assertJsonPath("freeShifts.{$startDate->toDateString()}.volunteer_count", fn(int $val) => $val === 0)
-            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_volunteers", fn(int $val) => $val === 6)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count", fn(int $val) => $val === 4)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_volunteers", fn(int $val) => $val === 6);
+            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_allowed", fn(int $val) => $val === 6)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count",
+                fn(int $val) => $val === 4)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_allowed",
+                fn(int $val) => $val === 6);
 
         // Disable 1 location. The assertions should halve...
         $locations[0]->is_enabled = false;
@@ -700,9 +703,11 @@ class ReservationsTest extends TestCase
             ->assertJsonCount(1, 'locations')
             ->assertJsonCount(7, 'freeShifts')
             ->assertJsonPath("freeShifts.{$startDate->toDateString()}.volunteer_count", fn(int $val) => $val === 0)
-            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_volunteers", fn(int $val) => $val === 3)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count", fn(int $val) => $val === 2)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_volunteers", fn(int $val) => $val === 3);
+            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_allowed", fn(int $val) => $val === 3)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count",
+                fn(int $val) => $val === 2)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_allowed",
+                fn(int $val) => $val === 3);
     }
 
     /**
@@ -713,7 +718,8 @@ class ReservationsTest extends TestCase
      * - The user would not see the location
      * This would happen because the system wasn't comparing dates correctly
      */
-    public function test_user_can_see_locations_that_are_only_displayed_on_limited_days_of_the_week_on_last_day_of_period(): void
+    public function test_user_can_see_locations_that_are_only_displayed_on_limited_days_of_the_week_on_last_day_of_period(
+    ): void
     {
         $this->setConfig(1, DBPeriod::Month, false, 'MON', '12:00');
 
@@ -789,9 +795,11 @@ class ReservationsTest extends TestCase
             ->assertJsonCount(1, 'locations.1.shifts')
             ->assertJsonCount(7, 'freeShifts')
             ->assertJsonPath("freeShifts.{$startDate->toDateString()}.volunteer_count", fn(int $val) => $val === 0)
-            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_volunteers", fn(int $val) => $val === 6)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count", fn(int $val) => $val === 4)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_volunteers", fn(int $val) => $val === 6);
+            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_allowed", fn(int $val) => $val === 6)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count",
+                fn(int $val) => $val === 4)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_allowed",
+                fn(int $val) => $val === 6);
 
         // Disable 1 location. The assertions should halve...
         $locations[0]->shifts[0]->is_enabled = false;
@@ -805,10 +813,11 @@ class ReservationsTest extends TestCase
             ->assertJsonCount(1, 'locations.1.shifts')
             ->assertJsonCount(7, 'freeShifts')
             ->assertJsonPath("freeShifts.{$startDate->toDateString()}.volunteer_count", fn(int $val) => $val === 0)
-            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_volunteers", fn(int $val) => $val === 3)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count", fn(int $val) => $val === 2)
-            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_volunteers", fn(int $val) => $val === 3);
-
+            ->assertJsonPath("freeShifts.{$startDate->toDateString()}.max_allowed", fn(int $val) => $val === 3)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.volunteer_count",
+                fn(int $val) => $val === 2)
+            ->assertJsonPath("freeShifts.{$startDate->addDay()->toDateString()}.max_allowed",
+                fn(int $val) => $val === 3);
     }
 
     public function test_user_cannot_reserve_daily_released_shifts_beyond_month(): void
@@ -946,7 +955,8 @@ class ReservationsTest extends TestCase
             ->assertContent('Reservation made');
     }
 
-    public function test_user_cannot_reserve_period_shifts_released_shifts_beyond_allowed_time_with_monthly_release(): void
+    public function test_user_cannot_reserve_period_shifts_released_shifts_beyond_allowed_time_with_monthly_release(
+    ): void
     {
         $this->setConfig(1, DBPeriod::Month, false, null, '00:00');
 
@@ -1087,14 +1097,26 @@ class ReservationsTest extends TestCase
             ->getJson("/shifts/$date")
             ->assertOk()
             ->assertJsonCount($users->count(), 'locations.0.shifts.0.volunteers')
-            ->assertJsonFragment(['name' => $users[0]->name, 'mobile_phone' => $users[0]->mobile_phone, 'id' => $users[0]->id])
+            ->assertJsonFragment([
+                'name' => $users[0]->name, 'mobile_phone' => $users[0]->mobile_phone, 'uuid' => $users[0]->uuid
+            ])
             ->assertJsonFragment(['name' => $users[1]->name, 'mobile_phone' => $users[1]->mobile_phone])
             ->assertJsonFragment(['name' => $users[2]->name, 'mobile_phone' => $users[2]->mobile_phone])
             ->assertJsonFragment(['name' => $users[3]->name, 'mobile_phone' => $users[3]->mobile_phone])
+            // Make sure we're not leaking non-needed data
+            ->tap(fn(TestResponse $response) => $response->assertExactJsonStructure(
+                structure: [
+                    '*' => [
+                        'name',
+                        'uuid',
+                        'gender',
+                        'mobile_phone'
+                    ]
+                ],
+                responseData: $response->json('locations.0.shifts.0.volunteers'),
+            ))
             ->assertJsonMissingPath('locations.0.shifts.0.volunteers.1.id')
-            ->assertJsonMissingPath('locations.0.shifts.0.volunteers.2.id')
-            ->assertJsonMissingPath('locations.0.shifts.0.volunteers.1.email')
-            ->assertJsonMissingPath('locations.0.shifts.0.volunteers.2.email');
+            ->assertJsonMissingPath('locations.0.shifts.0.volunteers.2.id');
     }
 
     public function test_remove_volunteer_when_not_attached_to_shift(): void

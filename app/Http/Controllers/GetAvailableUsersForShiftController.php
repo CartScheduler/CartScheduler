@@ -3,13 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\GetAvailableUsersForShift;
-use App\Http\Resources\ExtendedUserResource;
+use App\Data\ExtendedUserData;
 use App\Models\Shift;
 use Illuminate\Http\Request;
 
 class GetAvailableUsersForShiftController extends Controller
 {
-
     public function __construct(private readonly GetAvailableUsersForShift $getUsersForShift)
     {
     }
@@ -25,7 +24,7 @@ class GetAvailableUsersForShiftController extends Controller
             'showOnlyMinisterialServants' => ['nullable', 'boolean'],
         ]);
 
-        return ExtendedUserResource::collection(
+        return ExtendedUserData::collect(
             $this->getUsersForShift->execute(
                 shift: $shift,
                 date: $request->date('date'),

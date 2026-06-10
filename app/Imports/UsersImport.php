@@ -2,40 +2,57 @@
 
 namespace App\Imports;
 
-use App\Actions\GetUserValidationPreparations;
-use App\Enums\Appontment;
-use App\Enums\MaritalStatus;
-use App\Enums\ServingAs;
+use App\Actions\GetUserValidationUtils;
+use App\Enums\Role;
+use App\Mail\UserAccountCreated;
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Exception;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator;
 use Maatwebsite\Excel\Concerns\OnEachRow;
-use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Row;
+use Maatwebsite\Excel\Validators\Failure;
 
-class UsersImport implements WithHeadingRow, WithValidation, WithBatchInserts, OnEachRow
+/*******************************************************************************************************************
+ * @see \App\Exports\UsersExport CHANGES IN THIS FILE NEED HERE MAY NEED TO BE REFLECTED HERE
+ *******************************************************************************************************************/
+class UsersImport implements
+    /**
+     * @uses \Maatwebsite\Excel\Concerns\OnEachRow in place of  {@see \Maatwebsite\Excel\Concerns\ToModel}
+     * @link https://docs.laravel-excel.com/3.1/imports/model.html#handling-persistence-on-your-own
+     */
+    OnEachRow,
+    WithHeadingRow,
+    WithValidation,
+    SkipsOnFailure
+
 {
+    use SkipsFailures {
+        onFailure as attachFailure;
+    }
+
     private int $createCount = 0;
     private int $updateCount = 0;
+    private int $failureCount = 0;
 
-    /*******************************************************************************************************************
-     *******************************************************************************************************************
-     * @param Row $row Each row in the spreadsheet
-     *
-     * @see \App\Exports\UsersExport CHANGES IN THIS FILE NEED HERE MAY NEED TO BE REFLECTED HERE
-     */
+    public function __construct(private readonly GetUserValidationUtils $validationUtils)
+    {
+    }
 
     public function onRow(Row $row): void
     {
         $rowData = $row->toArray();
 
-        /**
-         * @noinspection PhpIssetCanBeReplacedWithCoalesceInspection
-         * @noinspection NullCoalescingOperatorCanBeUsedInspection
-         */
         $data = [
             'name'                => $rowData['name'],
             'email'               => $rowData['email'],
@@ -54,48 +71,58 @@ class UsersImport implements WithHeadingRow, WithValidation, WithBatchInserts, O
         if ($user) {
             $user->update($data);
             ++$this->updateCount;
-
         } else {
             $data['uuid']     = Str::uuid();
             $data['password'] = null;
-            $user             = User::create($data);
+            // Create the user quietly (by default, User::create() sends a welcome email. Then, only send the welcome
+            // email after the transaction is committed.
+            $user             = User::createQuietly($data);
             $user->availability()->create();
+            DB::afterCommit(static function () use ($user) {
+                User::sendWelcomeEmail($user);
+                User::attachSpouse($user);
+            });
             ++$this->createCount;
         }
     }
 
+    public function onFailure(Failure ...$failures): void
+    {
+        ++$this->failureCount;
+        $this->attachFailure(...$failures);
+    }
+
+    public function prepareForValidation(array $data, int $index): array
+    {
+        $data['role'] = Role::User->value;
+
+        return app()->make(GetUserValidationUtils::class)->prepare($data);
+    }
+
     public function rules(): array
     {
-        return [
-            'name'                => ['required', 'string', 'max:255'],
-            'email'               => ['required', 'email'],
-            'mobile_phone'        => ['required', 'string', 'regex:/^([0-9\+\-\s]+)$/', 'min:8', 'max:15'],
-            'gender'              => ['required', 'in:male,female,m,f'],
-            'year_of_birth'       => ['nullable', 'integer', 'min:' . Carbon::now()->year - 100, 'max:' . Carbon::now()->year],
-            'appointment'         => ['nullable', 'string', new Enum(Appontment::class)],
-            'serving_as'          => ['nullable', 'string', new Enum(ServingAs::class)],
-            'marital_status'      => ['nullable', 'string', new Enum(MaritalStatus::class)],
-            'spouse_email'        => ['nullable', 'email'],
-            'spouse_id'           => ['nullable', 'exists:users,id'],
-            'responsible_brother' => ['nullable', 'boolean'],
-            'is_unrestricted'     => ['nullable', 'boolean'],
-        ];
+        $rules = $this->validationUtils->rules();
+
+        $rules['spouse_email'] = ['nullable', 'email'];
+        $rules['spouse_id']    = ['nullable', 'exists:users,id'];
+
+        return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $data = $validator->getData();
+        $key  = key($data);
+        $data = current($data);
+
+        $validator->after(
+            $this->validationUtils->extraValidation(false, $key, $data)
+        );
     }
 
     private function tidyNullableData(?string $datum): ?string
     {
         return (!$datum || !trim($datum)) ? null : $datum;
-    }
-
-    /**
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
-     * @noinspection PhpUnusedParameterInspection
-     */
-    public function prepareForValidation(array $data, int $index): array
-    {
-        $getUserValidationPreparations = app()->make(GetUserValidationPreparations::class);
-
-        return $getUserValidationPreparations->execute($data);
     }
 
     public function headingRow(): int
@@ -113,8 +140,36 @@ class UsersImport implements WithHeadingRow, WithValidation, WithBatchInserts, O
         return $this->updateCount;
     }
 
-    public function batchSize(): int
+    /**
+     * @throws ValidationException
+     */
+    public static function importUploadedFiles(UploadedFile $files): self
     {
-        return 1000;
+        /**
+         * We're handling transactions manually, so disable LaravelExcel transaction handler
+         * @link https://docs.laravel-excel.com/3.1/imports/validation.html#disable-transactions
+         */
+        Config::set('excel.transactions.handler', 'null');
+        try {
+            DB::beginTransaction();
+            $import = app()->make(__CLASS__);
+            Excel::import($import, $files);
+            if ($import->failures() && $import->failures()->count()) {
+                $failures = $import->failures();
+                throw ValidationException::withMessages(
+                    $failures->map(
+                        fn(Failure $failure) => collect($failure->errors())
+                            ->map(fn($error) => __(
+                                'Row :row - :message', ['row' => $failure->row(), 'message' => $error])
+                            )
+                    )->toArray()
+                );
+            }
+            DB::commit();
+            return $import;
+        } catch (Exception $exception) {
+            DB::rollBack();
+            throw $exception;
+        }
     }
 }

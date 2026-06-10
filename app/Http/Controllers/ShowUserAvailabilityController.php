@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\AvailabilityResource;
-use App\Http\Resources\UserVacationResource;
+use App\Data\AvailabilityData;
+use App\Data\UserVacationData;
 use App\Models\UserAvailability;
 use App\Settings\GeneralSettings;
 use Illuminate\Http\Request;
@@ -28,11 +28,11 @@ class ShowUserAvailabilityController extends Controller
         $user = $request->user();
         $this->authorize('view', $user);
 
-        $availability = UserAvailability::firstOrCreate(['user_id' => $user->id])->refresh(); // refresh(), otherwise, the we get incomplete data
+        $availability = UserAvailability::firstOrCreate(['user_id' => $user->id])->refresh(); // refresh(), otherwise, we get incomplete data
 
         return Inertia::render('Profile/ShowAvailability', [
-            'vacations'         => UserVacationResource::collection($user->vacations->all()),
-            'availability'      => AvailabilityResource::make($availability),
+            'vacations'         => UserVacationData::collect($user->vacations->all()),
+            'availability'      => AvailabilityData::from($availability),
             'selectedLocations' => $user->rosterLocations->pluck('id'),
         ]);
     }

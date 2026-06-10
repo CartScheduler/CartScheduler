@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 
+/**
+ * Not used at this time
+ * @codeCoverageIgnore
+ */
 class CreateNewUser implements CreatesNewUsers
 {
     use PasswordValidationRules;

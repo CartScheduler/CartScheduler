@@ -1,0 +1,16 @@
+@layer components {
+    .fade-out-up {
+        animation: fade-out-up 1500ms ease-out both infinite;
+    }
+
+    @keyframes fade-out-up {
+        0% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+}

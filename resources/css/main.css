@@ -1,0 +1,65 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@import "calendar.css";
+@import "range-slider.css";
+@import "components.css";
+@import "animations.css";
+@import "@static-fonts/inter/inter.css";
+
+@layer tailwind-base, primevue, tailwind-utilities, overrides;
+
+@layer tailwind-base {
+    @tailwind base;
+}
+
+@layer tailwind-utilities {
+    @tailwind components;
+    @tailwind utilities;
+}
+
+@layer overrides {
+    h1 {
+        @apply font-bold text-3xl;
+    }
+
+    h2 {
+        @apply font-semibold text-3xl;
+    }
+
+    h3 {
+        @apply font-semibold text-2xl;
+    }
+
+    h4 {
+        @apply font-semibold text-xl;
+    }
+
+    h5 {
+        @apply font-semibold text-lg;
+    }
+
+    h6 {
+        @apply font-semibold text-sm;
+    }
+
+    a {
+        @apply font-medium;
+        @apply text-info;
+        @apply dark:text-info-light;
+        @apply hover:underline;
+        @apply hover:text-blue-900;
+        @apply hover:dark:text-blue-400;
+        @apply decoration-dotted;
+    }
+
+    .p-dialog-mask {
+        backdrop-filter: blur(5px);
+    }
+}
+
+:root {
+    /* Modern browsers to allow for dynamic resizing */
+    interpolate-size: allow-keywords;
+}

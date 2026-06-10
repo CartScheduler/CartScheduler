@@ -184,7 +184,7 @@ class GeneralSettingsTest extends TestCase
         $this->actingAs($admin)
             ->postJson("/admin/do-update")
             ->assertStreamed()
-            ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+            ->assertHeader('Content-Type', 'text/plain; charset=utf-8')
             ->assertHeader('X-Accel-Buffering', 'no')
             ->assertHeader('Cache-Control', 'no-cache, private')
             ->assertStreamedContent("Running Software Update... (Version: v0.0.5).\nNOTE: THIS MAY TAKE A WHILE...\nSome test data\n")

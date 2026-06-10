@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * @codeCoverageIgnore
  * @deprecated This class has unintended consequences.
  */
 class ShiftUpdated

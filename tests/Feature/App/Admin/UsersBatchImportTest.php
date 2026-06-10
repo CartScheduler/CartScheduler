@@ -6,9 +6,16 @@ use App\Exports\UsersExport;
 use App\Mail\UserAccountCreated;
 use App\Models\User;
 use App\Settings\GeneralSettings;
+use DB;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Database\Events\TransactionBeginning;
+use Illuminate\Database\Events\TransactionCommitted;
+use Illuminate\Database\Events\TransactionCommitting;
+use Illuminate\Database\Events\TransactionRolledBack;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -68,8 +75,10 @@ class UsersBatchImportTest extends TestCase
     public function test_admin_batch_import_handles_failed_validation_properly(): void
     {
         $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
+        $this->assertDatabaseCount('users', 1);
 
         Mail::fake();
+
         $this->travelTo('2024-06-01');
         $this->actingAs($admin)
             ->postJson("/admin/users/import",
@@ -82,16 +91,18 @@ class UsersBatchImportTest extends TestCase
             )
             ->assertUnprocessable()
             ->assertJsonFragment(['errors' => [
-                ['There was an error on row 3. The year_of_birth field must be at least 1924.'],
-                ['There was an error on row 3. The selected serving_as is invalid.'],
-                ['There was an error on row 3. The selected marital_status is invalid.'],
-                ['There was an error on row 3. The responsible_brother field must be true or false.'],
-                ['There was an error on row 3. The is_unrestricted field must be true or false.'],
+                ['Row 3 - The year_of_birth field must be at least 1924.'],
+                ['Row 3 - The selected serving_as is invalid.'],
+                ['Row 3 - The selected marital_status is invalid.'],
+                ['Row 3 - The responsible_brother field must be true or false.'],
+                ['Row 3 - The is_unrestricted field must be true or false.'],
+                ['Row 4 - The selected serving_as is invalid.'],
+                ['Row 4 - The year_of_birth field must be at least 1924.'],
             ]]);
 
         $this->assertDatabaseCount('users', 1);
 
-        Mail::assertNothingSent();
+        Mail::assertNothingOutgoing();
     }
 
     public function test_admin_batch_import_handles_duplicate_users_properly(): void

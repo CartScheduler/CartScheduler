@@ -53,7 +53,7 @@ class GetAvailableShiftsCountTest extends TestCase
         $this->assertArrayHasKey($endDate, $result);
         $first = $result[$startDate];
         $this->assertEquals(0, $first['volunteer_count']);
-        $this->assertEquals(12, $first['max_volunteers']);
+        $this->assertEquals(12, $first['max_allowed']);
         $this->assertTrue($first['has_availability']);
 
         // Add 2 volunteers to the first shift and check the count
@@ -66,7 +66,7 @@ class GetAvailableShiftsCountTest extends TestCase
         $result = $this->getAvailableShiftsCount->execute($startDate, $endDate)->toArray();
         $first  = $result[$startDate];
         $this->assertEquals(2, $first['volunteer_count']);
-        $this->assertEquals(12, $first['max_volunteers']);
+        $this->assertEquals(12, $first['max_allowed']);
         $this->assertTrue($first['has_availability']);
     }
 
@@ -79,7 +79,7 @@ class GetAvailableShiftsCountTest extends TestCase
         );
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
-        $this->assertEquals(3, $result['2022-10-01']['max_volunteers']);
+        $this->assertEquals(3, $result['2022-10-01']['max_allowed']);
     }
 
     public function test_inactive_shifts_dont_show(): void
@@ -97,7 +97,7 @@ class GetAvailableShiftsCountTest extends TestCase
         $this->assertCount(3, $shifts);
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
-        $this->assertEquals(6, $result['2022-10-01']['max_volunteers']);
+        $this->assertEquals(6, $result['2022-10-01']['max_allowed']);
     }
 
     public function test_only_shifts_between_available_dates_show(): void
@@ -111,11 +111,11 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
         // Between 1oct and 9oct, 6 shifts are available
-        $this->assertEquals(6, $result['2022-10-05']['max_volunteers']);
+        $this->assertEquals(6, $result['2022-10-05']['max_allowed']);
         // Between 10oct and 20oct, 9 shifts are available
-        $this->assertEquals(9, $result['2022-10-15']['max_volunteers']);
+        $this->assertEquals(9, $result['2022-10-15']['max_allowed']);
         // After 20oct, only 6 shifts are available
-        $this->assertEquals(6, $result['2022-10-25']['max_volunteers']);
+        $this->assertEquals(6, $result['2022-10-25']['max_allowed']);
     }
 
     public function test_shifts_not_available_dont_show(): void
@@ -129,7 +129,7 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute($startDate, $endDate)->toArray();
 
-        $this->assertEquals(0, $result['2022-10-01']['max_volunteers']);
+        $this->assertEquals(0, $result['2022-10-01']['max_allowed']);
     }
 
     public function test_only_shifts_on_available_from_show(): void
@@ -140,8 +140,8 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
 
-        $this->assertEquals(0, $result['2022-10-14']['max_volunteers']);
-        $this->assertEquals(3, $result['2022-10-15']['max_volunteers']);
+        $this->assertEquals(0, $result['2022-10-14']['max_allowed']);
+        $this->assertEquals(3, $result['2022-10-15']['max_allowed']);
     }
 
     public function test_only_shifts_after_available_from_with_no_available_to_show(): void
@@ -152,7 +152,7 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
 
-        $this->assertEquals(3, $result['2022-10-15']['max_volunteers']);
+        $this->assertEquals(3, $result['2022-10-15']['max_allowed']);
     }
 
     public function test_only_shifts_on_available_to_show(): void
@@ -163,8 +163,8 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
 
-        $this->assertEquals(3, $result['2022-10-15']['max_volunteers']);
-        $this->assertEquals(0, $result['2022-10-16']['max_volunteers']);
+        $this->assertEquals(3, $result['2022-10-15']['max_allowed']);
+        $this->assertEquals(0, $result['2022-10-16']['max_allowed']);
     }
 
     public function test_only_shifts_before_available_to_with_no_available_from_show(): void
@@ -175,7 +175,7 @@ class GetAvailableShiftsCountTest extends TestCase
 
         $result = $this->getAvailableShiftsCount->execute('2022-10-01', '2022-10-31')->toArray();
 
-        $this->assertEquals(3, $result['2022-10-15']['max_volunteers']);
+        $this->assertEquals(3, $result['2022-10-15']['max_allowed']);
 
     }
 

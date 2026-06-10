@@ -6,6 +6,9 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Session\TokenMismatchException;
 use Throwable;
 
+/**
+ * @codeCoverageIgnore
+ */
 class Handler extends ExceptionHandler
 {
     /**

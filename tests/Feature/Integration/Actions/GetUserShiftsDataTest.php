@@ -73,27 +73,28 @@ class GetUserShiftsDataTest extends TestCase
 
         $userShifts = $this->getUserShiftsData->execute('2023-10-01', '2023-10-31', $user);
         $this->assertCount(4, $userShifts);
-
         $userShiftIterator = $userShifts->getIterator();
         $index             = 0;
+
         while ($userShiftIterator->valid()) {
             $userShift = $userShiftIterator->current();
             $dateKey   = $userShiftIterator->key();
             $location  = $index++ % 2 === 0 ? $locations[0] : $locations[1];
             $shift     = $location->shifts[0];
 
+            /** @var \App\Data\UserShiftData $userShiftData */
             $userShiftData = $userShift->get($shift->getKey())->get(0);
 
             $this->assertArrayHasKey($dateKey, $userShifts);
-            $this->assertSame($user->id, $userShiftData['volunteer_id']);
-            $this->assertSame($dateKey, $userShiftData['date_group']);
-            $this->assertTrue(Carbon::parse($dateKey)->isSameDay($userShiftData['date_group']));
-            $this->assertSame($shift->id, $userShiftData['shift_id']);
-            $this->assertSame('09:00:00', $userShiftData['start_time']);
-            $this->assertSame($location->getKey(), $userShiftData['location_id']);
-            $this->assertSame($location->max_volunteers, $userShiftData['max_volunteers']);
-            $this->assertSame($shift->available_from, $userShiftData['available_from']);
-            $this->assertSame($shift->available_to, $userShiftData['available_to']);
+            $this->assertSame($user->id, $userShiftData->volunteer_id);
+            $this->assertSame($dateKey, $userShiftData->shift_date->toDateString());
+            $this->assertTrue(Carbon::parse($dateKey)->isSameDay($userShiftData->shift_date));
+            $this->assertSame($shift->id, $userShiftData->shift_id);
+            $this->assertSame('09:00:00', $userShiftData->start_time);
+            $this->assertSame($location->getKey(), $userShiftData->location_id);
+            $this->assertSame($location->max_volunteers, $userShiftData->max_volunteers);
+            $this->assertSame($shift->available_from, $userShiftData->available_from);
+            $this->assertSame($shift->available_to, $userShiftData->available_to);
 
             $userShiftIterator->next();
         }

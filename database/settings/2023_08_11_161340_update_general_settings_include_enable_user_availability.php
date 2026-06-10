@@ -8,7 +8,7 @@ return new class extends SettingsMigration
     public function up(): void
     {
         $this->migrator->inGroup('general', function (SettingsBlueprint $blueprint): void {
-            $blueprint->add('enableUserAvailability', false);
+            $blueprint->add('enableUserAvailability', true);
         });
     }
 };

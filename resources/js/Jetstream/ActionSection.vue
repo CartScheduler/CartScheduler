@@ -1,21 +1,23 @@
 <script setup>
-import JetSectionTitle from './SectionTitle.vue';</script>
+import JetSectionTitle from "./SectionTitle.vue";
+</script>
 
 <template>
-    <div class="md:grid md:grid-cols-3 md:gap-6">
-        <JetSectionTitle>
-            <template #title>
-                <slot name="title"/>
-            </template>
-            <template #description>
-                <slot name="description"/>
-            </template>
-        </JetSectionTitle>
+  <div class="md:grid md:grid-cols-3 md:gap-6">
+    <JetSectionTitle>
+      <template #title>
+        <slot name="title"/>
+      </template>
 
-        <div class="mt-5 md:mt-0 md:col-span-2">
-            <div class="px-4 py-5 bg-white dark:bg-slate-900 sm:p-6 shadow">
-                <slot name="content"/>
-            </div>
-        </div>
+      <template #description>
+        <slot name="description"/>
+      </template>
+    </JetSectionTitle>
+
+    <div class="mt-5 md:mt-0 md:col-span-2">
+      <div class="px-4 py-5 bg-panel dark:bg-panel-dark sm:p-6 shadow">
+        <slot name="content"/>
+      </div>
     </div>
+  </div>
 </template>

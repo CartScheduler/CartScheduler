@@ -5,7 +5,7 @@ namespace Tests\Feature\App;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Password;
 use Inertia\Testing\AssertableInertia;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
@@ -16,16 +16,18 @@ class SetUserPasswordTest extends TestCase
 
     public function test_visitor_can_see_set_password_page(): void
     {
-        $user        = User::factory()->enabled()->state(['password' => null])->create();
-        $hashedEmail = base64_encode(Hash::make($user->uuid . $user->email));
+        $user  = User::factory()->enabled()->state(['password' => null])->create();
+        $token = Password::createToken($user);
 
-        $this->get("/set-password/$user->id/$hashedEmail")
+        $this->get("/set-password/$user->id/$token")
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Profile/SetPassword')
                 ->has('editUser', fn(AssertableInertia $data) => $data
-                    ->where('id', $user->id)
+                    ->where('email', $user->email)
                     ->where('name', $user->name)
                 )
+                ->where('token', $token)
+                ->where('siteName', config('app.name'))
             )
             ->assertOk();
     }
@@ -59,14 +61,14 @@ class SetUserPasswordTest extends TestCase
 
     public function test_visitor_can_set_password(): void
     {
-        $user        = User::factory()->enabled()->state(['password' => null])->create();
-        $hashedEmail = base64_encode(Hash::make($user->uuid . $user->email));
+        $user  = User::factory()->enabled()->state(['password' => null])->create();
+        $token = Password::createToken($user);
 
         $this->post("/set-password", [
             'password_confirmation' => 'password',
             'password'              => 'password',
-            'hashed_email'          => $hashedEmail,
-            'user_id'               => $user->id,
+            'token'                 => $token,
+            'email'                 => $user->email,
         ])
             ->assertRedirect('/login')
             ->assertSessionHas('flash.setPassword', "Your password has been set. Please use it to log in.");
@@ -84,28 +86,9 @@ class SetUserPasswordTest extends TestCase
             ->assertRedirect()
             ->assertInvalid([
                 'password',
-                'hashed_email' => $this->makeErrorCode(100),
-                'user_id'      => $this->makeErrorCode(300),
+                'token' => config('cart-scheduler.set_password_generic_error_message') . '(100)',
+                'email' => config('cart-scheduler.set_password_generic_error_message') . '(200)',
             ]);
-
-        $this->post("/set-password", [
-            'password_confirmation' => 'password',
-            'password'              => 'password',
-            'hashed_email'          => 123456789,
-            'user_id'               => 999999999,
-        ])
-            ->assertRedirect()
-            ->assertInvalid([
-                'hashed_email' => $this->makeErrorCode(200), 'user_id' => $this->makeErrorCode(500),
-            ]);
-
-        $this->post("/set-password", [
-            'password'     => 'password',
-            'hashed_email' => 'xyz',
-            'user_id'      => 'hi',
-        ])
-            ->assertRedirect()
-            ->assertInvalid(['password_confirmation', 'password', 'user_id' => $this->makeErrorCode(400)]);
     }
 
     public function test_invalid_hashed_email_fails_properly(): void
@@ -117,18 +100,9 @@ class SetUserPasswordTest extends TestCase
             ->post("/set-password", [
                 'password_confirmation' => 'password',
                 'password'              => 'password',
-                'hashed_email'          => base64_encode('mock-text'),
-                'user_id'               => $user->id,
+                'token'                 => base64_encode('mock-text'),
+                'email'                 => $user->email,
             ])
             ->assertNotFound();
-    }
-
-    private function makeErrorCode(int|string $code): string
-    {
-        return Str::of(config('app.key'))
-            ->pipe(fn(string $key) => sha1($key . $code))
-            ->substr(0, 8)
-            ->wrap('(code ', ')')
-            ->value();
     }
 }

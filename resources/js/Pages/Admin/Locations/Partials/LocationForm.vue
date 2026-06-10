@@ -1,213 +1,196 @@
-<script setup>
-import JetActionMessage from '@/Jetstream/ActionMessage.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetConfirmationModal from '@/Jetstream/ConfirmationModal.vue';
-import JetFormSection from '@/Jetstream/FormSection.vue';
-import JetSectionBorder from '@/Jetstream/SectionBorder.vue';
-import ShiftData from '@/Pages/Admin/Locations/Partials/ShiftData.vue';
-import {router, useForm} from '@inertiajs/vue3';
-import {computed, nextTick, ref, watch} from 'vue';
-import LocationData from './LocationData.vue';
+<script setup lang="ts">
+import { router, useForm } from "@inertiajs/vue3";
+import { nextTick, ref, watch } from "vue";
+import useToast from "@/Composables/useToast";
+import JetConfirmationModal from "@/Jetstream/ConfirmationModal.vue";
+import JetFormSection from "@/Jetstream/FormSection.vue";
+import JetSectionBorder from "@/Jetstream/SectionBorder.vue";
+import ShiftData from "@/Pages/Admin/Locations/Partials/ShiftData.vue";
+import LocationData from "./LocationData.vue";
 
-const props = defineProps({
-    location: Object,
-    maxVolunteers: {
-        type: Number,
-        required: true,
-    },
-    action: {
-        type: String,
-        default: 'edit',
-    },
+const { location, maxVolunteers, action } = defineProps<{
+  location: App.Data.LocationAdminData;
+  maxVolunteers: number;
+  action: "edit" | "add";
+}>();
+
+defineEmits(["cancel"]);
+
+const toast = useToast();
+
+const form = useForm<App.Data.LocationAdminData>({
+  id: location?.id,
+  name: location?.name,
+  description: location?.description,
+  min_volunteers: location?.min_volunteers,
+  max_volunteers: location?.max_volunteers,
+  requires_brother: location?.requires_brother,
+  latitude: location?.latitude,
+  longitude: location?.longitude,
+  is_enabled: location?.is_enabled,
+  shifts: location?.shifts,
 });
 
-const emit = defineEmits([
-    'cancel',
-]);
+watch(() => form.min_volunteers, (value: number | undefined, oldValue: number | undefined) => {
+  if (value === undefined) {
+    value = 0;
+  }
+  if (form.max_volunteers === undefined) {
+    form.max_volunteers = maxVolunteers;
+  }
 
-const form = useForm({
-    id: props.location?.data?.id,
-    name: props.location?.data?.name,
-    description: props.location?.data?.description,
-    min_volunteers: props.location?.data?.min_volunteers,
-    max_volunteers: props.location?.data?.max_volunteers,
-    requires_brother: props.location?.data?.requires_brother,
-    latitude: props.location?.data?.latitude,
-    longitude: props.location?.data?.longitude,
-    is_enabled: props.location?.data?.is_enabled,
-    shifts: props.location?.data?.shifts,
-    // id: '',
-    // name: '',
-    // description: '',
-    // min_volunteers: '',
-    // max_volunteers: '',
-    // requires_brother: '',
-    // latitude: '',
-    // longitude: '',
-    // is_enabled: '',
-    // shifts: '',
+  if (value < 0) {
+    void nextTick(() => {
+      form.min_volunteers = oldValue;
+    });
+  }
+  if (value > form.max_volunteers) {
+    form.max_volunteers = value;
+  }
 });
 
-// watchEffect(() => {
-//     form.id = props.location?.data?.id
-//     form.name = props.location?.data?.name
-//     form.description = props.location?.data?.description
-//     form.min_volunteers = props.location?.data?.min_volunteers
-//     form.max_volunteers = props.location?.data?.max_volunteers
-//     form.requires_brother = props.location?.data?.requires_brother
-//     form.latitude = props.location?.data?.latitude
-//     form.longitude = props.location?.data?.longitude
-//     form.is_enabled = props.location?.data?.is_enabled
-//     form.shifts = props.location?.data?.shifts
-// })
+watch(() => form.max_volunteers, (value: number | undefined, oldValue: number | undefined) => {
+  if (value === undefined) {
+    value = 0;
+  }
+  if (form.min_volunteers === undefined) {
+    form.min_volunteers = 1;
+  }
 
-watch(() => form.min_volunteers, (value, oldValue) => {
-    if (value < 0) {
-        nextTick(() => {
-            form.min_volunteers = oldValue;
-        });
-    }
-    if (value > form.max_volunteers) {
-        form.max_volunteers = value;
-    }
-});
-
-watch(() => form.max_volunteers, (value, oldValue) => {
-    if (value > props.maxVolunteers) {
-        nextTick(() => {
-            form.max_volunteers = oldValue;
-        });
-    }
-    if (value < form.min_volunteers) {
-        form.min_volunteers = value;
-    }
+  if (value > maxVolunteers) {
+    void nextTick(() => {
+      form.max_volunteers = oldValue;
+    });
+  }
+  if (value < form.min_volunteers) {
+    form.min_volunteers = value;
+  }
 });
 
 const updateLocationData = () => {
-    form.put(route('admin.locations.update', props.location.data.id),
-        {
-            preserveScroll: true,
-        });
+  form.put(route("admin.locations.update", location.id), {
+    preserveScroll: true,
+    onSuccess: () => toast.success(
+      `${form.name} was updated.`,
+      "Success!",
+      { group: "bottom" },
+    ),
+    onError: () => toast.error(
+      `${form.name} could not be saved. Please check the validation messages`,
+      "Not Saved!",
+      { group: "bottom" },
+    ),
+  });
 };
 
 const createLocationData = () => {
-    form.post(route('admin.locations.store'), {
-        preserveScroll: true,
-    });
+  form.post(route("admin.locations.store"), {
+    preserveScroll: true,
+    onSuccess: () => toast.success(
+      `${form.name} was saved.`,
+      "Success!",
+      { group: "bottom" },
+    ),
+    onError: () => toast.error(
+      `${form.name} could not be saved. Please check the validation messages`,
+      "Not Saved!",
+      { group: "bottom" },
+    ),
+  });
 };
 
 const saveAction = () => {
-    if (props.action === 'edit') {
-        updateLocationData();
-    } else {
-        createLocationData();
-    }
+  if (action === "edit") {
+    updateLocationData();
+  } else {
+    createLocationData();
+  }
 };
 
 const listRouteAction = () => {
-    router.visit(route('admin.locations.index'));
+  router.visit(route("admin.locations.index"));
 };
 
 const showConfirmationModal = ref(false);
 const modalDeleteAction = ref(false);
 const confirmCancel = () => {
-    modalDeleteAction.value = false;
-    if (form.isDirty) {
-        showConfirmationModal.value = true;
-    } else {
-        listRouteAction();
-    }
+  modalDeleteAction.value = false;
+  if (form.isDirty) {
+    showConfirmationModal.value = true;
+  } else {
+    listRouteAction();
+  }
 };
 
 const onDelete = () => {
-    modalDeleteAction.value = true;
-    showConfirmationModal.value = true;
+  modalDeleteAction.value = true;
+  showConfirmationModal.value = true;
 };
 
 const doDeleteAction = () => {
-    router.delete(route('admin.locations.destroy', props.location.data.id));
+  router.delete(route("admin.locations.destroy", location.id));
 };
 
 const performConfirmationAction = () => {
-    if (modalDeleteAction.value) {
-        doDeleteAction();
-    } else {
-        listRouteAction();
-    }
+  if (modalDeleteAction.value) {
+    doDeleteAction();
+  } else {
+    listRouteAction();
+  }
 };
-
-const cancelButtonText = computed(() => form.isDirty ? 'Cancel' : 'Back');
-const hasErrors = computed(() => Object.keys(form.errors).length > 0);
-
 </script>
 
 <template>
-    <JetFormSection @submitted="updateLocationData">
-        <template #title>
-            Location
-        </template>
+  <JetFormSection @submitted="updateLocationData">
+    <template #title>
+      Location
+    </template>
 
-        <template #description>
-            Update the location information. This can optionally include latitude and longitude coordinates. These can
-            be acquired from Google Maps.
-        </template>
+    <template #description>
+      Update the location information. This can optionally include latitude and longitude coordinates. These can
+      be acquired from Google Maps.
+    </template>
 
-        <template #form>
-            <LocationData v-model="form" :max-volunteers="maxVolunteers"/>
+    <template #form>
+      <LocationData v-model="form" :max-volunteers="maxVolunteers" />
 
-            <JetSectionBorder class="col-span-full"/>
+      <JetSectionBorder class="col-span-full" />
 
-            <ShiftData v-model="form"/>
-            <div></div>
-        </template>
+      <ShiftData v-model="form" />
+      <div></div>
+    </template>
 
-        <template #actions>
-            <div v-if="action === 'edit'" class="grow text-left">
-                <JetButton outline
-                           type="button"
-                           style-type="warning"
-                           :class="{ 'opacity-25': form.processing }"
-                           :disabled="form.processing"
-                           @click.prevent="onDelete">
-                    Delete
-                </JetButton>
-            </div>
-            <JetActionMessage :on="form.recentlySuccessful" class="mr-3">
-                Success: Location Saved.
-            </JetActionMessage>
-            <div v-if="hasErrors" class="font-bold text-red-600">
-                Something went wrong with your data. Please see above.
-            </div>
+    <template #actions>
+      <DangerButton v-if="action === 'edit'"
+                    class="mr-auto"
+                    label="Delete"
+                    :disabled="form.processing"
+                    @click.prevent="onDelete" />
 
-            <div>
-                <JetButton class="mx-3"
-                           type="button"
-                           style-type="secondary"
-                           :class="{ 'opacity-25': form.processing }"
-                           :disabled="form.processing"
-                           @click.prevent="confirmCancel">
-                    {{ cancelButtonText }}
-                </JetButton>
-                <JetButton :class="{ 'opacity-25': form.processing }"
-                           :disabled="form.processing"
-                           @click.prevent="saveAction">
-                    Save
-                </JetButton>
-            </div>
-        </template>
-    </JetFormSection>
+      <CancelButton :processing="form.processing" @click.prevent="confirmCancel" />
+      <SubmitButton :action
+                    :processing="form.processing"
+                    :success="form.wasSuccessful"
+                    :failure="form.hasErrors"
+                    :errors="form.errors"
+                    @click.prevent="saveAction" />
+    </template>
+  </JetFormSection>
 
-    <JetConfirmationModal :show="showConfirmationModal">
-        <template #title>DANGER!</template>
-        <template #content>
-            <template v-if="modalDeleteAction">Are you sure you wish to delete this location?</template>
-            <template v-else>Are you sure you wish to return? Your changes will be lost!</template>
-        </template>
-        <template #footer>
-            <JetButton class="mx-3" style-type="secondary" @click="showConfirmationModal = false">
-                Cancel
-            </JetButton>
-            <JetButton style-type="warning" @click="performConfirmationAction">Ok</JetButton>
-        </template>
-    </JetConfirmationModal>
+  <JetConfirmationModal :show="showConfirmationModal">
+    <template #title>DANGER!</template>
+
+    <template #content>
+      <template v-if="modalDeleteAction">Are you sure you wish to delete this location?</template>
+
+      <template v-else>Are you sure you wish to return? Your changes will be lost!</template>
+    </template>
+
+    <template #footer>
+      <PButton class="mx-3" severity="secondary" @click="showConfirmationModal = false">
+        Cancel
+      </PButton>
+      <PButton severity="warn" @click="performConfirmationAction">Ok</PButton>
+    </template>
+  </JetConfirmationModal>
 </template>

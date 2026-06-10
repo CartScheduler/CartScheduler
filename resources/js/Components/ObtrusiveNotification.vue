@@ -1,27 +1,36 @@
-<script setup>
-import JetModal from "@/Jetstream/Modal.vue";
+<script setup lang="ts">
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { computed } from "vue";
 
-const props = defineProps({
-    show: {
-        type: Boolean,
-        default: false,
-    },
-    maxWidth: {
-        type: String,
-        default: '2xl',
-    },
-    closeable: {
-        type: Boolean,
-        default: true,
-    },
+const show = defineModel<boolean>();
+
+const props = defineProps<{
+  fullScreenOnMobile: boolean;
+}>();
+
+const breakpoints = useBreakpoints(breakpointsTailwind);
+
+const classes = computed(() => {
+  let classes = "";
+
+  if (props.fullScreenOnMobile && breakpoints.smaller("sm").value) {
+    classes += "h-dvh w-dvw max-w-full border-0";
+  } else {
+    classes += "max-w-[90%]";
+  }
+  return classes;
 });
-const emit = defineEmits(['close']);
 </script>
 
 <template>
-    <JetModal fill-screen :show="show" :maxWidth="maxWidth" :closeable="closeable" @close="$emit('close')">
-        <slot/>
-    </JetModal>
+  <PDialog v-model:visible="show"
+           modal
+           header="Edit Profile"
+           class="max-h-screen sm:h-auto sm:w-fit sm:max-w-96 md:max-w-[80%]"
+           :class="classes"
+           v-bind="$attrs">
+    <slot />
+  </PDialog>
 </template>
 
 <style scoped lang="scss">

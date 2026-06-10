@@ -21,10 +21,10 @@ class TagsTest extends TestCase
         $this->actingAs($admin)
             ->getJson("/admin/report-tags")
             ->assertOk()
-            ->assertJsonCount(5, 'data')
-            ->assertJsonPath('data.0.id', $tags[0]->id)
-            ->assertJsonPath('data.0.name', $tags[0]->name)
-            ->assertJsonPath('data.0.sort', $tags[0]->order_column);
+            ->assertJsonCount(5)
+            ->assertJsonPath('0.id', $tags[0]->id)
+            ->assertJsonPath('0.name', $tags[0]->name)
+            ->assertJsonPath('0.order_column', $tags[0]->order_column);
     }
 
     public function test_non_admin_cannot_retrieve_all_tags(): void

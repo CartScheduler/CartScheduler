@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\Role;
-use App\Mail\UserAccountCreated;
+use App\Models\Traits\User\AttachesSpouse;
+use App\Models\Traits\User\RevokesUserAccess;
+use App\Models\Traits\User\SendsWelcomeEmail;
 use App\Settings\GeneralSettings;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,9 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\CausesActivity;
@@ -30,11 +30,13 @@ class User extends Authenticatable
 {
     use HasApiTokens;
     use HasFactory;
-    use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
     use LogsActivity;
     use CausesActivity;
+    use SendsWelcomeEmail;
+    use AttachesSpouse;
+    use RevokesUserAccess;
 
     protected function casts(): array
     {
@@ -50,48 +52,14 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
-        static::created(static function (self $user) {
-            Mail::to($user->email)->send(new UserAccountCreated($user));
-        });
-        static::saved(static function (self $user) {
-            // called on updated and created events
-            if ($user->spouse_id) {
-                $spouse                 = User::find($user->spouse_id);
-                $spouse->spouse_id      = $user->id;
-                $spouse->marital_status = 'married';
-                $spouse->saveQuietly();
-            }
-        });
-        static::updating(static function (self $user) {
-            // Currently, this should only be called when doing a bulk update.
-            $dirty    = $user->getDirty();
-            $original = $user->getOriginal();
-            if (array_key_exists('spouse_id', $dirty) && $dirty['spouse_id'] === null && $original['spouse_id'] !== null) {
-                $spouse            = User::find($original['spouse_id']);
-                $spouse->spouse_id = null;
-                $spouse->saveQuietly();
-            }
-        });
-        static::updated(static function (self $user) {
-            if (!$user->is_unrestricted) {
-                $settings = app()->make(GeneralSettings::class);
-                if (in_array($user->id, $settings->allowedSettingsUsers, true)) {
-                    // remove the user->id from the allowedSettingsUsers array
-                    $settings->allowedSettingsUsers = array_diff($settings->allowedSettingsUsers, [$user->id]);
-                    $settings->save();
-                }
-                if ($user->role === Role::Admin->value) {
-                    $user->role = Role::User->value;
-                    $user->save();
-                }
-            }
-        });
+        static::created(static fn(self $user) => self::sendWelcomeEmail($user));
+        static::saved(static fn(self $user) => self::attachSpouse($user));
+        static::updating(static fn(self $user) => self::detachSpouse($user));
+        static::updated(static fn(self $user) => self::revokePrivilegedAccess($user));
     }
 
     /**
      * The attributes that are mass assignable.
-     *
-     * @var string[]
      */
     protected $fillable = [
         'uuid',
@@ -111,28 +79,21 @@ class User extends Authenticatable
         'password',
         'role',
     ];
-
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array
+     * The only attributes that should be visible for serialization when calling toArray().
      */
-    protected $hidden = [
-        'deleted_at',
-        'password',
-        'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
+    protected $visible = [
+        'id',
+        'uuid',
+        'name',
+        'email',
+        'gender',
     ];
-
     /**
      * The accessors to append to the model's array form.
-     *
-     * @var array
      */
     protected $appends = [
         'has_logged_in', // Used to determine if the user has logged in before by checking the password field
-        'profile_photo_url',
     ];
 
     /** @noinspection PhpUnused */
@@ -189,7 +150,10 @@ class User extends Authenticatable
     protected function isRestricted(): Attribute
     {
         return Attribute::make(
-            get: static fn($value, $attributes) => isset($attributes['is_unrestricted']) && !$attributes['is_unrestricted'],
+            get: static fn(
+                $value,
+                $attributes
+            ) => isset($attributes['is_unrestricted']) && !$attributes['is_unrestricted'],
         );
     }
 

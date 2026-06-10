@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\LocationChoiceResource;
+use App\Data\LocationChoiceData;
 use App\Models\Location;
 use App\Settings\GeneralSettings;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +21,6 @@ class GetUserLocationChoicesController extends Controller
         }
 
         $locations = Location::where('is_enabled', true)->orderBy('name')->get();
-        return LocationChoiceResource::collection($locations);
+        return LocationChoiceData::collect($locations);
     }
 }

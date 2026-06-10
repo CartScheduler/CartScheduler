@@ -8,6 +8,10 @@ use Laravel\Jetstream\Events\TeamDeleted;
 use Laravel\Jetstream\Events\TeamUpdated;
 use Laravel\Jetstream\Team as JetstreamTeam;
 
+/**
+ * Not used for now
+ * @codeCoverageIgnore
+ */
 class Team extends JetstreamTeam
 {
     use HasFactory;

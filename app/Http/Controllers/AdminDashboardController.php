@@ -2,25 +2,40 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\GetOutstandingReports;
+use App\Actions\GetOutstandingReportCount;
 use App\Actions\GetShiftFilledData;
-use App\Enums\Role;
+use App\Data\FilledShiftData;
+use App\Enums\CacheKey;
 use App\Models\Location;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class AdminDashboardController extends Controller
 {
-    public function __invoke(GetShiftFilledData $shiftFilledData, GetOutstandingReports $getOutstandingReports)
+    public function __invoke(GetShiftFilledData $shiftFilledData, GetOutstandingReportCount $getOutstandingReportCount)
     {
-        // Not checking for admin role because the routes should check for it
-
         return Inertia::render('Admin/Dashboard', [
-            'totalUsers'         => User::all()->count(),
-            'totalLocations'     => Location::all()->count(),
-            'shiftFilledData'    => $shiftFilledData->execute('fortnight'),
-            'outstandingReports' => $getOutstandingReports->execute(),
+            'totalUsers'         => Cache::flexibleWithEnum(
+                key: CacheKey::TotalUsers,
+                ttl: [7200, 10800],
+                callback: static fn() => User::all()->count()
+            ),
+            'totalLocations'     => Cache::flexibleWithEnum(
+                key: CacheKey::TotalLocations,
+                ttl: [60, 300],
+                callback: static fn() => Location::all()->count()
+            ),
+            'shiftFilledData'    => Cache::flexibleWithEnum(
+                key: CacheKey::ShiftFilledData,
+                ttl: [7200, 10800],
+                callback: static fn() => FilledShiftData::collect($shiftFilledData->execute('fortnight'))
+            ),
+            'outstandingReports' => Cache::flexibleWithEnum(
+                key: CacheKey::OutstandingReports,
+                ttl: [7200, 10800],
+                callback: static fn() => $getOutstandingReportCount->execute()
+            ),
         ]);
     }
 }

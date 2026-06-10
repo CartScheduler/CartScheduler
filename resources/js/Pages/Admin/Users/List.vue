@@ -1,104 +1,106 @@
-<script setup>
-import DataTable from '@/Components/DataTable.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetHelpText from '@/Jetstream/HelpText.vue';
-import JetInput from '@/Jetstream/Input.vue';
-import JetLabel from '@/Jetstream/Label.vue';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import {router} from '@inertiajs/vue3';
-import {ref} from 'vue';
-import headers from './Lib/UserDataTableHeaders';
+<script setup lang="ts">
+import { router, usePage } from "@inertiajs/vue3";
+import { onMounted, ref } from "vue";
+import useSessionFlash from "@/Composables/useSessionFlash";
+import JetHelpText from "@/Jetstream/HelpText.vue";
+import JetInput from "@/Jetstream/Input.vue";
+import JetLabel from "@/Jetstream/Label.vue";
+import headers from "./Lib/UserDataTableHeaders";
 
-defineProps({
-    users: Object,
-    availableRoles: Array,
-    permissions: Object,
-});
+const { users } = defineProps<{
+  users: App.Data.UserAdminData[];
+}>();
 
-const userSearch = ref('');
+const page = usePage();
+const flash = useSessionFlash();
+
+const userSearch = ref("");
 
 const onNewUser = () => {
-    router.visit(route('admin.users.create'));
+  router.visit(route("admin.users.create"));
 };
 
 const onImportUsers = () => {
-    router.visit(route('admin.users.import.show'));
+  router.visit(route("admin.users.import.show"));
 };
 
 const onDownloadUsers = async () => {
-    window.location.href = route('admin.users-as-spreadsheet');
+  window.location.href = route("admin.users-as-spreadsheet");
 };
 
-const handleSelection = (selection) => {
-    router.visit(route('admin.users.edit', selection.id));
+const handleSelection = (selection: { id: number }) => {
+  router.visit(route("admin.users.edit", selection.id));
 };
+
+onMounted(() => {
+  if (!page.props.jetstream.flash.message) return;
+
+  flash(
+    page.props.jetstream,
+    page.props.jetstream.flash.bannerTitle || undefined,
+    page.props.jetstream.flash.bannerStyle || "success",
+  );
+});
 </script>
 
 <template>
-    <AppLayout title="Users">
-        <template #header>
-            <div class="flex justify-between flex-wrap md:flex-nowrap">
-                <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight w-full md:w-auto">
-                    Users</h2>
-                <div class="w-full md:w-auto">
-                    <JetButton class="hidden sm:inline-flex md:mx-3 w-full md:w-auto my-3 md:my-0"
-                               style-type="secondary"
-                               outline
-                               @click="onImportUsers">
-                        Import Users
-                    </JetButton>
-                    <JetButton class="py-4 sm:py-2 md:mx-3 w-full md:w-auto" style-type="primary" @click="onNewUser">
-                        New User
-                    </JetButton>
-                </div>
-            </div>
-        </template>
+  <PageHeader title="Users">
+    <div class="flex justify-between flex-wrap md:flex-nowrap">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight w-full md:w-auto">
+        Users
+      </h2>
+      <div class="w-full md:w-auto hidden sm:flex gap-4">
+        <PButton label="Import Users"
+                 icon="iconify mdi--account-arrow-up"
+                 severity="help"
+                 variant="outlined"
+                 @click="onImportUsers" />
+        <PButton label="Download Users"
+                 icon="iconify mdi--account-arrow-down"
+                 severity="info"
+                 variant="outlined"
+                 @click="onDownloadUsers" />
+      </div>
+    </div>
+  </PageHeader>
+  <div class="flex flex-col gap-4">
+    <div class="grid grid-cols-[1fr_auto] grid-auto-rows gap-x-12 align-middle gap-y-1 py-3 sm:py-6 ">
+      <JetLabel for="search" value="Search for a user:" />
+      <JetInput id="search"
+                v-model="userSearch"
+                type="text"
+                class="row-start-2 mt-1 block w-full dark:bg-slate-700 sm:dark:bg-slate-800" />
+      <JetHelpText class="row-start-3">Search on name, email, phone, role or any field</JetHelpText>
+      <PButton label="New User" icon="iconify mdi--user-add" class="row-start-2" @click="onNewUser" />
+    </div>
 
-        <div class="max-w-7xl mx-auto sm:pt-10 sm:pb-5 sm:px-6 lg:px-8 grid gap-3 grid-cols-1 sm:grid-cols-12">
-            <div class="bg-white dark:bg-slate-900 shadow-xl sm:rounded-lg py-3 px-4 sm:p-6 sm:col-span-10">
-                <JetLabel for="search" value="Search for a user:"/>
-                <!-- Overriding background colours for usability -->
-                <JetInput id="search" v-model="userSearch" type="text"
-                          class="mt-1 block w-full dark:bg-slate-700 sm:dark:bg-slate-800"/>
-                <JetHelpText>Search on name, email, phone, role or any field</JetHelpText>
-            </div>
-            <div class="hidden sm:flex sm:flex-wrap sm:justify-center sm:items-center col-span-2">
-                <div class="text-center">
-                    <JetButton outline style-type="info" @click="onDownloadUsers">
-                        Download Users
-                    </JetButton>
-                    <div class="mt-2 text-sm text-gray-800 dark:text-gray-400 text-center">Download an Excel
-                        Spreadsheet
-                    </div>
-                </div>
-            </div>
+    <div class="">
+      <div class="bg-panel dark:bg-panel-dark">
+        <data-table :headers="headers"
+                    :items="users"
+                    :search-value="userSearch"
+                    @click-row="handleSelection">
+          <template #item-email="{ email }">
+            <a :href="`mailto:${email}`">{{ email }}</a>
+          </template>
 
-        </div>
+          <template #item-phone="{ mobile_phone }">
+            <a :href="`tel:${mobile_phone}`">{{ mobile_phone }}</a>
+          </template>
 
-        <div class="max-w-7xl mx-auto pb-10 sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-slate-900 shadow-xl sm:rounded-lg sm:p-6">
-                <data-table :headers="headers"
-                            :items="users.data"
-                            :search-value="userSearch"
-                            @click-row="handleSelection">
-                    <template #item-email="{ email }">
-                        <a :href="`mailto:${email}`">{{ email }}</a>
-                    </template>
-                    <template #item-phone="{ mobile_phone }">
-                        <a :href="`tel:${mobile_phone}`">{{ mobile_phone }}</a>
-                    </template>
-                    <template #item-is_enabled="{ is_enabled }">
-                        <div v-if="is_enabled">Yes</div>
-                        <div v-else class="text-red-600 dark:text-red-400">No</div>
-                    </template>
-                    <template #item-is_unrestricted="{ is_unrestricted }">
-                        <div v-if="!is_unrestricted" class="text-red-600 dark:text-red-400">Yes</div>
-                        <div v-else>No</div>
-                    </template>
-                </data-table>
-            </div>
-        </div>
-    </AppLayout>
+          <template #item-is_enabled="{ is_enabled }">
+            <div v-if="is_enabled">Yes</div>
+            <div v-else class="text-red-600 dark:text-red-400">No</div>
+          </template>
+
+          <template #item-is_unrestricted="{ is_unrestricted }">
+            <div v-if="!is_unrestricted" class="text-red-600 dark:text-red-400">Yes</div>
+            <div v-else>No</div>
+          </template>
+        </data-table>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style lang="scss">

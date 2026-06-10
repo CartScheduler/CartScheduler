@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ReportTagResource;
+use App\Data\ReportTagData;
 use Spatie\Tags\Tag;
 
 class GetReportTagsController extends Controller
 {
     public function __invoke()
     {
-        return ReportTagResource::collection(Tag::ordered()->withType('reports')->get());
+        return ReportTagData::collect(Tag::ordered()->withType('reports')->get());
     }
 }

@@ -1,0 +1,847 @@
+{
+  "shifts": {
+    "2025-09-15": {
+      "10": [
+        {
+          "shift_date": "2025-09-15T00:00:00+10:00",
+          "shift_id": 10,
+          "volunteer_id": 1,
+          "location_id": 2,
+          "start_time": "15:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-16": {
+      "1": [
+        {
+          "shift_date": "2025-09-16T00:00:00+10:00",
+          "shift_id": 1,
+          "volunteer_id": 1,
+          "location_id": 5,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "6": [
+        {
+          "shift_date": "2025-09-16T00:00:00+10:00",
+          "shift_id": 6,
+          "volunteer_id": 1,
+          "location_id": 4,
+          "start_time": "12:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "14": [
+        {
+          "shift_date": "2025-09-16T00:00:00+10:00",
+          "shift_id": 14,
+          "volunteer_id": 1,
+          "location_id": 6,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "15": [
+        {
+          "shift_date": "2025-09-16T00:00:00+10:00",
+          "shift_id": 15,
+          "volunteer_id": 1,
+          "location_id": 6,
+          "start_time": "12:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-17": {
+      "5": [
+        {
+          "shift_date": "2025-09-17T00:00:00+10:00",
+          "shift_id": 5,
+          "volunteer_id": 1,
+          "location_id": 4,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-18": {
+      "9": [
+        {
+          "shift_date": "2025-09-18T00:00:00+10:00",
+          "shift_id": 9,
+          "volunteer_id": 1,
+          "location_id": 2,
+          "start_time": "12:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-19": {
+      "13": [
+        {
+          "shift_date": "2025-09-19T00:00:00+10:00",
+          "shift_id": 13,
+          "volunteer_id": 1,
+          "location_id": 3,
+          "start_time": "15:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "17": [
+        {
+          "shift_date": "2025-09-19T00:00:00+10:00",
+          "shift_id": 17,
+          "volunteer_id": 1,
+          "location_id": 1,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-20": {
+      "12": [
+        {
+          "shift_date": "2025-09-20T00:00:00+10:00",
+          "shift_id": 12,
+          "volunteer_id": 1,
+          "location_id": 3,
+          "start_time": "12:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-21": {
+      "11": [
+        {
+          "shift_date": "2025-09-21T00:00:00+10:00",
+          "shift_id": 11,
+          "volunteer_id": 1,
+          "location_id": 3,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "13": [
+        {
+          "shift_date": "2025-09-21T00:00:00+10:00",
+          "shift_id": 13,
+          "volunteer_id": 1,
+          "location_id": 3,
+          "start_time": "15:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "18": [
+        {
+          "shift_date": "2025-09-21T00:00:00+10:00",
+          "shift_id": 18,
+          "volunteer_id": 1,
+          "location_id": 1,
+          "start_time": "12:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-22": {
+      "14": [
+        {
+          "shift_date": "2025-09-22T00:00:00+10:00",
+          "shift_id": 14,
+          "volunteer_id": 1,
+          "location_id": 6,
+          "start_time": "09:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ],
+      "16": [
+        {
+          "shift_date": "2025-09-22T00:00:00+10:00",
+          "shift_id": 16,
+          "volunteer_id": 1,
+          "location_id": 6,
+          "start_time": "15:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    },
+    "2025-09-23": {
+      "16": [
+        {
+          "shift_date": "2025-09-23T00:00:00+10:00",
+          "shift_id": 16,
+          "volunteer_id": 1,
+          "location_id": 6,
+          "start_time": "15:00:00",
+          "max_volunteers": 5,
+          "available_from": null,
+          "available_to": null
+        }
+      ]
+    }
+  },
+  "freeShifts": {
+    "2025-09-15": {
+      "volunteer_count": 39,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-09-16": {
+      "volunteer_count": 75,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-17": {
+      "volunteer_count": 79,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-18": {
+      "volunteer_count": 74,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-19": {
+      "volunteer_count": 74,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-20": {
+      "volunteer_count": 46,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-09-21": {
+      "volunteer_count": 55,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-09-22": {
+      "volunteer_count": 39,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-09-23": {
+      "volunteer_count": 76,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-24": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-25": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-26": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-09-27": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-09-28": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-09-29": {
+      "volunteer_count": 0,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-09-30": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-01": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-02": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-03": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-04": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-10-05": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-10-06": {
+      "volunteer_count": 0,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-10-07": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-08": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-09": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-10": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-11": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-10-12": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-10-13": {
+      "volunteer_count": 0,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-10-14": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-15": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-16": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-17": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-18": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-10-19": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-10-20": {
+      "volunteer_count": 0,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-10-21": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-22": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-23": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-24": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-25": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-10-26": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    },
+    "2025-10-27": {
+      "volunteer_count": 0,
+      "max_allowed": 45,
+      "has_availability": true
+    },
+    "2025-10-28": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-29": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-30": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-10-31": {
+      "volunteer_count": 0,
+      "max_allowed": 85,
+      "has_availability": true
+    },
+    "2025-11-01": {
+      "volunteer_count": 0,
+      "max_allowed": 55,
+      "has_availability": true
+    },
+    "2025-11-02": {
+      "volunteer_count": 0,
+      "max_allowed": 60,
+      "has_availability": true
+    }
+  },
+  "locations": [
+    {
+      "id": 2,
+      "name": "Hansenstad",
+      "description": "Ullam officia impedit ut rerum ut ad commodi culpa. Et et qui doloremque non est. Porro enim animi quisquam vitae.",
+      "min_volunteers": 4,
+      "max_volunteers": 5,
+      "requires_brother": true,
+      "shifts": [
+        {
+          "id": 9,
+          "start_time": "12:00:00",
+          "end_time": "15:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "April Hermiston",
+              "uuid": "8e54cf96-c3d5-30fa-a389-e9be7fb1d1ca",
+              "gender": "male",
+              "mobile_phone": "19725534499"
+            },
+            {
+              "name": "Curtis Sipes",
+              "uuid": "8711fb52-aca9-3df7-9133-0f3e830780a7",
+              "gender": "male",
+              "mobile_phone": "3205 869 181"
+            },
+            {
+              "name": "Dr. Virginia Wintheiser I",
+              "uuid": "0348bb3b-f57d-3908-8e01-a59b5a356c9f",
+              "gender": "female",
+              "mobile_phone": "18455021521"
+            },
+            {
+              "name": "Jasper Renner DVM",
+              "uuid": "96ea8b57-9c6f-32a2-aefb-0481f917a48c",
+              "gender": "female",
+              "mobile_phone": "14198281670"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, false]
+        },
+        {
+          "id": 10,
+          "start_time": "15:00:00",
+          "end_time": "18:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "Dr. Gonzalo Ruecker",
+              "uuid": "6a980e31-56ec-34b7-9eea-71a19c235179",
+              "gender": "female",
+              "mobile_phone": "19348732073"
+            },
+            {
+              "name": "Admin",
+              "uuid": "844f03ec-e29e-38e1-8df3-b56c47e69890",
+              "gender": "male",
+              "mobile_phone": "12676954373"
+            },
+            {
+              "name": "Walter Ryan",
+              "uuid": "eb5be124-8496-3476-b4eb-57c3d1d5f8c8",
+              "gender": "female",
+              "mobile_phone": "6894 801 382"
+            },
+            {
+              "name": "April Hermiston",
+              "uuid": "8e54cf96-c3d5-30fa-a389-e9be7fb1d1ca",
+              "gender": "male",
+              "mobile_phone": "19725534499"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, true]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "East Murraybury",
+      "description": "Ducimus rerum et explicabo non impedit dolor. Necessitatibus doloremque aut molestiae voluptatibus nulla et quia. Modi sunt aut id voluptas.",
+      "min_volunteers": 1,
+      "max_volunteers": 5,
+      "requires_brother": false,
+      "shifts": [
+        {
+          "id": 5,
+          "start_time": "09:00:00",
+          "end_time": "12:00:00",
+          "available_from": "2025-09-01",
+          "available_to": "2025-09-30",
+          "volunteers": [
+            {
+              "name": "Breanne Gutkowski",
+              "uuid": "3631fa66-0b48-32b5-8a32-f88ce5ba88ae",
+              "gender": "male",
+              "mobile_phone": "16897614632"
+            },
+            {
+              "name": "Husband",
+              "uuid": "697becc4-d57c-3adb-9f09-48acae27c299",
+              "gender": "male",
+              "mobile_phone": "8025 199 139"
+            },
+            {
+              "name": "Jordy Runolfsdottir",
+              "uuid": "3fade543-82c8-3572-8899-b17c161ba486",
+              "gender": "male",
+              "mobile_phone": "2407 101 199"
+            },
+            {
+              "name": "Chad Glover",
+              "uuid": "4f429730-000a-3f03-a4e0-98210c32c2b9",
+              "gender": "male",
+              "mobile_phone": "13528523947"
+            },
+            {
+              "name": "Miss Karina Osinski",
+              "uuid": "0696b77c-ece2-33b1-be90-967feac63aa8",
+              "gender": "female",
+              "mobile_phone": "17812105370"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, true]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "East Kadenshire",
+      "description": "\u003Cp\u003E\u003Ca target=\"_blank\" rel=\"noopener noreferrer nofollow\" href=\"#\"\u003EPerferendis\u003C/a\u003E quaerat et beatae laboriosam consequatur accusamus. Dolorem dolorem perspiciatis ducimus omnis accusantium accusamus corrupti velit. Est aut dolorem officia laboriosam vel.\u003C/p\u003E",
+      "min_volunteers": 4,
+      "max_volunteers": 5,
+      "requires_brother": false,
+      "shifts": [
+        {
+          "id": 1,
+          "start_time": "09:00:00",
+          "end_time": "12:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "User",
+              "uuid": "047ee497-c4b8-30d5-94cb-bbc0937eec5f",
+              "gender": "male",
+              "mobile_phone": "6263 688 722"
+            },
+            {
+              "name": "Jasper Renner DVM",
+              "uuid": "96ea8b57-9c6f-32a2-aefb-0481f917a48c",
+              "gender": "female",
+              "mobile_phone": "14198281670"
+            },
+            {
+              "name": "Lysanne Hessel II",
+              "uuid": "af86913d-e8d1-31a9-bfdb-373002ccdc65",
+              "gender": "male",
+              "mobile_phone": "16067517979"
+            },
+            {
+              "name": "Catalina Schimmel",
+              "uuid": "b7807be1-bc20-3fba-a52c-794ddca86f1d",
+              "gender": "female",
+              "mobile_phone": "9789 468 503"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, false]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Kihnland",
+      "description": "Distinctio cum sint voluptatum molestias sed. Nihil aut omnis quo alias. Exercitationem iusto est fuga sed voluptatum iusto et.",
+      "min_volunteers": 4,
+      "max_volunteers": 5,
+      "requires_brother": true,
+      "shifts": []
+    },
+    {
+      "id": 6,
+      "name": "Port Carolineton",
+      "description": "Dignissimos deserunt est corporis corporis. Tempora fugiat unde dolor. Sint in facere ratione illo error consequatur.",
+      "min_volunteers": 5,
+      "max_volunteers": 5,
+      "requires_brother": false,
+      "shifts": [
+        {
+          "id": 14,
+          "start_time": "09:00:00",
+          "end_time": "12:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "Efren Jacobs",
+              "uuid": "e8a64580-6fdf-3b94-984e-61c3372a34bd",
+              "gender": "female",
+              "mobile_phone": "5515 330 102"
+            },
+            {
+              "name": "User",
+              "uuid": "047ee497-c4b8-30d5-94cb-bbc0937eec5f",
+              "gender": "male",
+              "mobile_phone": "6263 688 722"
+            },
+            {
+              "name": "Jasper Renner DVM",
+              "uuid": "96ea8b57-9c6f-32a2-aefb-0481f917a48c",
+              "gender": "female",
+              "mobile_phone": "14198281670"
+            },
+            {
+              "name": "Prof. Chad Schumm I",
+              "uuid": "6973a7f0-c756-3b1d-9186-8bae659fba4b",
+              "gender": "male",
+              "mobile_phone": "7816 805 767"
+            },
+            {
+              "name": "Enrique Mertz",
+              "uuid": "b9078e37-ef90-302c-904e-48bb230f7138",
+              "gender": "female",
+              "mobile_phone": "12724560225"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, false]
+        },
+        {
+          "id": 16,
+          "start_time": "15:00:00",
+          "end_time": "18:00:00",
+          "available_from": null,
+          "available_to": "2025-09-10",
+          "volunteers": [
+            {
+              "name": "Dr. Lavada Williamson",
+              "uuid": "66b45459-ea19-3006-86c9-9dcc542a02b1",
+              "gender": "male",
+              "mobile_phone": "18108896847"
+            },
+            {
+              "name": "Miss Karina Osinski",
+              "uuid": "0696b77c-ece2-33b1-be90-967feac63aa8",
+              "gender": "female",
+              "mobile_phone": "17812105370"
+            },
+            {
+              "name": "Alford Lebsack",
+              "uuid": "237b5d59-2be9-3ccb-b05f-32539a398acc",
+              "gender": "female",
+              "mobile_phone": "17268477312"
+            },
+            {
+              "name": "Breanne Gutkowski",
+              "uuid": "3631fa66-0b48-32b5-8a32-f88ce5ba88ae",
+              "gender": "male",
+              "mobile_phone": "16897614632"
+            },
+            {
+              "name": "Ezequiel Wintheiser Jr.",
+              "uuid": "892a2454-26cb-3332-a2ac-29420e8001fb",
+              "gender": "female",
+              "mobile_phone": "2155 346 244"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, false]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "South Hesterhaven",
+      "description": "Non cumque est ducimus aut in eos sit. Aperiam quis eum quibusdam sit voluptas totam ipsum. Quia voluptatum quo aut tempore nisi.",
+      "min_volunteers": 1,
+      "max_volunteers": 5,
+      "requires_brother": false,
+      "shifts": [
+        {
+          "id": 17,
+          "start_time": "09:00:00",
+          "end_time": "12:00:00",
+          "available_from": "2025-09-20",
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "Prof. Chad Schumm I",
+              "uuid": "6973a7f0-c756-3b1d-9186-8bae659fba4b",
+              "gender": "male",
+              "mobile_phone": "7816 805 767"
+            },
+            {
+              "name": "Alvena Prohaska",
+              "uuid": "64f8e80e-108d-3f6d-8e7b-dc27bfda8844",
+              "gender": "male",
+              "mobile_phone": "9716 042 544"
+            },
+            {
+              "name": "Mrs. Maybelle Streich",
+              "uuid": "35b5509d-863f-32a4-969b-5cd171d6425b",
+              "gender": "female",
+              "mobile_phone": "18322640369"
+            },
+            {
+              "name": "Curt Nikolaus",
+              "uuid": "5d37ca2a-ba6b-36ae-ac42-0d2d6cca79eb",
+              "gender": "female",
+              "mobile_phone": "15515676031"
+            }
+          ],
+          "js_days": [false, true, true, true, true, true, true]
+        },
+        {
+          "id": 18,
+          "start_time": "12:00:00",
+          "end_time": "15:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "Jerome Feil",
+              "uuid": "480d4db1-e478-39c8-a1fe-5c34b0f6ca20",
+              "gender": "female",
+              "mobile_phone": "16282547085"
+            },
+            {
+              "name": "Wife",
+              "uuid": "b476fc3c-a7d8-3f5c-a0bb-8a0711760b74",
+              "gender": "female",
+              "mobile_phone": "13473310423"
+            },
+            {
+              "name": "Miss Albertha Heidenreich III",
+              "uuid": "b09bb61d-8fe8-3db0-832f-4882dc13edd2",
+              "gender": "female",
+              "mobile_phone": "13529555923"
+            },
+            {
+              "name": "Jasper Renner DVM",
+              "uuid": "96ea8b57-9c6f-32a2-aefb-0481f917a48c",
+              "gender": "female",
+              "mobile_phone": "14198281670"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, true]
+        },
+        {
+          "id": 19,
+          "start_time": "15:00:00",
+          "end_time": "18:00:00",
+          "available_from": null,
+          "available_to": null,
+          "volunteers": [
+            {
+              "name": "Daryl Kerluke",
+              "uuid": "60e892df-2660-33c7-875b-59b7c6e09cee",
+              "gender": "male",
+              "mobile_phone": "13192518874"
+            },
+            {
+              "name": "Alvena Prohaska",
+              "uuid": "64f8e80e-108d-3f6d-8e7b-dc27bfda8844",
+              "gender": "male",
+              "mobile_phone": "9716 042 544"
+            },
+            {
+              "name": "Darron Wunsch Sr.",
+              "uuid": "9b897e69-4858-36e3-9704-3fc44ae91a3d",
+              "gender": "female",
+              "mobile_phone": "17478489044"
+            },
+            {
+              "name": "Mrs. Maybelle Streich",
+              "uuid": "35b5509d-863f-32a4-969b-5cd171d6425b",
+              "gender": "female",
+              "mobile_phone": "18322640369"
+            }
+          ],
+          "js_days": [true, true, true, true, true, true, true]
+        }
+      ]
+    }
+  ],
+  "maxDateReservation": "2025-11-02"
+}

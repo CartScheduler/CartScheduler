@@ -7,22 +7,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title inertia>{{ $settings->siteName }}</title>
-{{--    <title inertia>{{ config('app.name', 'Laravel') }}</title>--}}
-
-    <!-- Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap">
 
     <!-- Scripts -->
     @routes
-    @vite('resources/js/app.js')
+    @can('admin')
+        @routes('admin')
+    @endcan
+    @vite('resources/js/main.ts')
     @inertiaHead
 
     <script>
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
+      if (localStorage.getItem("color-theme") === "dark" || (!("color-theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     </script>
 
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=1">
@@ -37,7 +36,7 @@
     <meta name="msapplication-config" content="/icons/browserconfig.xml?v=1">
     <meta name="theme-color" content="#ffffff">
 </head>
-<body class="font-sans antialiased dark:bg-slate-800">
+<body class="font-sans antialiased">
 @inertia
 </body>
 </html>

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Integration\Actions;
 
 use App\Actions\GetOutstandingReports;
+use App\Data\OutstandingReportsData;
 use App\Models\Location;
 use App\Models\Report;
 use App\Models\Shift;
@@ -99,7 +100,7 @@ class GetOutstandingReportsTest extends TestCase
 
         $reports = $this->getOutstandingReports->execute($users[0]);
         $this->assertCount(2, $reports);
-        $this->assertCount(2, $reports->filter(fn(stdClass $report) => $report->shift_date !== '2023-05-11'));
+        $this->assertCount(2, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date !== '2023-05-11'));
     }
 
     public function test_outstanding_reports_shown_when_shift_is_not_fulfilled(): void
@@ -233,18 +234,18 @@ class GetOutstandingReportsTest extends TestCase
         $reports = $this->getOutstandingReports->execute();
         // even though there technically should be 3 reports, the query groups them by the date and only returns one
         $this->assertCount(1, $reports);
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-11'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-11'));
 
         $this->travelTo('2023-05-13');
         $reports = $this->getOutstandingReports->execute();
         $this->assertCount(2, $reports);
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-11'));
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-13'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-11'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-13'));
 
         $this->travelTo('2023-05-15');
         $reports = $this->getOutstandingReports->execute();
         $this->assertCount(3, $reports);
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-11'));
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-13'));
-        $this->assertCount(1, $reports->filter(fn(stdClass $report) => $report->shift_date === '2023-05-15'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-11'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-13'));
+        $this->assertCount(1, $reports->filter(fn(OutstandingReportsData $report) => $report->shift_date === '2023-05-15'));
     }}

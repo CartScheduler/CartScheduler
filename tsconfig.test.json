@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "noEmit": true,
+    "types": [
+      "vitest/globals",
+      "chai",
+      "node",
+      "types/vue"
+    ]
+  },
+    "include": [
+      "./vitest.config.ts",
+      "./resources/js/**/*.ts",
+      "./resources/js/**/*.tsx",
+      "./resources/js/**/*.vue",
+      "./resources/js/tests/**/*.ts",
+      "./resources/js/tests/**/*.tsx"
+  ]
+},

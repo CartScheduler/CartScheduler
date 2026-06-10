@@ -26,10 +26,6 @@ class UserAvailability extends Model
         'day_sunday',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
     protected function casts(): array
     {
         return [
@@ -41,5 +37,10 @@ class UserAvailability extends Model
             'day_saturday'  => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
             'day_sunday'    => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
         ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

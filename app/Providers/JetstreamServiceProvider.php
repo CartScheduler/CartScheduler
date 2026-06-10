@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Jetstream\DeleteUser;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Jetstream\Jetstream;
 
@@ -10,8 +11,6 @@ class JetstreamServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
-     *
-     * @return void
      */
     public function register(): void
     {
@@ -20,20 +19,18 @@ class JetstreamServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap any application services.
-     *
-     * @return void
      */
     public function boot(): void
     {
         $this->configurePermissions();
 
         Jetstream::deleteUsersUsing(DeleteUser::class);
+
+        Vite::prefetch(concurrency: 3);
     }
 
     /**
-     * Configure the roles and permissions that are available within the application.
-     *
-     * @return void
+     * Configure the permissions that are available within the application.
      */
     protected function configurePermissions(): void
     {

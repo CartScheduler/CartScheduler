@@ -29,7 +29,7 @@ class LocationsAndShiftsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Locations/List')
-                ->has('locations.data', fn(AssertableInertia $data) => $data
+                ->has('locations', fn(AssertableInertia $data) => $data
                     ->where('0.name', $sortedLocations[0]->name)
                     ->has('0.shifts', $sortedLocations[0]->shifts->count())
                     ->where('1.name', $sortedLocations[1]->name)
@@ -79,16 +79,16 @@ class LocationsAndShiftsTest extends TestCase
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Locations/Edit')
                 ->where('maxVolunteers', config('cart-scheduler.max_volunteers_per_location'))
-                ->has('location.data', fn(AssertableInertia $data) => $data
+                ->has('location', fn(AssertableInertia $data) => $data
                     ->where('id', $location->id)
                     ->where('name', $location->name)
                     ->where('description', $location->description)
-                    ->where('clean_description', fn(string $data) => $data !== '')
+                    ->where('clean_description', fn($data) => $data !== '')
                     ->where('min_volunteers', $location->min_volunteers)
                     ->where('max_volunteers', $location->max_volunteers)
                     ->where('requires_brother', $location->requires_brother)
-                    ->where('latitude', $location->latitude)
-                    ->where('longitude', $location->longitude)
+                    ->where('latitude', (float) $location->latitude)
+                    ->where('longitude', (float) $location->longitude)
                     ->where('is_enabled', $location->is_enabled)
                     ->has('shifts', $location->shifts->count())
                     ->etc()
@@ -120,7 +120,7 @@ class LocationsAndShiftsTest extends TestCase
     {
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
-        $response =$this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
                 'name'             => 'A test city',
                 'description'      => 'lorem ipsum dolor sit amet',
@@ -205,7 +205,6 @@ class LocationsAndShiftsTest extends TestCase
             'available_to'   => null,
         ];
 
-
         $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
                 'name'             => 'A test city',
@@ -287,7 +286,6 @@ class LocationsAndShiftsTest extends TestCase
             'is_enabled'       => 0,
         ]);
 
-
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
             'day_wednesday' => 0,
@@ -329,7 +327,6 @@ class LocationsAndShiftsTest extends TestCase
             'requires_brother' => 0,
             'is_enabled'       => 1,
         ]);
-
 
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
@@ -604,7 +601,8 @@ class LocationsAndShiftsTest extends TestCase
         $this->assertDatabaseCount('shifts', 1);
     }
 
-    public function test_admin_cannot_add_overlapping_enabled_shift_where_both_shifts_have_availability_from_and_to_dates(): void
+    public function test_admin_cannot_add_overlapping_enabled_shift_where_both_shifts_have_availability_from_and_to_dates(
+    ): void
     {
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 

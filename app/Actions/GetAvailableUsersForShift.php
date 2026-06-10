@@ -2,7 +2,7 @@
 
 namespace App\Actions;
 
-use App\Enums\Appontment;
+use App\Enums\Appointment;
 use App\Enums\ServingAs;
 use App\Models\Shift;
 use App\Models\ShiftUser;
@@ -97,10 +97,10 @@ class GetAvailableUsersForShift
                 ->where('users.serving_as', '!=', ServingAs::Publisher->value)
             )
             ->when($showOnlyElders, fn(Builder $query) => $query
-                ->where('users.appointment', '=', Appontment::Elder->value)
+                ->where('users.appointment', '=', Appointment::Elder->value)
             )
             ->when($showOnlyMinisterialServants, fn(Builder $query) => $query
-                ->where('users.appointment', '=', Appontment::MinisterialServant->value)
+                ->where('users.appointment', '=', Appointment::MinisterialServant->value)
             )
             ->get();
     }

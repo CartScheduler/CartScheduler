@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/JetBrains/web-types/master/v2-preview/web-types.json",
+    "$schema": "https://json.schemastore.org/web-types",
     "name": "cart-app",
     "framework": "vue",
     "version": "1.0.0",

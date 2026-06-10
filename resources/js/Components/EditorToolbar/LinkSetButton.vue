@@ -1,70 +1,181 @@
-<script setup>
-import BaseButton from '@/Components/EditorToolbar/BaseButton.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetInput from '@/Jetstream/Input.vue';
-import JetLabel from '@/Jetstream/Label.vue';
-import {Dropdown} from 'floating-vue';
-import {inject, onMounted, ref} from 'vue';
+<script setup lang="ts">
+import { BubbleMenu } from "@tiptap/vue-3/menus";
+import { onKeyStroke } from "@vueuse/core";
+import { inject, nextTick, onMounted, onUnmounted, ref, useTemplateRef, watch } from "vue";
+import getHtmlDomElementFromPrimeVue from "@/Components/Actions/getHtmlDomElementFromPrimeVue";
+import BaseButton from "@/Components/EditorToolbar/BaseButton.vue";
+import { HtmlEditor } from "@/Utils/provide-inject-keys";
 
-const editor = inject('editor');
+const editor = inject(HtmlEditor);
+const url = ref("");
+const doShowPopup = ref(false);
+const urlInput = useTemplateRef("urlInput");
 
-const url = ref();
-const doShow = ref(false);
+const hasLink = defineModel<boolean>("hasLink");
 
-const getPreviousLink = () => {
-    const previousUrl = editor.value.getAttributes('link').href;
-    url.value = previousUrl || '';
+const { domElement } = getHtmlDomElementFromPrimeVue<HTMLInputElement>(urlInput);
+
+watch(url, (val) => {
+  hasLink.value = !!val.trim();
+});
+
+const setLink = async () => {
+  await nextTick();
+  // empty
+  if (url.value === "") {
+    editor?.value?.chain().focus().extendMarkRange("link").unsetLink().run();
+    doShowPopup.value = false;
+    return;
+  }
+
+  // update link
+  editor?.value?.chain().focus().extendMarkRange("link").setLink({ href: url.value }).run();
+  doShowPopup.value = false;
 };
 
-const setLink = () => {
-    // empty
-    if (url.value === '') {
-        editor.value.chain().focus().extendMarkRange('link').unsetLink().run();
+const unsetLink = async () => {
+  await nextTick();
+  editor?.value?.chain().focus().extendMarkRange("link").unsetLink().run();
+  url.value = "";
+  editor?.value?.commands.setTextSelection(editor?.value?.state.selection.to);
+  doShowPopup.value = false;
+};
+
+watch(hasLink, async (val) => {
+  if (!val && doShowPopup.value) {
+    void unsetLink();
+  }
+});
+
+const toggleShow = () => {
+  doShowPopup.value = !doShowPopup.value;
+
+  if (doShowPopup.value && editor?.value?.getAttributes("link").href) {
+    url.value = editor?.value?.getAttributes("link").href;
+  } else {
+    url.value = "";
+  }
+};
+
+const onShowPopup = (() => {
+  domElement.value?.focus();
+});
+
+onKeyStroke("Enter", (e) => {
+  if (!doShowPopup.value) return;
+
+  e.preventDefault();
+  setLink();
+}, { target: domElement });
+
+onKeyStroke("Escape", async () => {
+  doShowPopup.value = false;
+  await nextTick();
+  editor?.value?.commands.focus();
+}, { target: domElement });
+
+const autoShowPopup = () => {
+  editor?.value?.on("selectionUpdate", (e) => {
+    const href = e.editor.getAttributes("link").href;
+
+    if (href) {
+      const { from, to } = e.editor.state.selection;
+      const $from = e.editor.state.doc.resolve(from);
+
+      // Find the link mark range
+      const linkMark = e.editor.schema.marks.link;
+      let linkStart, linkEnd = from;
+
+      // Find the link node containing the cursor
+      const parent = $from.parent;
+
+      parent.forEach((node, offset) => {
+        if (node.isText && node.marks.some((m) => m.type === linkMark)) {
+          const nodeStart = $from.start() + offset;
+          const nodeEnd = nodeStart + node.nodeSize;
+
+          if (nodeStart <= from && from <= nodeEnd) {
+            linkStart = nodeStart;
+            linkEnd = nodeEnd;
+          }
+        }
+      });
+
+      if (from === linkStart && to === linkEnd) {
+        url.value = href;
+        doShowPopup.value = true;
         return;
+      }
     }
 
-    // update link
-    editor.value.chain().focus().extendMarkRange('link').setLink({href: url.value}).run();
-    doShow.value = false;
+    url.value = "";
+    doShowPopup.value = false;
+  });
+};
+
+const handleClickOutsideOfPopup = () => {
+  // noinspection JSUnusedGlobalSymbols
+  editor?.value?.setOptions({
+    // editorProps is used to set ProseMirror options
+    editorProps: {
+      // Handle when the user clicks outside fo the popup as it's not handled nicely by default
+      handleClickOn: (_view, pos) => {
+        editor?.value?.commands.setTextSelection(pos);
+      },
+    },
+  });
 };
 
 onMounted(() => {
-    editor.value.on('selectionUpdate', (event) => {
-        const currentUrl = event.editor.getAttributes('link').href;
-        if (currentUrl) {
-            getPreviousLink();
-            doShow.value = true;
-        }
-    });
+  autoShowPopup();
+  handleClickOutsideOfPopup();
 });
 
+onUnmounted(() => {
+  if (!editor?.value) throw new Error("Editor has not been initialized. Please report this error to the developer.");
+  // these are here to prevent orphaned event listeners because of hot reloading during development
+  editor?.value?.off("selectionUpdate");
+  editor?.value?.setOptions({
+    editorProps: {
+      handleClickOn: undefined,
+    },
+  });
+});
 </script>
 
 <template>
-    <Dropdown @show="getPreviousLink" v-model:shown="doShow" class="inline-block">
-        <BaseButton tooltip="Add Link" @click="">
-            <svg xmlns="http://www.w3.org/2000/svg"
-                 viewBox="0 0 24 24"
-                 width="16"
-                 height="16"
-                 class="dark:fill-gray-100">
-                <path fill="none" d="M0 0h24v24H0z"/>
-                <path
-                    d="M18.364 15.536L16.95 14.12l1.414-1.414a5 5 0 1 0-7.071-7.071L9.879 7.05 8.464 5.636 9.88 4.222a7 7 0 0 1 9.9 9.9l-1.415 1.414zm-2.828 2.828l-1.415 1.414a7 7 0 0 1-9.9-9.9l1.415-1.414L7.05 9.88l-1.414 1.414a5 5 0 1 0 7.071 7.071l1.414-1.414 1.415 1.414zm-.708-10.607l1.415 1.415-7.071 7.07-1.415-1.414 7.071-7.07z"/>
-            </svg>
-        </BaseButton>
+  <BaseButton tooltip="Add Link" @click="toggleShow">
+    <span class="iconify mdi--link-variant" />
+  </BaseButton>
 
-        <template #popper>
-            <div class="flex items-center p-3 dark:bg-slate-900">
-                <JetLabel for="url" value="Url:"/>
-                <JetInput id="url" v-model="url" type="text" class="block mx-3" autocomplete="name"/>
-                <JetButton outline type="button" style-type="success" @click.prevent="setLink">
-                    Ok
-                </JetButton>
-                <JetButton outline type="button" style-type="secondary" @click.prevent="doShow = false" class="ml-3">
-                    X
-                </JetButton>
-            </div>
-        </template>
-    </Dropdown>
+  <BubbleMenu v-if="doShowPopup && editor"
+              :editor
+              :should-show="() => doShowPopup"
+              :options="{ placement: 'bottom', offset: 8, onShow: onShowPopup }">
+    <div class="flex gap-2 items-center p-2 rounded border bg-neutral-50 dark:bg-neutral-900 std-border">
+      <label for="url">URL:</label>
+      <PInputText ref="urlInput"
+                  id="url"
+                  v-model="url"
+                  type="text"
+                  class="block m-0"
+                  size="small" />
+      <PButton outline
+               type="button"
+               severity="primary"
+               rounded
+               icon="iconify mdi--check"
+               size="small"
+               @click.prevent="setLink"
+               v-tooltip="'Set the link'"/>
+      <PButton type="button"
+               severity="secondary"
+               variant="outlined"
+               rounded
+               icon="iconify mdi--close"
+               size="small"
+               @click.prevent="unsetLink"
+               v-tooltip="'Remove the link'"/>
+    </div>
+  </BubbleMenu>
 </template>

@@ -1,0 +1,66 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "allowUmdGlobalAccess": true,
+    "allowUnreachableCode": true,
+    "checkJs": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ES2022",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnusedLabels": false,
+    "noUncheckedSideEffectImports": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "erasableSyntaxOnly": true,
+    "exactOptionalPropertyTypes": true,
+    "paths": {
+      "@static-fonts/*": [
+        "./resources/assets/fonts/*"
+      ],
+      "@/*": [
+        "./resources/js/*"
+      ],
+      "@@/*": [
+        "./*"
+      ],
+      "ziggy-js": [
+        "./vendor/tightenco/ziggy"
+      ],
+      "primevue/accordionpanel": ["./resources/js/types/shims.d.ts"]
+    },
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "ES2022",
+    "verbatimModuleSyntax": false
+  },
+  "include": [
+    "./resources/js/**/*.ts",
+    "./resources/js/**/*.tsx",
+    "./resources/js/**/*.vue",
+  ],
+  "exclude": [
+    "node_modules",
+    "node_modules/primevue/accordionpanel/*.ts",
+    "./resources/js/__*__/*.ts",
+  ]
+}

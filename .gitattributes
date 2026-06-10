@@ -6,6 +6,18 @@
 *.md diff=markdown
 *.php diff=php
 
-/.github export-ignore
+.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+.vscode export-ignore
+.idea export-ignore
+.editorconfig export-ignore
+.nvmrc export-ignore
+.cursor export-ignore
+.windsurfrules export-ignore
+vite.config.js export-ignore
+web-types.json export-ignore
+tests export-ignore
+*.d.ts export-ignore
+
+components.d.ts linguist-generated=true

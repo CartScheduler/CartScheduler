@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\ReportTagData;
 use App\Http\Requests\CreateUpdateReportTagRequest;
-use App\Http\Resources\ReportTagResource;
-use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Spatie\Tags\Tag;
 
 class ReportTagsController extends Controller
@@ -15,9 +15,9 @@ class ReportTagsController extends Controller
         $this->authorizeResource(Tag::class, 'tag');
     }
 
-    public function index(): ResourceCollection
+    public function index(): Collection
     {
-        return ReportTagResource::collection(Tag::ordered()->get());
+        return ReportTagData::collect(Tag::ordered()->get());
     }
 
     public function store(CreateUpdateReportTagRequest $request): Response

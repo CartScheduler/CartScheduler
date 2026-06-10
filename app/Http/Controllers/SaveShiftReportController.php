@@ -63,6 +63,7 @@ class SaveShiftReportController extends Controller
 
     private function prepareMetadata(ShiftUser $shiftUser, User $user, Collection $associates): array
     {
+        // TODO: This needs to be a DTO
         $metadata                       = [];
         $metadata['shift_id']           = $shiftUser->shift->id;
         $metadata['shift_time']         = $shiftUser->shift->start_time;

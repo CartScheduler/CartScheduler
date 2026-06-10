@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\AdminUserResource;
+use App\Data\AdminUserData;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -15,6 +15,6 @@ class GetAdminUsersController extends Controller
             ->where('role', 'admin')
             ->where('is_enabled', true)
             ->get();
-        return AdminUserResource::collection($adminUsers);
+        return AdminUserData::collect($adminUsers);
     }
 }

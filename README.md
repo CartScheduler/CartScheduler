@@ -45,7 +45,7 @@ mv public_html public_html.bak && ln -s /home/[MY ACCOUNT]/smpw_app/public /home
 
 > [!IMPORTANT]
 > :warning: If you are using cPanel, in the instructions below, you may need to replace the default PHP version with PHP 8.x by
-> replacing `php` with `ea-php82` in the commands below. You can check the PHP version by running `php -v`. If the 
+> replacing `php` with `ea-php82` in the commands below. You can check the PHP version by running `php -v`. If the
 > version is below 8.1, you will need to use the `ea-php82` command. An example is provided below
 
 ### Standard Deployment
@@ -62,12 +62,12 @@ To deploy a release requires the following steps:
     - ```dotenv
       MAIL_MAILER=sendmail
       MAIL_HOST=localhost
-      ``` 
+      ```
 1. SSH into the server if you haven't yet already.
 1. Make sure the permissions on the installation direcotry are set to 775 and files are set to 644. Navigate to the installed directory and use this:
     ```bash
     find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 644 {} \;
-   
+
     ```
 1. Run the following command to enable the Laravel cache:
     ```bash
@@ -86,35 +86,84 @@ To deploy a release requires the following steps:
     && ea-php82 artisan view:cache \
     && ea-php82 artisan event:cache \
     && ea-php82 artisan storage:link
-    ```
+    ```    
+
+> [!TIP]
+> Note: If you are having issues with something not working, it's likely because 'something' has been cached. You may need to run the following command to clear it:_
+> ```bash
+> php artisan optimize:clear
+> ```
+
 1. Run the following command to migrate/install the database:
-    - `php artisan migrate`
+    ```bash
+    php artisan migrate
+    ```
 1. Setup the cron job to run the following command every minute:
-    - `php artisan schedule:run >> /dev/null 2>&1`
+    ```bash
+    php artisan schedule:run >> /dev/null 2>&1
+    ```
         - eg: `* * * * * cd (/home/[MY_ACCOUNT]/[MY_APP] && php artisan schedule:run >> /dev/null 2>&1)`
           <- Note, you may need to replace `php` with `ea-php82` if you're using cPanel
 1. Create the admin user. Note, this can only be run once.:
-    - `php artisan carts:create-user <name> <email> <phone> <gender> [<password>]`
+```bash
+php artisan cart-scheduler:create-user "<name>" <email> <phone> <gender> [<password>]
+```
 1. Navigate to the site and login with the admin user you just created.
     - If you are having a server issue (eg 500 error), review the log file at `storage/logs/laravel.log`.
     - If you have this issue: `Your serialized closure might have been modified or it's unsafe to be unserialized`,
       you may need to run the following command: `php artisan route:clear`
+   
+## Development
 
-## Email Testing
+This section is for development only and is not required to run the application on a live server.
+
+### Vue Devtools
+
+Vue devtools is enabled in development. You can configure the 'component inspector' to open the respective component
+in your editor by setting the `LAUNCH_EDITOR` [environment variable](https://github.com/yyx990803/launch-editor?tab=readme-ov-file#custom-editor-support):
+
+```env
+LAUNCH_EDITOR=
+```
+
+### TypeScript
+This project is now using TypeScript with Vue.
+
+### Frontend Packages Size
+To ensure the project doesn't get out of control, utilise `npx vite-bundle-visualizer` to visualise the size of the
+frontend packages and see if there's anything that can be removed. 
+
+### Ziggy
+For synchronicity between Laravel Routes and Vue, we use [Ziggy](https://github.com/tighten/ziggy).
+
+The Ziggy types can be generated via the composer script called `ziggy`:
+#### Laravel Sail:
+```bash
+sail composer ziggy
+```
+#### CLI:
+```bash
+php composer ziggy
+```
+
+
+### Email Testing
 
 For development, the system uses [MailHog](https://github.com/mailhog/MailHog) that can be accessed
 at http://localhost:8025. All emails sent from the system
 will be available in this interface.
 
-## Notes:
+### Notes:
 
 - If the link to `/storage/example-user-import.xlsx` isn't working (found on the admin, import users page), make sure
   the symlink has been created. Run `php artisan storage:link` to create the symlink.
 
 ## TODO:
 
+- [ ] Add support for an arbitrary in the report comments. Should be configurable in the admin.
+- [ ] Add Content Security Policy (CSP)
 - [ ] If admin enters a wrong email address and it generates a \Symfony\Component\Mailer\Exception\UnexpectedResponseException, send a notification to the admin
-- [ ] If a user sets their availabilty to being not available but admin has assigned them a shift before the shift is released, notify the admin. If the shift is released, notify the volunteer.
+- [ ] If a user sets their availability to being not available but admin has assigned them a shift before the shift is released, notify the admin. If the shift is released, notify the volunteer.
 - [ ] Add flag to highlight a shift hasn't opened yet
 - [ ] Make locations and shifts sortable
 - [ ] Add selected dates to the shifts, so rather than entering a range, admin can enter individual dates
@@ -145,3 +194,4 @@ will be available in this interface.
 - [ ] Make a 'trainer' user type and allow them to un-restrict users who are with them on a shift. This feature needs to be configurable
 - [ ] In admin, if 'location choices' is enabled, add location filter to the find volunteers dialog
 - [ ] Add capability for admin to self-publish shifts per location. This will override automatic publishing of shifts per location
+- [ ] Admin controlled feature to limit how many shifts a user can be assigned to

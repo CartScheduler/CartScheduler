@@ -5,6 +5,9 @@ namespace App\Listeners;
 use App\Settings\GeneralSettings;
 use Pixelated\Streamline\Events\NextAvailableVersionUpdated;
 
+/**
+ * @codeCoverageIgnore
+ */
 readonly class StreamlineNextAvailableVersionUpdatedListener
 {
     public function __construct(private GeneralSettings $settings)

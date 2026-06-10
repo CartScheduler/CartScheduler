@@ -11,14 +11,13 @@ use Illuminate\Support\Carbon;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
-
 class UserNeedsToUpdateAvailabilityTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_execute_returns_false_for_null_user(): void
     {
-        $settings = GeneralSettings::fake([]);
+        $settings                      = GeneralSettings::fake([]);
         $userNeedsToUpdateAvailability = new UserNeedsToUpdateAvailability(settings: $settings);
 
         $result = $userNeedsToUpdateAvailability->execute(user: null);

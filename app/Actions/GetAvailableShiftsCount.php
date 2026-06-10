@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Data\AvailableShiftMetaData;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use stdClass;
@@ -16,8 +17,8 @@ class GetAvailableShiftsCount
      *
      * Parameters line up with those in cart-scheduler config
      *
-     * @param string $startDate YYYY-MM-DD
-     * @param string $endDate YYYY-MM-DD
+     * @param  string  $startDate  YYYY-MM-DD
+     * @param  string  $endDate  YYYY-MM-DD
      *
      * @return \Illuminate\Support\Collection
      */
@@ -96,12 +97,8 @@ ORDER BY dates.date";
 
         $results = DB::select($query, $params);
         return collect($results)
-            ->mapWithKeys(fn(stdClass $shift) => [
-                $shift->date => [
-                    'volunteer_count'  => (int)$shift->volunteer_count,
-                    'max_volunteers'   => (int)$shift->max_allowed,
-                    'has_availability' => (bool)$shift->has_availability,
-                ]
-            ]);
+            ->keyBy(fn(stdClass $shift) => $shift->date)
+            ->map(fn(stdClass $shift) => AvailableShiftMetaData::from($shift))
+            ;
     }
 }

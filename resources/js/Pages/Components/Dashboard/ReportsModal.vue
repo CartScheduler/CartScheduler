@@ -1,71 +1,64 @@
-<script setup>
-import useToast from '@/Composables/useToast.js';
-import JetButton from '@/Jetstream/Button.vue';
-import ConfirmationModal from '@/Jetstream/ConfirmationModal.vue';
-import ReportForm from '@/Pages/Components/Dashboard/ReportForm.vue';
-import {onMounted, provide, ref} from 'vue';
+<script setup lang="ts">
+import { isAxiosError } from "axios";
+import { onMounted, provide, ref } from "vue";
+import useToast from "@/Composables/useToast.js";
+import ReportForm from "@/Pages/Components/Dashboard/ReportForm.vue";
+import { ReportTags } from "@/Utils/provide-inject-keys";
 
-defineProps({
-    show: {
-        type: Boolean,
-        default: false,
-    },
-});
+const show = defineModel({ required: true, type: Boolean });
 
-const emit = defineEmits(['has-outstanding-reports', 'close']);
-
-const close = () => emit('close');
+const emit = defineEmits(["has-outstanding-reports"]);
 
 const toast = useToast();
 
-const outstandingReports = ref([]);
-const tags = ref([]);
-provide('report-tags', tags);
+const outstandingReports = ref<App.Data.OutstandingReportsData[]>([]);
+const tags = ref<App.Data.ReportTagData[]>([]);
+provide(ReportTags, tags);
 
 const getData = async () => {
-    try {
-        const [reportsResponse, tagsResponse] = await Promise.all([
-            axios.get('/outstanding-reports'),
-            axios.get('/get-report-tags'),
-        ]);
-        outstandingReports.value = reportsResponse.data;
-        emit('has-outstanding-reports', outstandingReports.value.length);
+  try {
+    const [reportsResponse, tagsResponse] = await Promise.all([
+      axios.get<App.Data.OutstandingReportsData[]>(route("outstanding-reports")),
+      axios.get<App.Data.ReportTagData[]>(route("get.report-tags")),
+    ]);
+    outstandingReports.value = reportsResponse.data;
+    tags.value = tagsResponse.data;
 
-        tags.value = tagsResponse.data.data;
-    } catch (e) {
-        toast.error(e.response.data.message);
+    emit("has-outstanding-reports", outstandingReports.value.length);
+  } catch (e) {
+    if (!isAxiosError(e)) {
+      throw e;
     }
+    toast.error(e.response?.data.message, "Error");
+  }
 };
 
 onMounted(() => {
-    getData();
+  void getData();
 });
 
-const reportSaved = () => getData();</script>
+const reportSaved = () => setTimeout(() => getData(), 1000);
+</script>
 
 <template>
-    <ConfirmationModal :show="show" @close="close">
-        <template #title>
-            <h3>Outstanding Reports</h3>
-        </template>
+  <PDialog modal dismissable-mask class="w-[90dvw] sm:w-[32rem] md:w-[46rem]" v-model:visible="show">
+    <template #header>
+      <h3>Outstanding Reports</h3>
+    </template>
 
-        <template #content>
-            <div class="">
-                <div v-if="outstandingReports?.length" class="mt-5">
-                    <div v-for="report in outstandingReports"
-                         :key="`${report.shift_date}-${report.start_time}-${report.shift_id}-${report.user_id}`"
-                         class="pb-3 mb-20 border-b border-gray-200">
-                        <ReportForm :report="report" @saved="reportSaved()"/>
-                    </div>
-                </div>
-                <div v-else>
-                    <h4 class="my-3 text-green-700 dark:text-green-400">No more reports outstanding 🎉</h4>
-                </div>
-            </div>
-        </template>
+    <div v-if="outstandingReports?.length" class="mt-5">
+      <div v-for="report in outstandingReports"
+           :key="report.shift_date + report.start_time + report.shift_id"
+           class="pb-3 mb-20 border-b border-gray-200">
+        <ReportForm :report="report" @saved="reportSaved()" />
+      </div>
+    </div>
+    <div v-else>
+      <h4 class="my-3 text-green-700 dark:text-green-400">No more reports outstanding 🎉</h4>
+    </div>
 
-        <template #footer>
-            <JetButton type="button" style-type="secondary" @click="close">Close</JetButton>
-        </template>
-    </ConfirmationModal>
+    <template #footer>
+      <PButton type="button" severity="secondary" @click="show = false">Close</PButton>
+    </template>
+  </PDialog>
 </template>

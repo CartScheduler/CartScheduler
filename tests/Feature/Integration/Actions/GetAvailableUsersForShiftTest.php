@@ -39,15 +39,24 @@ class GetAvailableUsersForShiftTest extends TestCase
 
         $locations->load('shifts');
 
-        $users = User::factory()->count(5)->enabled()->create()->chunk(3);
-        /** @var \Illuminate\Support\Collection $attachedUsers */
+        $users = User::factory()
+            ->count(5)
+            ->enabled()
+            ->has(
+                UserAvailability::factory()->weekdays9To5()->count(1),
+                'availability'
+            )
+            ->create()
+            ->chunk(3);
+        
+        /** @var \Illuminate\Support\Collection<User> $attachedUsers */
         $attachedUsers = $users->get(0);
-        /** @var \Illuminate\Support\Collection $unattachedUsers */
+        /** @var \Illuminate\Support\Collection<User> $unattachedUsers */
         $unattachedUsers = $users->get(1);
 
         $dateRange = collect();
-        $attachedUsers->chunk(3)
-            ->get(0)
+
+        $attachedUsers
             ->each(fn(User $user) => $dateRange
                 ->push([
                     'shift_date' => '2023-05-15',
@@ -73,7 +82,6 @@ class GetAvailableUsersForShiftTest extends TestCase
                 showOnlyElders: false,
                 showOnlyMinisterialServants: false,
             );
-
             $this->assertCount($unattachedUsers->count(), $availableUsers);
 
             /** @var User $availableUser */

@@ -44,7 +44,7 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="RAY_ENABLED" value="true"/>
         <env name="SEND_CACHE_TO_RAY" value="false"/>
-        <env name="SEND_DUMPS_TO_RAY" value="false"/>
+        <env name="SEND_DUMPS_TO_RAY" value="true"/>
         <env name="SEND_JOBS_TO_RAY" value="false"/>
         <env name="SEND_MAILS_TO_RAY" value="false"/>
         <env name="SEND_LOG_CALLS_TO_RAY" value="false"/>

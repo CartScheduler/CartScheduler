@@ -7,9 +7,9 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use Inertia\Response;
-use Maatwebsite\Excel\Facades\Excel;
 
 class UsersImportController extends Controller
 {
@@ -29,11 +29,10 @@ class UsersImportController extends Controller
             'file' => ['required', 'file', 'mimes:csv,xlsx,xls'],
         ]);
 
-        $import = new UsersImport();
-        Excel::import($import, $request->file('file'));
+        $import = UsersImport::importUploadedFiles($request->file('file'));
 
-        $createCount = $import->getCreateCount();
-        $updateCount = $import->getUpdateCount();
+        $createCount   = $import->getCreateCount();
+        $updateCount   = $import->getUpdateCount();
         $createMessage = '';
         $updateMessage = '';
         if ($createCount) {
@@ -44,9 +43,9 @@ class UsersImportController extends Controller
             $updateMessage = "$updateCount users were updated";
             $updateMessage .= $createCount ? '!' : '';
         }
-        session()->flash('flash.banner', $createMessage . $updateMessage);
-        session()->flash('flash.bannerStyle', 'success');
+        Session::flash('flash.title', "Success!");
+        Session::flash('flash.message', $createMessage . $updateMessage);
 
-        return Redirect::route('admin.users.import.show');
+        return Redirect::route('admin.users.import.show', status: \Illuminate\Http\Response::HTTP_SEE_OTHER);
     }
 }

@@ -9,6 +9,10 @@ use Laravel\Jetstream\Contracts\CreatesTeams;
 use Laravel\Jetstream\Events\AddingTeam;
 use Laravel\Jetstream\Jetstream;
 
+/**
+ * Not used for now
+ * @codeCoverageIgnore
+ */
 class CreateTeam implements CreatesTeams
 {
     /**

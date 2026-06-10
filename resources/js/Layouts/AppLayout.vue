@@ -1,357 +1,119 @@
-<script setup>
+<script setup lang="ts">
+import Bugsnag from "@bugsnag/js";
+import { usePage } from "@inertiajs/vue3";
+import { differenceInDays } from "date-fns";
+import { computed, onMounted, provide, ref, watch } from "vue";
 import ObtrusiveNotification from "@/Components/ObtrusiveNotification.vue";
-import useToast from "@/Composables/useToast";
-import JetApplicationMark from '@/Jetstream/ApplicationMark.vue';
-import JetBanner from '@/Jetstream/Banner.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetNavLink from '@/Jetstream/NavLink.vue';
-import JetResponsiveNavLink from '@/Jetstream/ResponsiveNavLink.vue';
-import AdminMenu from '@/Layouts/Components/AdminMenu.vue';
-import DarkMode from '@/Layouts/Components/DarkMode.vue';
-import ProfileSettingsMenu from '@/Layouts/Components/ProfileSettingsMenu.vue';
-import TeamsMenu from '@/Layouts/Components/TeamsMenu.vue';
-import {useGlobalState} from "@/store";
-import Bugsnag from '@bugsnag/js';
-import {Head, Link, router, usePage} from "@inertiajs/vue3";
-import '@vuepic/vue-datepicker/dist/main.css';
-import {differenceInDays} from "date-fns";
-import 'floating-vue/dist/style.css';
-import {computed, onMounted, onUpdated, provide, ref} from 'vue';
+import useCurrentPageInfo from "@/Composables/useCurrentPageInfo";
+import { useDarkMode } from "@/Composables/useDarkMode.js";
+import { useGlobalState } from "@/store";
+import { EnableUserAvailability } from "@/Utils/provide-inject-keys.js"; // TODO AFTER REMOVING FLOATING-VUE, DELETE
+import "@vuepic/vue-datepicker/dist/main.css"; // FIXME AFTER REMOVING VUE-DATEPICKER, DELETE
+import "floating-vue/dist/style.css";
 
+defineProps<{
+  fullWidth?: boolean;
+}>();
 
-defineProps({
-    title: String,
-    user: Object,
-});
+const page = usePage();
+const { prepareRouteData } = useCurrentPageInfo();
+watch(() => page.url, () => {
+  prepareRouteData();
+}, { immediate: true });
 
-const bugsnagKey = import.meta.env.VITE_BUGSNAG_FRONT_END_API_KEY;
+const bugsnagKey = import.meta.env["VITE_BUGSNAG_FRONT_END_API_KEY"];
 onMounted(() => {
-    if (bugsnagKey) {
-        const user = usePage().props.auth.user;
-        if (user && user.id) {
-            Bugsnag.setUser(user.id, user.email, user.name);
-        }
+  if (bugsnagKey) {
+    const user = page.props.auth.user;
+    if (user?.id) {
+      Bugsnag.setUser(user.id, user.email, user.name);
     }
+  }
 });
 
-const showingNavigationDropdown = ref(false);
+const { isDarkMode } = useDarkMode();
 
-const permissions = computed(() => {
-    return usePage().props.pagePermissions;
-});
-
-const logout = () => router.post(route('logout'));
-
-const isDarkMode = ref(false);
-provide('darkMode', isDarkMode);
-
-provide('enableUserAvailability', !!usePage().props.enableUserAvailability || false);
-
-// const style = computed(() => usePage().props.jetstream.flash?.bannerStyle || 'success')
-// const message = computed(() => usePage().props.jetstream.flash?.banner || '')
-
-const toast = useToast();
-onUpdated(() => {
-    // TODO this appears to be running twice. It may be fixed after updating to v1.x of Inertia (current is 0.11.0).
-    const flash = usePage().props.jetstream.flash;
-    const type = flash?.bannerStyle || 'success';
-    const message = flash?.banner || '';
-    if (!message) {
-        return;
-    }
-    // toast.success(message);
-    toast.message(type, message);
-});
+provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
 
 const state = useGlobalState();
 const showUpdateAvailabilityReminder = ref(false);
-onMounted(() => {
-    const pageProps = usePage().props;
-    if (pageProps.user && pageProps.needsToUpdateAvailability && didHideAvailabilityReminderOverOneDayAgo.value) {
-        showUpdateAvailabilityReminder.value = true;
-    }
-});
 
 const didHideAvailabilityReminderOverOneDayAgo = computed(() => {
-    const dismissedOn = state.value.dismissedAvailabilityOn;
-    if (!dismissedOn) {
-        return true;
-    }
-    if (differenceInDays(new Date(), new Date(dismissedOn)) > 1) {
-        return true;
-    }
-
-    return false;
+  const dismissedOn = state.value.dismissedAvailabilityOn;
+  if (!dismissedOn) {
+    return true;
+  }
+  return differenceInDays(new Date(), new Date(dismissedOn)) > 1;
 });
 
-const checkAvailability = () => {
-    checkLater();
-    router.get(route('user.availability'));
+const availabilityReminderPrompt = () => {
+  if (page.props.auth.user && page.props.needsToUpdateAvailability && didHideAvailabilityReminderOverOneDayAgo.value) {
+    showUpdateAvailabilityReminder.value = true;
+  }
 };
 
-const checkLater = () => {
-    state.value.dismissedAvailabilityOn = new Date();
-    showUpdateAvailabilityReminder.value = false;
-};
+// const header = useHeader();
+onMounted(() => {
+  availabilityReminderPrompt();
+});
 </script>
 
 <template>
-    <div>
-        <Head :title="title"/>
+  <div class="text-neutral-900 dark:text-neutral-100 bg-gradient-to-b from-page  to-neutral-50 dark:bg-page-dark dark:bg-gradient-to-b dark:from-page-dark dark:to-neutral-950">
+    <div class="flex flex-col content-start min-h-dvh w-dvw max-w-full-dvw justify-stretch">
+      <Nav class="border-b page-grid border-neutral-300 dark:border-neutral-700/85"
+           @toggle-dark-mode="isDarkMode = $event" />
 
-        <JetBanner/>
+      <!-- Page Heading -->
+      <header id="page-header"
+              class="page-grid
+                      px-4 xl:px-0 py-6
+                      border-b border-neutral-200 text-neutral-900 dark:text-neutral-100 dark:border-b dark:border-neutral-700/85">
+        <slot name="header" />
+      </header>
 
-        <div class="min-h-screen bg-gray-100 dark:bg-slate-800">
-            <nav class="bg-white dark:bg-slate-900 border-b border-gray-100">
-                <!-- Primary Navigation Menu -->
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex">
-                            <!-- Logo -->
-                            <div class="shrink-0 flex items-center">
-                                <Link :href="route('dashboard')" class="dark:bg-white/10 rounded p-1">
-                                    <JetApplicationMark class="block h-9 w-auto"/>
-                                </Link>
-                            </div>
+      <main class="flex-1 flex sm:flex-col">
+        <!-- Page Top -->
+        <section v-if="$slots['page-top']" class="page-grid text-neutral-900 dark:text-neutral-100">
+          <slot name="page-top" />
+        </section>
 
-                            <!-- Navigation Links -->
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                                <JetNavLink :href="route('dashboard')" :active="route().current('dashboard')"
-                                            class="text-gray-500 dark:text-gray-100 hover:text-gray-700 hover:dark:text-gray-300 hover:no-underline">
-                                    Dashboard
-                                </JetNavLink>
+        <!-- Page Content -->
+        <section class="flex-1 w-dvw page-grid">
+          <div class="pt-4 sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5">
+            <slot />
+          </div>
+        </section>
+      </main>
 
-                                <!-- Settings Dropdown -->
-                                <AdminMenu v-if="permissions.canAdmin"/>
-                            </div>
-                        </div>
-
-                        <div class="hidden sm:flex sm:items-center sm:ml-6">
-                            <div class="ml-3 relative">
-                                <!-- Teams Dropdown -->
-                                <TeamsMenu/>
-                            </div>
-
-                            <DarkMode @is-dark-mode="isDarkMode = $event"/>
-
-                            <!-- Settings Dropdown -->
-                            <div class="ml-3 relative">
-                                <ProfileSettingsMenu/>
-                            </div>
-                        </div>
-
-                        <!-- Hamburger -->
-                        <div class="-mr-2 flex items-center sm:hidden">
-                            <DarkMode @is-dark-mode="isDarkMode = $event"/>
-
-                            <button
-                                class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition"
-                                @click="showingNavigationDropdown = ! showingNavigationDropdown">
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                    <path
-                                        :class="{'hidden': showingNavigationDropdown, 'inline-flex': ! showingNavigationDropdown }"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M4 6h16M4 12h16M4 18h16"/>
-                                    <path
-                                        :class="{'hidden': ! showingNavigationDropdown, 'inline-flex': showingNavigationDropdown }"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Responsive Navigation Menu -->
-                <div :class="{'block': showingNavigationDropdown, 'hidden': ! showingNavigationDropdown}"
-                     class="sm:hidden">
-                    <div class="pt-2 pb-3 space-y-1">
-                        <JetResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
-                            Dashboard
-                        </JetResponsiveNavLink>
-
-                        <div v-if="permissions.canAdmin" class="pt-4 pb-1 border-t border-gray-200">
-                            <div class="font-medium text-base px-4 dark:text-gray-100">Administration</div>
-                            <div class="px-4">
-                                <JetResponsiveNavLink :href="route('admin.dashboard')"
-                                                      :active="route().current('admin.dashboard')">
-                                    Dashboard
-                                </JetResponsiveNavLink>
-
-                                <div class="border-t border-gray-100"/>
-
-                                <JetResponsiveNavLink :href="route('admin.users.index')"
-                                                      :active="route().current('admin.users.index')">
-                                    Users
-                                </JetResponsiveNavLink>
-
-                                <JetResponsiveNavLink :href="route('admin.locations.index')"
-                                                      :active="route().current('admin.locations.index')">
-                                    Locations
-                                </JetResponsiveNavLink>
-
-                                <JetResponsiveNavLink :href="route('admin.reports.index')"
-                                                      :active="route().current('admin.reports.index')">
-                                    Reports
-                                </JetResponsiveNavLink>
-
-                                <JetResponsiveNavLink :href="route('admin.exports')"
-                                                      :active="route().current('admin.exports')">
-                                    Exports
-                                </JetResponsiveNavLink>
-
-                                <JetResponsiveNavLink v-if="permissions.canEditSettings"
-                                                      :href="route('admin.settings')"
-                                                      :active="route().current('admin.settings')">
-                                    Settings
-                                </JetResponsiveNavLink>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Responsive Settings Options -->
-                    <div class="pt-4 pb-1 border-t border-gray-200">
-                        <div class="flex items-center px-4">
-                            <div v-if="$page.props.jetstream.managesProfilePhotos" class="shrink-0 mr-3">
-                                <img class="h-10 w-10 rounded-full object-cover"
-                                     :src="$page.props.auth.user.profile_photo_url"
-                                     :alt="$page.props.auth.user.name">
-                            </div>
-
-                            <div>
-                                <div class="font-medium text-base text-gray-800 dark:text-gray-100">
-                                    {{ $page.props.auth.user.name }}
-                                </div>
-                                <div class="font-medium text-sm text-gray-500 dark:text-gray-300">
-                                    {{ $page.props.auth.user.email }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 space-y-1">
-                            <JetResponsiveNavLink :href="route('profile.show')"
-                                                  :active="route().current('profile.show')">
-                                Profile
-                            </JetResponsiveNavLink>
-
-                            <JetResponsiveNavLink v-if="$page.props.enableUserAvailability"
-                                                  :href="route('user.availability')"
-                                                  :active="route().current('user.availability')">
-                                Availability
-                            </JetResponsiveNavLink>
-
-                            <JetResponsiveNavLink v-if="$page.props.jetstream.hasApiFeatures"
-                                                  :href="route('api-tokens.index')"
-                                                  :active="route().current('api-tokens.index')">
-                                API Tokens
-                            </JetResponsiveNavLink>
-
-                            <!-- Authentication -->
-                            <form method="POST" @submit.prevent="logout">
-                                <JetResponsiveNavLink as="button">
-                                    Log Out
-                                </JetResponsiveNavLink>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- Page Heading -->
-            <header v-if="$slots.header" class="bg-white dark:bg-slate-900 shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 dark:text-gray-100">
-                    <slot name="header"/>
-                </div>
-            </header>
-
-            <!-- Page Content -->
-            <main class="main-content">
-                <slot/>
-            </main>
-        </div>
+      <!-- Page Bottom -->
+      <section v-if="$slots['page-bottom']" class="px-4 py-6 w-7xl sm:px-6 lg:px-8 text-neutral-900 dark:text-neutral-100">
+        <slot name="page-bottom" />
+      </section>
     </div>
+  </div>
 
-    <ObtrusiveNotification closeable :show="showUpdateAvailabilityReminder"
-                           @close="showUpdateAvailabilityReminder = false">
-        <div class="p-6 dark:text-gray-100 text-center">
-            <p>It seems like you haven't updated your availability in a while. Please make sure your availability is up
-                to date.</p>
-            <p class="my-3">Checking will hide this message for 1 month</p>
-            <div class="w-full flex flex-col justify-between">
-                <JetButton class="mb-3 text-center justify-center" @click="checkAvailability">Check now</JetButton>
-                <JetButton style-type="secondary" outline class="text-center justify-center" @click="checkLater">I'll
-                    check later
-                </JetButton>
-                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">You can always check your availability by going
-                    to the account menu item.</p>
-            </div>
-        </div>
-    </ObtrusiveNotification>
+  <PToast class="z-[9999]" position="top-center" group="default" :auto-z-index="false" />
+  <PToast class="z-[9999]" position="center" group="center" :auto-z-index="false" />
+  <PToast class="z-[9999]" position="bottom-center" group="bottom" :auto-z-index="false" />
+
+  <ObtrusiveNotification full-screen-on-mobile v-model="showUpdateAvailabilityReminder" class="md:max-w-lg">
+    <AvailabilityReminder @check-later="showUpdateAvailabilityReminder = false" />
+  </ObtrusiveNotification>
 </template>
 
-<style lang="scss">
-
+<!--suppress CssUnusedSymbol -->
+<style>
+/* TODO, DELETE AFTER REMOVING POPPER.JS */
 .v-popper__popper .v-popper__wrapper {
     .v-popper__inner {
-        @apply bg-white dark:bg-indigo-800 border border-white dark:border-indigo-800 shadow-lg text-slate-900 dark:text-slate-200 p-3 shadow-lg;
+        @apply bg-white dark:bg-indigo-800 border border-white dark:border-indigo-800 shadow-lg text-slate-900 dark:text-slate-200 p-3;
     }
 }
 
 .v-popper__popper .v-popper__wrapper .v-popper__arrow-container {
     .v-popper__arrow-inner, .v-popper__arrow-outer {
         @apply border-white dark:border-indigo-800;
-    }
-}
-
-$dp__cell_size: auto;
-.dashboard {
-    .dp__theme_dark {
-        --dp-background-color: #1E293B;
-    }
-
-    .dp__main.dp__flex_display {
-        width: 100%;
-        @media (min-width: 500px) and (max-width: 639px) {
-            width: 80%;
-            margin: 0 auto;
-        }
-        @media only screen and (max-width: 639px) {
-            flex-direction: column !important;
-        }
-
-    }
-
-    .dp__calendar_header {
-        width: 100%;
-
-        .dp__calendar_header_item {
-            flex: 1 1 0;
-            margin: 0 2px;
-        }
-    }
-
-    .dp__calendar {
-        width: 100%;
-
-        .dp__calendar_item {
-            flex: 1 1 0;
-            margin: 0 2px;
-
-            .dp__cell_inner {
-                @media (max-width: 500px) {
-                    min-height: calc(100vw / 9);
-                    min-width: calc(100vw / 9);
-                }
-                @media (min-width: 500px) and (max-width: 639px) {
-                    min-height: calc(100vw / 10);
-                    min-width: calc(100vw / 10);
-                }
-            }
-        }
     }
 }
 </style>

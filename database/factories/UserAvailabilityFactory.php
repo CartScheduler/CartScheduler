@@ -67,6 +67,66 @@ class UserAvailabilityFactory extends Factory
         ]);
     }
 
+    public function weekdays9To5(): Factory
+    {
+        return $this->state(fn(array $attributes) => [
+            'day_monday'     => $this->getHourRange(9, 17),
+            'day_tuesday'    => $this->getHourRange(9, 17),
+            'day_wednesday'  => $this->getHourRange(9, 17),
+            'day_thursday'   => $this->getHourRange(9, 17),
+            'day_friday'     => $this->getHourRange(9, 17),
+            'day_saturday'   => null,
+            'day_sunday'     => null,
+            'num_mondays'    => 4,
+            'num_tuesdays'   => 4,
+            'num_wednesdays' => 4,
+            'num_thursdays'  => 4,
+            'num_fridays'    => 4,
+            'num_saturdays'  => 0,
+            'num_sundays'    => 0,
+        ]);
+    }
+
+    public function everyEvening(): Factory
+    {
+        return $this->state(fn(array $attributes) => [
+            'day_monday'     => $this->getHourRange(17, 21),
+            'day_tuesday'    => $this->getHourRange(17, 21),
+            'day_wednesday'  => $this->getHourRange(17, 21),
+            'day_thursday'   => $this->getHourRange(17, 21),
+            'day_friday'     => $this->getHourRange(17, 21),
+            'day_saturday'   => $this->getHourRange(17, 21),
+            'day_sunday'     => $this->getHourRange(17, 21),
+            'num_mondays'    => 4,
+            'num_tuesdays'   => 4,
+            'num_wednesdays' => 4,
+            'num_thursdays'  => 4,
+            'num_fridays'    => 4,
+            'num_saturdays'  => 4,
+            'num_sundays'    => 4,
+        ]);
+    }
+
+    public function weekend10To16(): Factory
+    {
+        return $this->state(fn(array $attributes) => [
+            'day_monday'     => null,
+            'day_tuesday'    => null,
+            'day_wednesday'  => null,
+            'day_thursday'   => null,
+            'day_friday'     => null,
+            'day_saturday'   => $this->getHourRange(10, 16),
+            'day_sunday'     => $this->getHourRange(10, 16),
+            'num_mondays'    => 0,
+            'num_tuesdays'   => 0,
+            'num_wednesdays' => 0,
+            'num_thursdays'  => 0,
+            'num_fridays'    => 0,
+            'num_saturdays'  => 4,
+            'num_sundays'    => 4,
+        ]);
+    }
+
     private function availability(): ?array
     {
         // 20% chance of full-day

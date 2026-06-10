@@ -27,6 +27,7 @@ class UpdateUserRegularAvailabilityController extends Controller
         if ($request->validated('user_id')) {
             $user = User::findOrFail($request->validated('user_id'));
         }
+
         $user->load('availability');
         $availability = $user->availability ?? $user->availability()->create();
 

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\LocationAdminResource;
-use App\Http\Resources\ReportsResource;
+use App\Data\IdAndNameData;
+use App\Data\ReportsData;
 use App\Models\Location;
 use App\Models\Report;
 use Inertia\Inertia;
@@ -14,12 +14,12 @@ class ReportsController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Reports/List', [
-            'locations.shifts' => LocationAdminResource::collection(Location::all()),
-            'reports'          => ReportsResource::collection(
-                Report::with(['shift:start_time' => ['location:id,name'], 'user:id,name,gender,mobile_phone,email', 'tags:name'])
-                      ->where('shift_date', '>=', now()->subMonths(2))
-                      ->orderBy('id', 'desc')
-                      ->get()
+            'locations' => IdAndNameData::collect(Location::get(['id', 'name'])),
+            'reports'   => ReportsData::collect(
+                Report::query()
+                    ->with(['tags'])
+                    ->orderBy('id', 'desc')
+                    ->get()
             ),
         ]);
     }

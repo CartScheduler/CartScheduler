@@ -27,7 +27,7 @@ class LocationsSortOrderTest extends TestCase
             ->assertOk()
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Locations/List')
-                ->has('locations.data', fn(AssertableInertia $data) => $data
+                ->has('locations', fn(AssertableInertia $data) => $data
                     ->where('0.sort_order', 0)
                     ->where('1.sort_order', 0)
                     ->where('2.sort_order', 0)
@@ -130,7 +130,7 @@ class LocationsSortOrderTest extends TestCase
         $this->actingAs($admin)->getJson("/admin/locations")
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Locations/List')
-                ->has('locations.data', fn(AssertableInertia $data) => $data
+                ->has('locations', fn(AssertableInertia $data) => $data
                     ->where('0.sort_order', 0)
                     ->where('1.sort_order', 1)
                     ->where('2.sort_order', 2)
@@ -154,7 +154,7 @@ class LocationsSortOrderTest extends TestCase
         $this->actingAs($admin)->getJson("/admin/locations")
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Locations/List')
-                ->has('locations.data', fn(AssertableInertia $data) => $data
+                ->has('locations', fn(AssertableInertia $data) => $data
                     ->where('0.name', 'aaa0')
                     ->where('1.name', 'aaa1')
                     ->where('2.name', 'aaa2')

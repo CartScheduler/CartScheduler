@@ -1,173 +1,187 @@
-<script setup>
-import useToast from '@/Composables/useToast.js';
-import JetButton from '@/Jetstream/Button.vue';
-import JetCheckbox from '@/Jetstream/Checkbox.vue';
-import JetConfirmationModal from '@/Jetstream/ConfirmationModal.vue';
-import JetInputError from '@/Jetstream/InputError.vue';
-import JetLabel from '@/Jetstream/Label.vue';
-import JetSectionBorder from '@/Jetstream/SectionBorder.vue';
-//https://vue3datepicker.com/
-import Datepicker from '@vuepic/vue-datepicker';
-import {format} from "date-fns";
-import {computed, defineProps, inject, ref} from 'vue';
+<script setup lang="ts">
+import Datepicker from "@vuepic/vue-datepicker";
+import { isAxiosError } from "axios";
+import { useConfirm } from "primevue";
+import { computed, useId } from "vue";
+import { useDarkMode } from "@/Composables/useDarkMode";
+import useToast from "@/Composables/useToast";
+import JetInputError from "@/Jetstream/InputError.vue";
+import JetLabel from "@/Jetstream/Label.vue";
+import JetSectionBorder from "@/Jetstream/SectionBorder.vue";
+import dateStringToDateObject from "@/Utils/dateStringToDateObject";
+import type { FormErrors } from "@/types/types";
+// https://vue3datepicker.com/
 
-const props = defineProps({
-    modelValue: Object,
-    days: Array,
-    index: Number,
-    errors: Object,
-});
+export type DayKey = Extract<keyof App.Data.ShiftAdminData, `day_${string}`>;
+const props = defineProps<{
+  days: Array<{
+    label: string;
+    value: DayKey;
+  }>;
+  index: number;
+  errors: FormErrors<App.Data.LocationAdminData>;
+}>();
+
+const shift = defineModel<App.Data.ShiftAdminData>({ required: true });
 
 const emit = defineEmits([
-    'update:modelValue',
-    'delete',
+  "update:modelValue",
+  "delete",
 ]);
 
-const shift = computed({
-    get: () => props.modelValue,
-    set: value => emit('update:modelValue', value),
-});
+const confirm = useConfirm();
 
-const availableFrom = computed({
-    get: () => props.modelValue.available_from,
-    set: value => shift.value.available_from = value ? format(value, 'yyyy-MM-dd') : null,
-});
+const availableFrom = dateStringToDateObject(shift, "available_from");
+const availableTo = dateStringToDateObject(shift, "available_to");
 
-const availableTo = computed({
-    get: () => props.modelValue.available_to,
-    set: value => shift.value.available_to = value ? format(value, 'yyyy-MM-dd') : null,
-});
-
-const prefixTime = time => {
-    if (time < 10) {
-        return `0${time}`;
-    }
-    return '' + time;
+const prefixTime = (time: number) => {
+  if (time < 10) {
+    return `0${time}`;
+  }
+  return "" + time;
 };
 
 const shiftTimeRange = computed({
-    get: () =>
-        [
-            {
-                hours: parseInt(shift.value.start_time?.substring(0, 2)) || 0,
-                minutes: parseInt(shift.value.start_time?.substring(3, 5)) || 0,
-            },
-            {
-                hours: parseInt(shift.value.end_time?.substring(0, 2)) || 0,
-                minutes: parseInt(shift.value.end_time?.substring(3, 5)) || 0,
-            },
-        ],
-    set: value => {
-        shift.value.start_time = prefixTime(value[0].hours) + ':' + prefixTime(value[0].minutes) + ':00';
-        shift.value.end_time = prefixTime(value[1].hours) + ':' + prefixTime(value[1].minutes) + ':00';
-    },
+  get: () =>
+    [
+      {
+        hours: parseInt(shift.value.start_time?.substring(0, 2)) || 0,
+        minutes: parseInt(shift.value.start_time?.substring(3, 5)) || 0,
+      },
+      {
+        hours: parseInt(shift.value.end_time?.substring(0, 2)) || 0,
+        minutes: parseInt(shift.value.end_time?.substring(3, 5)) || 0,
+      },
+    ],
+  set: (value) => {
+    shift.value.start_time = prefixTime(value[0].hours) + ":" + prefixTime(value[0].minutes) + ":00";
+    shift.value.end_time = prefixTime(value[1].hours) + ":" + prefixTime(value[1].minutes) + ":00";
+  },
 });
 
-const fieldUnique = computed(() => shift.value.id || Math.random().toString(36).substring(2, 9));
+const allDays = computed({
+  get: () => shift.value.day_monday && shift.value.day_tuesday && shift.value.day_wednesday && shift.value.day_thursday && shift.value.day_friday && shift.value.day_saturday && shift.value.day_sunday,
+  set: (value) => {
+    shift.value.day_monday = value;
+    shift.value.day_tuesday = value;
+    shift.value.day_wednesday = value;
+    shift.value.day_thursday = value;
+    shift.value.day_friday = value;
+    shift.value.day_saturday = value;
+    shift.value.day_sunday = value;
+  },
+});
 
-const showModal = ref(false);
+const fieldUnique = useId();
 
 const toast = useToast();
 
 const deleteShift = async () => {
-    if (shift.value.id) {
-        try {
-            await axios.delete('/admin/shifts/' + shift.value.id);
-            toast.success('Shift deleted successfully');
-        } catch (e) {
-            toast.error(e.message || e.response?.data);
-            return;
-        }
+  if (shift.value.id) {
+    try {
+      await axios.delete(route("admin.shifts.destroy", shift.value.id));
+      toast.success("Shift deleted successfully");
+    } catch (e) {
+      if (isAxiosError(e)) {
+        toast.error(e.response?.data.message, "Error!", { timeout: 4000 });
+      }
     }
+  }
 
-    emit('delete', props.index);
+  emit("delete", props.index);
 };
 
-const darkMode = inject('darkMode', false);
+const { isDarkMode } = useDarkMode();
 
+const confirmDelete = (event: Event) => {
+  confirm.require({
+    target: event.currentTarget as HTMLElement,
+    message: "Are you sure you want to delete this shift?",
+    header: "Confirm Deletion",
+    icon: "iconify mdi--alert-circle-outline text-xl",
+    acceptProps: {
+      label: "Yes",
+      severity: "danger",
+      variant: "outlined",
+    },
+    rejectProps: {
+      label: "No",
+      severity: "primary",
+    },
+    accept: () => deleteShift(),
+  });
+};
 </script>
 
 <template>
-    <template v-if="shift">
-        <div class="">
-            <div class="grid grid-cols-7 gap-2">
-                <div v-for="day in days" :key="day.label" class="text-center justify-self-center">
-                    <JetLabel :for="day.value + fieldUnique" :value="day.label"/>
-                    <JetCheckbox :id="day.value + fieldUnique"
-                                 v-model:checked="shift[day.value]"
-                                 :value="day.value"
-                                 class="mt-3"/>
-                </div>
-            </div>
-        </div>
-        <div class="sm:col-span-2">
-            <JetLabel :for="`shift-range-${fieldUnique}`" value="Shift Time From & To"/>
-            <Datepicker time-picker
-                        range
-                        auto-apply
-                        v-model="shiftTimeRange"
-                        :id="`shift-range-${fieldUnique}`"
-                        :enable-seconds="false"
-                        :clearable="false"
-                        :minutes-increment="5"
-                        :dark="darkMode"/>
-            <JetInputError :message="errors[`shifts.${index}.start_time`]" class="mt-2"/>
-            <JetInputError :message="errors[`shifts.${index}.end_time`]" class="mt-2"/>
-        </div>
-        <div>
-            <JetLabel :for="`is-enabled-${fieldUnique}`" value="Enabled?"/>
-            <JetCheckbox :id="`is-enabled-${fieldUnique}`" v-model:checked="shift.is_enabled" class="mt-3"/>
-        </div>
-        <div class="sm:col-start-2">
-            <JetLabel :for="`available-from-${fieldUnique}`" value="Available From"/>
-            <Datepicker auto-apply
-                        enable-time-picker
-                        format="dd/MM/yyyy"
-                        v-model="availableFrom"
-                        :id="`available-from-${fieldUnique}`"
-                        :close-on-auto-apply="false"
-                        :enable-seconds="false"
-                        :enable-time-picker="false"
-                        :minutes-grid-increment="5"
-                        :dark="darkMode"/>
-            <div class="text-xs text-gray-500">Optional</div>
-            <JetInputError :message="errors[`shifts.${index}.available_from`]" class="mt-2"/>
+  <template v-if="shift">
+    <div class="grid grid-cols-8 gap-2">
+      <div class="justify-self-center text-center">
+        <JetLabel for="all" value="All" />
+        <PCheckbox binary
+                   input-id="all"
+                   v-model="allDays"
+                   :value="true"
+                   class="mt-3" />
+      </div>
+      <div v-for="day in days" :key="day.label" class="justify-self-center text-center">
+        <JetLabel :for="day.value + fieldUnique" :value="day.label" />
+        <PCheckbox binary
+                   :input-id="day.value + fieldUnique"
+                   v-model="shift[day.value]"
+                   :value="day.value"
+                   class="mt-3" />
+      </div>
+    </div>
+    <div class="sm:col-span-2">
+      <JetLabel :for="`shift-range-${fieldUnique}`" value="Shift Time From & To" />
+      <Datepicker time-picker
+                  range
+                  auto-apply
+                  v-model="shiftTimeRange"
+                  :id="`shift-range-${fieldUnique}`"
+                  :enable-seconds="false"
+                  :clearable="false"
+                  :minutes-increment="5"
+                  :dark="isDarkMode" />
+      <JetInputError :message="errors[`shifts.${index}.start_time`]" class="mt-2" />
+      <JetInputError :message="errors[`shifts.${index}.end_time`]" class="mt-2" />
+    </div>
+    <div>
+      <JetLabel :for="`is-enabled-${fieldUnique}`" value="Enabled?" />
+      <PCheckbox binary
+                 :input-id="`is-enabled-${fieldUnique}`"
+                 v-model="shift.is_enabled"
+                 :value="true"
+                 class="mt-3" />
+    </div>
+    <div class="sm:col-start-2">
+      <JetLabel :for="`available-from-${fieldUnique}`" value="Available From" />
+      <PDatePicker :input-id="`available-to-${fieldUnique}`"
+                   show-button-bar
+                   icon-display="input"
+                   v-model="availableFrom"
+                   date-format="d M yy"
+                   @clearClick="availableFrom = undefined" />
+      <div class="text-xs text-gray-500">Optional</div>
+      <JetInputError :message="errors[`shifts.${index}.available_from`]" class="mt-2" />
+    </div>
+    <div>
+      <JetLabel :for="`available-to-${fieldUnique}`" value="Available To" />
+      <PDatePicker :input-id="`available-to-${fieldUnique}`"
+                   show-button-bar
+                   icon-display="input"
+                   v-model="availableTo"
+                   date-format="d M yy"
+                   @clearClick="availableTo = undefined" />
+      <div class="text-xs text-gray-500">Optional</div>
+      <JetInputError :message="errors[`shifts.${index}.available_to`]" class="mt-2" />
+    </div>
+    <div class="self-center">
+      <PButton icon="iconify mdi--trash-can-outline" severity="warn" variant="outlined" @click="confirmDelete" />
+    </div>
+    <JetSectionBorder class="col-span-full" />
+  </template>
 
-        </div>
-        <div class="">
-            <JetLabel :for="`available-to-${fieldUnique}`" value="Available To"/>
-            <Datepicker auto-apply
-                        enable-time-picker
-                        format="dd/MM/yyyy"
-                        v-model="availableTo"
-                        :id="`available-to-${fieldUnique}`"
-                        :enable-seconds="false"
-                        :enable-time-picker="false"
-                        :minutes-grid-increment="5"
-                        :dark="darkMode"/>
-            <div class="text-xs text-gray-500">Optional</div>
-            <JetInputError :message="errors[`shifts.${index}.available_to`]" class="mt-2"/>
-        </div>
-        <div class="self-end">
-            <JetButton type="button" style-type="warning" outline @click="showModal = true">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                    <path fill="none" d="M0 0h24v24H0z"/>
-                    <path class="fill-red-600"
-                          d="M4 8h16v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8zm2 2v10h12V10H6zm3 2h2v6H9v-6zm4 0h2v6h-2v-6zM7 5V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v2h5v2H2V5h5zm2-1v1h6V4H9z"/>
-                </svg>
-            </JetButton>
-        </div>
-        <JetSectionBorder class="col-span-full"/>
-    </template>
-
-    <JetConfirmationModal :show="showModal" :closeable="false">
-        <template #title>DANGER!</template>
-        <template #content>
-            <p>Are you sure you want to delete this shift?</p>
-        </template>
-        <template #footer>
-            <JetButton type="button" style-type="secondary" @click="showModal = false" class="mr-3">Cancel</JetButton>
-            <JetButton type="button" style-type="warning" outline @click="deleteShift">Delete</JetButton>
-        </template>
-    </JetConfirmationModal>
+  <PConfirmPopup />
 </template>

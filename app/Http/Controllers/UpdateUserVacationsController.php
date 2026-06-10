@@ -6,6 +6,7 @@ use App\Actions\IsAdminForUpdateOfUserAction;
 use App\Http\Requests\UserVacationRequest;
 use App\Models\User;
 use App\Models\UserVacation;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
 
 class UpdateUserVacationsController extends Controller
@@ -14,14 +15,7 @@ class UpdateUserVacationsController extends Controller
     {
     }
 
-    /**
-     * @param \App\Http\Requests\UserVacationRequest $request
-     * @return \Illuminate\Http\RedirectResponse
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
-     */
-    public function __invoke(UserVacationRequest $request)
+    public function __invoke(UserVacationRequest $request): RedirectResponse
     {
         /** @var User $user */
         [$isAdminEdit, $user] = $this->isAdminForUpdateOfUserAction->execute($request);
@@ -49,8 +43,8 @@ class UpdateUserVacationsController extends Controller
             $userVacation->delete();
         }
 
-        session()->flash('flash.banner', $isAdminEdit ? 'Volunteer holidays have been updated.' : 'Your holidays have been updated.');
-        session()->flash('flash.bannerStyle', 'success');
+        session()?->flash('flash.banner', $isAdminEdit ? 'Volunteer holidays have been updated.' : 'Your holidays have been updated.');
+        session()?->flash('flash.bannerStyle', 'success');
 
         if ($isAdminEdit) {
             return Redirect::route('admin.users.edit', $user);

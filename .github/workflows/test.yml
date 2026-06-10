@@ -13,7 +13,7 @@ jobs:
           php-version: '8.3'
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup MySQL
         uses: shogo82148/actions-setup-mysql@v1
@@ -37,13 +37,13 @@ jobs:
 
       # Node is needed for the Inertia tests
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-          check-latest: true
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Install NPM dependencies
-        run: npm install
+        run: npm ci
 
       - name: Compile front-end assets
         run: npm run build

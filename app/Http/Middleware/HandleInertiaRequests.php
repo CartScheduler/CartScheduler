@@ -21,20 +21,18 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     public function __construct(
-        private readonly GeneralSettings               $settings,
-        private readonly HasNewVersionAvailable        $hasNewVersionAvailable,
+        private readonly GeneralSettings $settings,
+        private readonly HasNewVersionAvailable $hasNewVersionAvailable,
         private readonly UserNeedsToUpdateAvailability $getNeedsToUpdateAvailability,
-    )
-    {
+    ) {
     }
-
 
     /**
      * Determines the current asset version.
      *
      * @see https://inertiajs.com/asset-versioning
      *
-     * @param \Illuminate\Http\Request $request
+     * @param  \Illuminate\Http\Request  $request
      *
      * @return string|null
      */
@@ -48,7 +46,7 @@ class HandleInertiaRequests extends Middleware
      *
      * @see https://inertiajs.com/shared-data
      *
-     * @param \Illuminate\Http\Request $request
+     * @param  \Illuminate\Http\Request  $request
      *
      * @return array
      */
@@ -65,10 +63,10 @@ class HandleInertiaRequests extends Middleware
             'pagePermissions'   => $this->getPageAccessPermissions($user),
             'shiftAvailability' => [
                 'timezone'             => config('app.timezone'),
-                'duration'             => (int)config('cart-scheduler.shift_reservation_duration'),
+                'duration'             => (int) config('cart-scheduler.shift_reservation_duration'),
                 'period'               => config('cart-scheduler.shift_reservation_duration_period'),
                 'releasedDaily'        => config('cart-scheduler.do_release_shifts_daily'),
-                'weekDayRelease'       => (int)config('cart-scheduler.release_weekly_shifts_on_day'),
+                'weekDayRelease'       => (int) config('cart-scheduler.release_weekly_shifts_on_day'),
                 'systemShiftStartHour' => $this->settings->systemShiftStartHour,
                 'systemShiftEndHour'   => $this->settings->systemShiftEndHour,
             ],
@@ -91,7 +89,6 @@ class HandleInertiaRequests extends Middleware
         if ($user?->is_unrestricted) {
             $custom['isUnrestricted'] = true;
         }
-        $custom['user'] = fn() => $user?->only(['id', 'name', 'email']);
 
         return array_merge(parent::share($request), $custom);
     }
@@ -105,7 +102,7 @@ class HandleInertiaRequests extends Middleware
 
         if (Gate::check('admin')) {
             $permissions['canAdmin'] = true;
-            if (in_array($user->id, $this->settings->allowedSettingsUsers)) {
+            if (in_array($user->id, $this->settings->allowedSettingsUsers, true)) {
                 $permissions['canEditSettings'] = true;
             }
         }
@@ -121,7 +118,7 @@ class HandleInertiaRequests extends Middleware
         if (!Gate::check('admin')) {
             return null;
         }
-        if (!in_array($user->id, $this->settings->allowedSettingsUsers)) {
+        if (!in_array($user->id, $this->settings->allowedSettingsUsers, true)) {
             return null;
         }
         return $this->hasNewVersionAvailable->execute();

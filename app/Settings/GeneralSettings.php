@@ -3,7 +3,9 @@
 namespace App\Settings;
 
 use Spatie\LaravelSettings\Settings;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+#[TypeScript]
 class GeneralSettings extends Settings
 {
     public string $siteName;

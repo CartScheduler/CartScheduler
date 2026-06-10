@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="Ziggy" type="javaScript">
+    <properties>
+      <sourceFilesUrls>
+        <item url="file://$PROJECT_DIR$/vendor/tightenco/ziggy" />
+      </sourceFilesUrls>
+    </properties>
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/vendor/tightenco/ziggy" />
+    </CLASSES>
+    <DOCUMENTATION>
+      <root url="https://github.com/tighten/ziggy" />
+    </DOCUMENTATION>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

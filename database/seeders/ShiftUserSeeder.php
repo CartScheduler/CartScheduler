@@ -8,8 +8,10 @@ use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
 use DatePeriod;
+use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ShiftUserSeeder extends Seeder
 {
@@ -20,36 +22,44 @@ class ShiftUserSeeder extends Seeder
         $this->generateDates();
 
         $locations = Location::with('shifts')->where('is_enabled', true)->get();
+        DB::beginTransaction();
 
-        $locations->each(/**
-         * @throws \Exception
-         */ function (Location $location) {
-            $maxUsers = $location->max_volunteers;
-            $shifts   = $location->shifts;
-            /** @var \App\Models\Shift $shift */
-            foreach ($shifts as $shift) {
-                $dates = $this->mapDates($shift);
+        try {
 
-                foreach ($dates as $date) {
-                    $alreadyMappedUsers = collect();
-                    for ($i = 0; $i < $maxUsers; $i++) {
-                        if (($i === $maxUsers - 1) && random_int(0, 1) === 1) {
-                            break; // this allows for the possibility of one user to be left out
+            $locations->each(/**
+             * @throws \Exception
+             */ function (Location $location) {
+                $maxUsers = $location->max_volunteers;
+                $shifts   = $location->shifts;
+                /** @var \App\Models\Shift $shift */
+                foreach ($shifts as $shift) {
+                    $dates = $this->mapDates($shift);
+
+                    foreach ($dates as $date) {
+                        $alreadyMappedUsers = collect();
+                        for ($i = 0; $i < $maxUsers; $i++) {
+                            if (($i === $maxUsers - 1) && random_int(0, 1) === 1) {
+                                break; // this allows for the possibility of one user to be left out
+                            }
+
+                            $userId = User::inRandomOrder()->first()->id;
+                            if ($alreadyMappedUsers->search($userId) !== false) {
+                                // user has already been mapped to this shift
+                                --$i;
+                                continue;
+                            }
+
+                            $alreadyMappedUsers->push($userId);
+                            $shift->users()->attach($userId, ['shift_date' => $date]);
                         }
-
-                        $userId = User::inRandomOrder()->first()->id;
-                        if ($alreadyMappedUsers->search($userId) !== false) {
-                            // user has already been mapped to this shift
-                            --$i;
-                            continue;
-                        }
-
-                        $alreadyMappedUsers->push($userId);
-                        $shift->users()->attach($userId, ['shift_date' => $date]);
                     }
                 }
-            }
-        });
+            });
+            DB::commit();
+        } catch (Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     private function mapDates(Shift $shift): Collection
@@ -93,5 +103,4 @@ class ShiftUserSeeder extends Seeder
         }
         $this->dates = $dates;
     }
-
 }

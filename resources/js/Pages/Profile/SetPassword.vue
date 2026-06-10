@@ -1,85 +1,86 @@
-<script setup>
-import JetAuthenticationCard from '@/Jetstream/AuthenticationCard.vue';
-import JetAuthenticationCardLogo from '@/Jetstream/AuthenticationCardLogo.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetInput from '@/Jetstream/Input.vue';
-import JetLabel from '@/Jetstream/Label.vue';
-import JetValidationErrors from '@/Jetstream/ValidationErrors.vue';
-import {Head, useForm} from '@inertiajs/vue3';
-
+<script setup lang="ts">
+import { useForm } from "@inertiajs/vue3";
+import useGlobalSpinner from "@/Composables/useGlobalSpinner";
+import JetLabel from "@/Jetstream/Label.vue";
+import JetValidationErrors from "@/Jetstream/ValidationErrors.vue";
 
 const props = defineProps({
-    editUser: {
-        type: Object,
-        required: true,
-    },
-    hashedEmail: {
-        type: String,
-        required: true,
-    },
-    siteName: {
-        type: String,
-        required: true,
-    },
+  editUser: {
+    type: Object,
+    required: true,
+  },
+  token: {
+    type: String,
+    required: true,
+  },
+  siteName: {
+    type: String,
+    required: true,
+  },
 });
-
 
 const form = useForm({
-    password: '',
-    password_confirmation: '',
-    hashed_email: props.hashedEmail,
-    user_id: props.editUser.id,
+  password: "",
+  password_confirmation: "",
+  token: props.token,
+  email: props.editUser["email"],
 });
 
+const { setProcessing } = useGlobalSpinner();
+
 const submit = () => {
-    form.post(route('set.password.update'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
-    });
+  form.post(route("set.password.update"), {
+    onBefore: () => setProcessing(true),
+    onFinish: () => {
+      setProcessing(false);
+      form.reset("password", "password_confirmation");
+    },
+  });
 };
 </script>
 
 <template>
-    <Head title="Set Password"/>
+  <div class="min-h-full grid grid-cols-1 grid-rows-1 justify-items-center items-center">
+    <div class="max-w-full flex flex-col">
+      <JetValidationErrors class="mb-4" />
 
-    <JetAuthenticationCard>
-        <template #logo>
-            <JetAuthenticationCardLogo/>
-        </template>
+      <h1 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight mb-3">
+        Welcome {{ editUser["name"] }}, to {{ siteName }}!
+      </h1>
 
-        <JetValidationErrors class="mb-4"/>
+      <div class="text-gray-700 dark:text-gray-200">Please use the below form to set your password</div>
 
-        <h1 class="font-semibold text-xl text-gray-800 dark:text-gray-100 leading-tight mb-3">
-            Welcome {{ editUser.name }}, to {{ siteName }}! </h1>
+      <form @submit.prevent="submit()" class="w-full max-w-sm self-center">
+        <div class="mt-4">
+          <JetLabel for="password" value="Password" />
+          <PPassword id="password"
+                     v-model="form.password"
+                     class="block mt-1 w-full"
+                     required
+                     :inputProps="{ autocomplete: 'new-password' }" />
+        </div>
 
-        <div class="text-gray-200">Please use the below form to set your password</div>
+        <div class="mt-4">
+          <JetLabel for="password-confirmation" value="Confirm Password" />
+          <PPassword id="password_confirmation"
+                     v-model="form.password_confirmation"
+                     :feedback="false"
+                     type="password"
+                     class="block mt-1 w-full"
+                     required
+                     :inputProps="{ autocomplete: 'new-password' }" />
+        </div>
 
-        <form @submit.prevent="submit">
-            <div class="mt-4">
-                <JetLabel for="password" value="Password"/>
-                <JetInput id="password"
-                          v-model="form.password"
-                          type="password"
-                          class="mt-1 block w-full"
-                          required
-                          autocomplete="new-password"/>
-            </div>
-
-            <div class="mt-4">
-                <JetLabel for="password-confirmation" value="Confirm Password"/>
-                <JetInput id="password-confirmation"
-                          v-model="form.password_confirmation"
-                          type="password"
-                          class="mt-1 block w-full"
-                          required
-                          autocomplete="new-password"/>
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <JetButton class="ml-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Set Password
-                </JetButton>
-            </div>
-        </form>
-    </JetAuthenticationCard>
-
+        <div class="flex items-center justify-end mt-4 w-full">
+          <SubmitButton label="Set Password"
+                        icon="iconify mdi--form-textbox-password"
+                        :processing="form.processing"
+                        :success="form.recentlySuccessful"
+                        :failure="form.hasErrors"
+                        :errors="form.errors"
+                        type="submit" />
+        </div>
+      </form>
+    </div>
+  </div>
 </template>

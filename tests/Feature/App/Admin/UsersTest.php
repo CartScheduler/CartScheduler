@@ -35,7 +35,7 @@ class UsersTest extends TestCase
             ->assertOk()
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Users/List')
-                ->has('users.data', 6)
+                ->has('users', 6)
             );
     }
 
@@ -77,13 +77,12 @@ class UsersTest extends TestCase
             ->get("/admin/users/$husband->id/edit")
             ->assertInertia(fn(AssertableInertia $page) => $page
                 ->component('Admin/Users/Edit')
-                ->has('editUser.data', fn(AssertableInertia $data) => $data
+                ->has('editUser', fn(AssertableInertia $data) => $data
                     ->where('id', $husband->id)
-                    ->where('spouse_name', $husband->spouse->name)
-                    ->where('spouse_id', $husband->spouse->id)
+                    ->where('spouse.name', $husband->spouse->name)
+                    ->where('spouse.id', $husband->spouse->id)
                     ->where('selectedLocations.0', $husband->rosterLocations[0]->id)
                     ->where('vacations.0.id', $husband->vacations[0]->id)
-                    ->where('availability.user_id', $husband->id)
                     ->where('availability.day_monday', $mondayHours)
                     ->where('availability.comments', $husband->availability->comments)
                     ->etc()
@@ -98,13 +97,13 @@ class UsersTest extends TestCase
         $user = User::factory()->enabled()->makeOne();
         $this->assertDatabaseCount('users', 1);
 
-        $userData = $user->toArray();
+        $userData = $user->makeVisible('role', 'mobile_phone')->toArray();
 
         Mail::fake();
         $this->actingAs($admin)
             ->postJson("/admin/users/", $userData)
             ->assertRedirect()
-            ->assertSessionHas('flash.banner', "User $user->name successfully created.");
+            ->assertSessionHas('flash.message', "$user->name was successfully created.");
         Mail::assertSent(UserAccountCreated::class, 1);
 
         $this->assertDatabaseCount('users', 2);
@@ -150,31 +149,32 @@ class UsersTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_restrict_admin_user_should_remove_admin_rights(): void
+    public function test_restrict_admin_user_disallow_remove_admin_rights(): void
     {
-        $admin     = User::factory()->enabled()->adminRoleUser()->create();
-        $adminUser = User::factory()->enabled()->adminRoleUser()->create();
+        $admin       = User::factory()->enabled()->adminRoleUser()->create();
+        $demotedUser = User::factory()->enabled()->adminRoleUser()->create();
 
-        GeneralSettings::fake(['allowedSettingsUsers' => [$admin->id, $adminUser->id]]);
+        GeneralSettings::fake(['allowedSettingsUsers' => [$admin->id, $demotedUser->id]]);
 
         $this->actingAs($admin)
-            ->putJson("/admin/users/$adminUser->id", [
-                'id'                  => $adminUser->id,
-                'name'                => $adminUser->name,
-                'email'               => $adminUser->email,
-                'mobile_phone'        => $adminUser->mobile_phone,
+            ->putJson("/admin/users/$demotedUser->id", [
+                'id'                  => $demotedUser->id,
+                'name'                => $demotedUser->name,
+                'email'               => $demotedUser->email,
+                'mobile_phone'        => $demotedUser->mobile_phone,
                 'role'                => Role::Admin->value,
-                'gender'              => $adminUser->gender,
-                'year_of_birth'       => $adminUser->year_of_birth,
-                'appointment'         => $adminUser->appointment,
-                'serving_as'          => $adminUser->serving_as,
-                'marital_status'      => $adminUser->marital_status,
-                'responsible_brother' => $adminUser->responsible_brother,
+                'gender'              => $demotedUser->gender,
+                'year_of_birth'       => $demotedUser->year_of_birth,
+                'appointment'         => $demotedUser->appointment,
+                'serving_as'          => $demotedUser->serving_as,
+                'marital_status'      => $demotedUser->marital_status,
+                'responsible_brother' => $demotedUser->responsible_brother,
                 'is_unrestricted'     => false,
             ])
-            ->assertRedirect("/admin/users/$adminUser->id/edit");
+            ->assertInvalid(['is_unrestricted' => 'Restricted users cannot be an administrator.']);
 
-        $this->assertDatabaseHas('users', ['id' => $adminUser->id, 'role' => Role::User->value, 'is_unrestricted' => false]);
+        $this->assertDatabaseHas('users',
+            ['id' => $demotedUser->id, 'role' => Role::Admin->value, 'is_unrestricted' => true]);
     }
 
     public function test_admin_can_edit_user_and_test_bad_email(): void
@@ -184,7 +184,7 @@ class UsersTest extends TestCase
         $user     = User::factory()->enabled()->state(['email' => $oldEmail])->create();
         $this->assertEquals($oldEmail, $user->fresh()->email);
 
-        $userData          = $user->toArray();
+        $userData          = $user->makeVisible('role', 'mobile_phone')->toArray();
         $newEmail          = 'invalid email';
         $userData['email'] = $newEmail;
 
@@ -198,7 +198,7 @@ class UsersTest extends TestCase
         $this->actingAs($admin)
             ->putJson("/admin/users/{$user->getKey()}", $userData)
             ->assertRedirect("/admin/users/{$user->getKey()}/edit")
-            ->assertSessionHas('flash.banner', "User $user->name successfully modified.");
+            ->assertSessionHas('flash.message', "$user->name was successfully modified.");
 
         $this->assertEquals($newEmail, $user->fresh()->email);
     }
@@ -212,7 +212,7 @@ class UsersTest extends TestCase
         $this->actingAs($admin)
             ->deleteJson("/admin/users/{$user->getKey()}")
             ->assertRedirect()
-            ->assertSessionHas('flash.banner', "User $user->name successfully deleted.");
+            ->assertSessionHas('flash.message', "$user->name was successfully deleted.");
         $this->assertDatabaseCount('users', 1);
 
         $this->actingAs($admin)
@@ -314,10 +314,9 @@ class UsersTest extends TestCase
             ->assertSeeInHtml($textMatch)
             ->assertSeeInText($textMatch);
 
-
         $render = $mailable->render();
         $hashed = Str::of($render)->match('/set-password\/\d+\/([a-zA-Z0-9]+)/');
-        $this->assertTrue(Hash::check($user->uuid . $user->email, base64_decode($hashed)));
+        $this->assertTrue(Password::tokenExists($user, $hashed));
     }
 
     public function test_validations_are_working(): void
@@ -352,7 +351,6 @@ class UsersTest extends TestCase
         $user  = User::factory()->enabled()->create();
         $user2 = User::factory()->enabled()->state(['email' => $user->email])->makeOne();
 
-
         $this->actingAs($admin)
             ->postJson("/admin/users/", $user2->toArray())
             ->assertUnprocessable()
@@ -366,7 +364,7 @@ class UsersTest extends TestCase
         $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
         $user  = User::factory()->enabled()->makeOne();
 
-        $userData                 = $user->toArray();
+        $userData                 = $user->makeVisible('role')->toArray();
         $userData['mobile_phone'] = '1 234 4567 89 ';
 
         $this->actingAs($admin)
@@ -387,7 +385,7 @@ class UsersTest extends TestCase
         $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
         $user  = User::factory()->enabled()->state(['mobile_phone' => '1111111111'])->create();
 
-        $userData                 = $user->toArray();
+        $userData                 = $user->makeVisible('role')->toArray();
         $userData['mobile_phone'] = '1 234 4567 89 ';
 
         $this->actingAs($admin)
@@ -401,7 +399,7 @@ class UsersTest extends TestCase
         $this->actingAs($admin)
             ->putJson("/admin/users/{$user->getKey()}", $userData)
             ->assertRedirect("/admin/users/{$user->getKey()}/edit")
-            ->assertSessionHas('flash.banner', "User $user->name successfully modified.");
+            ->assertSessionHas('flash.message', "$user->name was successfully modified.");
 
         $storedDbValue = DB::table('users')->where('id', $user->id)->value('mobile_phone');
         $this->assertEquals('0412345678', $storedDbValue);
@@ -473,7 +471,8 @@ class UsersTest extends TestCase
             ->putJson("/user/availability", $availability->toArray())
             ->assertRedirect("/admin/users/{$user->getKey()}/edit");
         $this->assertDatabaseCount('user_availabilities', 1);
-        $this->assertDatabaseHas('user_availabilities', Arr::except($availability->getAttributes(), ['created_at', 'updated_at']));
+        $this->assertDatabaseHas('user_availabilities',
+            Arr::except($availability->getAttributes(), ['created_at', 'updated_at']));
 
         $availability->num_wednesdays = 0;
         $availability->num_fridays    = 1;
@@ -484,7 +483,8 @@ class UsersTest extends TestCase
         $this->actingAs($admin)
             ->putJson("/user/availability", $availability->toArray())
             ->assertRedirect("/admin/users/{$user->getKey()}/edit");
-        $this->assertDatabaseHas('user_availabilities', Arr::except($availability->getAttributes(), ['created_at', 'updated_at']));
+        $this->assertDatabaseHas('user_availabilities',
+            Arr::except($availability->getAttributes(), ['created_at', 'updated_at']));
     }
 
     public function test_admin_can_maintain_user_location_choices(): void
@@ -557,13 +557,100 @@ class UsersTest extends TestCase
         $this->actingAs($admins[0])
             ->getJson("/admin/admin-users")
             ->assertOk()
-            ->assertJsonCount(3, 'data')
+            ->assertJsonCount(3)
             ->assertJson([
-                'data' => [
-                    ['id' => $admins[0]->id, 'name' => $admins[0]->name],
-                    ['id' => $admins[1]->id, 'name' => $admins[1]->name],
-                    ['id' => $admins[2]->id, 'name' => $admins[2]->name],
-                ],
+                ['id' => $admins[0]->id, 'name' => $admins[0]->name],
+                ['id' => $admins[1]->id, 'name' => $admins[1]->name],
+                ['id' => $admins[2]->id, 'name' => $admins[2]->name],
             ]);
+    }
+
+    public function test_does_attach_spouse(): void
+    {
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
+        $users = User::factory()
+            ->enabled()
+            ->sequence(['gender' => 'male'], ['gender' => 'female'])
+            ->count(2)
+            ->create();
+
+        $userData              = $users[0]->makeVisible(['role', 'mobile_phone'])->toArray();
+        $userData['spouse_id'] = $users[1]->getKey();
+
+        $this->actingAs($admin)
+            ->putJson("/admin/users/{$users[0]->getKey()}", $userData)
+            ->assertRedirect();
+
+        $users = $users->fresh('spouse');
+
+        $this->assertSame($users[0]->spouse_id, $users[1]->getKey());
+        $this->assertSame($users[0]->spouse->getKey(), $users[1]->getKey());
+
+        $this->assertSame($users[1]->spouse_id, $users[0]->getKey());
+        $this->assertSame($users[1]->spouse->getKey(), $users[0]->getKey());
+    }
+
+    public function test_does_detach_spouse(): void
+    {
+        $admin  = User::factory()->enabled()->adminRoleUser()->create();
+        $male   = User::factory()->enabled()->male()->create();
+        $female = User::factory()->enabled()->female()->create();
+
+        $male->update(['spouse_id' => $female->getKey()]);
+        $female = $female->fresh();
+
+        $this->assertSame($male->spouse_id, $female->id);
+        $this->assertSame($female->spouse_id, $male->id);
+
+        $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+
+        $this->actingAs($admin)
+            ->putJson("/admin/users/{$male->getKey()}", $maleData)
+            ->assertRedirect();
+
+        $male   = $male->fresh('spouse');
+        $female = $female->fresh('spouse');
+
+        $this->assertNull($male->spouse_id);
+        $this->assertNull($male->spouse);
+
+        $this->assertNull($female->spouse_id);
+        $this->assertNull($female->spouse);
+    }
+
+    public function test_cannot_attach_user_who_is_already_a_spouse(): void
+    {
+        $admin  = User::factory()->enabled()->adminRoleUser()->create();
+        $male   = User::factory()->enabled()->male()->create();
+        $male2  = User::factory()->enabled()->male()->create();
+        $female = User::factory()->enabled()->female()->create();
+
+        $male->update(['spouse_id' => $female->getKey()]);
+        $female = $female->fresh();
+
+        $this->assertSame($male->spouse_id, $female->id);
+        $this->assertSame($female->spouse_id, $male->id);
+        $this->assertNull($male2->spouse_id);
+
+        $male2Data              = $male2->makeVisible(['role', 'mobile_phone'])->toArray();
+        $male2Data['spouse_id'] = $female->getKey();
+
+        $this->actingAs($admin)
+            ->putJson("/admin/users/{$male2->getKey()}", $male2Data)
+            ->assertInvalid(['spouse_id' => "The 'spouse' has already been attached to another user"]);
+    }
+
+    public function test_can_only_attach_user_of_opposite_gender(): void
+    {
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
+        $male  = User::factory()->enabled()->male()->create();
+        $male2 = User::factory()->enabled()->male()->create();
+
+        $userData              = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+        $userData['spouse_id'] = $male2->getKey();
+
+        $this->actingAs($admin)
+            ->putJson("/admin/users/{$male->getKey()}", $userData)
+            ->assertInvalid(['spouse_id' => 'The spouse id needs a user who is not male']);
     }
 }

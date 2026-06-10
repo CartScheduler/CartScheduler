@@ -1,86 +1,86 @@
-<script setup>
-import JetActionMessage from '@/Jetstream/ActionMessage.vue';
-import JetButton from '@/Jetstream/Button.vue';
-import JetFormSection from '@/Jetstream/FormSection.vue';
-import JetInputError from '@/Jetstream/InputError.vue';
-import {useForm} from '@inertiajs/vue3';
+<script setup lang="ts">
+import { useForm } from "@inertiajs/vue3";
 import axios from "axios";
-import {onMounted, ref} from 'vue';
+import { onMounted, ref } from "vue";
+import useToast from "@/Composables/useToast";
+import JetActionMessage from "@/Jetstream/ActionMessage.vue";
+import JetFormSection from "@/Jetstream/FormSection.vue";
+import JetInputError from "@/Jetstream/InputError.vue";
 
-const props = defineProps({
-    settings: Object,
-});
+const { settings } = defineProps<{
+  settings: App.Settings.GeneralSettings;
+}>();
+
+const toast = useToast();
 
 const form = useForm({
-    _method: 'PUT',
-    allowedSettingsUsers: props.settings.allowedSettingsUsers,
+  allowedSettingsUsers: settings.allowedSettingsUsers,
 });
 
 const updateAllowedSettingsUsers = () => {
-    form.put(route('admin.allowed-settings-users.update'), {
-        errorBag: 'updateAllowedSettingsUsers',
-        preserveScroll: true,
-        onSuccess: () => form.defaults(),
-    });
+  form.put(route("admin.allowed-settings-users.update"), {
+    errorBag: "updateAllowedSettingsUsers",
+    preserveScroll: true,
+    onSuccess: () => toast.success(
+      "The settings have been saved.",
+      "Success!",
+      { group: "center" },
+    ),
+    onError: () => toast.error(
+      "The settings could not be saved. Please check the validation messages",
+      "Not Saved!",
+      { group: "center" },
+    ),
+  });
 };
 
 const adminUsers = ref();
 onMounted(async () => {
-    const response = await axios.get('/admin/admin-users');
-    adminUsers.value = response.data.data;
+  const response = await axios.get<App.Data.AdminUserData>(route("admin.admin-users.get"));
+  adminUsers.value = response.data;
 });
-
 </script>
 
 <template>
-    <JetFormSection @submitted="updateAllowedSettingsUsers">
-        <template #title>
-            Settings Access
-        </template>
+  <JetFormSection @submitted="updateAllowedSettingsUsers">
+    <template #title>
+      Settings Access
+    </template>
 
-        <template #description>
-            Use this to determine which users are allowed to access the settings page.
-        </template>
+    <template #description>
+      Use this to determine which users are allowed to access the settings page.
+    </template>
 
-        <template #form>
-            <div
-                class="order-last sm:order-first col-span-6 sm:col-span-3 lg:col-span-2 bg-white rounded-lg shadow max-w-md dark:bg-gray-700 max-h-50 overflow-scroll">
-                <ul class="overflow-y-auto text-sm text-gray-700 dark:text-gray-200"
-                    aria-labelledby="admin-users">
-                    <li v-for="user in adminUsers" :key="user.id">
-                        <div class="px-3 flex items-center p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <input :id="`admin-user-${user.id}`" type="checkbox" v-model="form.allowedSettingsUsers"
-                                   :value="user.id"
-                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-                            <label :for="`admin-user-${user.id}`"
-                                   class="w-full ml-2 text-sm font-medium text-gray-900 rounded dark:text-gray-300">{{
-                                    user.name
-                                }}</label>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-            <div
-                class="col-span-6 sm:col-span-3 lg:col-span-4 mt-1 ml-1 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                <p class="mb-3">
-                    Note: Not all admin users should necessarily have access to this page. Please only specify those who
-                    know what impact changing these settings could have.
-                </p>
-                <p>
-                    Some changes could have catastrophic effects on the application. Please be careful.
-                </p>
-            </div>
-            <JetInputError :message="form.errors.allowedSettingsUsers" class="mt-2"/>
-        </template>
+    <template #form>
+      <div class="order-last sm:order-first col-span-6 sm:col-span-3">
+        <PListBox multiple
+                  checkmark
+                  fluid
+                  v-model="form.allowedSettingsUsers"
+                  :options="adminUsers"
+                  option-label="name"
+                  optionValue="id" />
+      </div>
+      <div class="col-span-6 sm:col-span-3 mt-1 ml-1 max-w-xl text-sm">
+        <p class="mb-3">
+          Note: Not all admin users should necessarily have access to this page. Please only specify those who
+          know what impact changing these settings could have.
+        </p>
+      </div>
+      <JetInputError :message="form.errors.allowedSettingsUsers" class="mt-2" />
+    </template>
 
-        <template #actions>
-            <JetActionMessage :on="form.recentlySuccessful" class="mr-3">
-                Saved.
-            </JetActionMessage>
+    <template #actions>
+      <JetActionMessage :on="form.recentlySuccessful" class="mr-3">
+        Saved.
+      </JetActionMessage>
 
-            <JetButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                Save
-            </JetButton>
-        </template>
-    </JetFormSection>
+      <PButton label="Save"
+               type="submit"
+               :class="{ 'opacity-25': form.processing }"
+               :disabled="form.processing">
+        Save
+      </PButton>
+    </template>
+  </JetFormSection>
 </template>

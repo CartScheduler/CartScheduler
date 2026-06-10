@@ -1,0 +1,86 @@
+:root {
+  /* PrimeVue DatePicker Variables */
+  /* General */
+  --p-datepicker-width: 100%;
+  --p-datepicker-date-width: auto;
+  --p-datepicker-border: none;
+  --p-datepicker-background: transparent;
+
+  /* Cell and Date Styling */
+  --p-datepicker-cell-border: none;
+  --p-datepicker-date-border-radius: theme('borderRadius.DEFAULT');
+  --p-datepicker-date-padding: 0;
+
+  /* Highlighted Date (Today) */
+  --p-datepicker-today-bg: theme('colors.blue.500 / 20%');
+  --p-datepicker-today-border-color: transparent;
+  --p-datepicker-today-text-color: inherit;
+
+  /* Selected Date */
+  --p-datepicker-highlighted-bg: theme('colors.blue.500');
+  --p-datepicker-highlighted-text-color: theme('colors.white');
+  --p-datepicker-highlighted-border-color: transparent;
+
+  /* Other Month */
+  --p-datepicker-other-month-text-color: theme('colors.gray.400');
+
+  /* Disabled Dates */
+  --p-datepicker-disabled-opacity: 0.5;
+
+  /* Custom Highlight and Marker Classes */
+  --highlighted-date-bg: theme('colors.blue.600 / 20%');
+  --marker-date-border-color: theme('colors.rostered-marker.DEFAULT');
+
+  /* Dark Mode Overrides */
+}
+
+  .dark {
+    --p-datepicker-bg: theme('colors.gray.900');
+    --p-datepicker-text-color: theme('colors.white');
+    --p-datepicker-header-bg: theme('colors.gray.900');
+    --p-datepicker-header-text-color: theme('colors.white');
+    --p-datepicker-header-border: 1px solid theme('colors.gray.700');
+    --p-datepicker-other-month-text-color: theme('colors.gray.600');
+    --p-datepicker-disabled-text-color: theme('colors.gray.600');
+    --highlighted-date-bg: theme('colors.blue.400 / 35%');
+    --marker-date-border-color: theme('colors.rostered-marker.light');
+  }
+
+@layer {
+  .p-datepicker {
+    @apply w-full border-separate border-spacing-12;
+
+    .p-datepicker-day-view {
+      @apply table-fixed;
+    }
+
+    .p-datepicker-day-cell {
+      @apply relative p-0 border-8 sm:border md:border-4 border-transparent before:block before:pt-[100%];
+
+      .p-datepicker-day {
+        @apply absolute inset-0 w-full h-full flex items-center justify-center;
+
+        .p-datepicker-today & {
+          @apply bg-transparent outline outline-1 outline-blue-500/70 outline-offset-1;
+        }
+
+        .formatted-date {
+          @apply w-full h-full flex items-center justify-center;
+        }
+
+        &.p-datepicker-day-selected {
+          @apply bg-blue-500/70 text-white;
+        }
+
+        .highlighted-date {
+          @apply bg-[var(--highlighted-date-bg)];
+        }
+
+        .marker-date {
+          @apply border-b-2 border-[var(--marker-date-border-color)];
+        }
+
+      }
+    }
+  }
+}
