@@ -191,7 +191,7 @@ bg-white dark:bg-sub-panel-dark rounded border std-border"
               class="mt-6 sm:mt-0 pb-4 mb-6 flex flex-col gap-1 relative ps-12 before:absolute before:left-11
               before:top-0 before:bottom-0 before:border-l before:border-l-neutral-400
             before:dark:border-l-neutral-600 before:border-dashed after:absolute after:left-7 after:w-8 after:bottom-0
-              after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-600 after:border-dashed
+              after:border-t after:border-t-neutral-400 after:dark:border-t-neutral-00 after:border-dashed
               sm:flex-row sm:items-start sm:gap-6 sm:w-max sm:min-w-full sm:ps-6 sm:pe-6 sm:pb-3 sm:mb-0
               sm:before:border-l-0 sm:before:border-t sm:before:border-t-neutral-400
             sm:before:dark:border-t-neutral-600 sm:before:left-0 sm:before:right-0 sm:before:top-11
@@ -221,21 +221,23 @@ bg-white dark:bg-sub-panel-dark rounded border std-border"
               </dt>
               <dd v-for="(shift, idx) in shiftsForDate" :key="idx" class="ms-6 sm:ms-0 sm:shrink-0 sm:pt-11">
                 <button type="button"
-                        class="group cursor-pointer rounded-s ms-2 ps-2 py-1 w-full flex flex-col items-start
-                    sm:hover:bg-neutral-100 dark:sm:hover:bg-neutral-800 sm:transition-[background-color,padding] sm:duration-300 sm:hover:font-bold
-                    sm:items-center sm:ms-0 sm:w-auto sm:pe-2 sm:pt-0 sm:rounded sm:text-sm
-                    sm:before:h-3 sm:before:bg-neutral-400 sm:before:dark:bg-neutral-600 sm:before:transition-colors sm:before:duration-300"
+                        class="group cursor-pointer rounded-s ms-2 mt-[2px] ps-2 py-1 w-full flex flex-col items-start
+                         sm:hover:bg-neutral-100 dark:sm:hover:bg-neutral-800 sm:hover:text-orange-700 dark:sm:hover:text-orange-300
+                         sm:transition-[background-color,padding] sm:duration-300 sm:items-center sm:ms-0 sm:w-auto
+                         sm:pe-2 sm:pt-0 sm:rounded sm:text-sm sm:before:h-3 sm:before:bg-neutral-400
+                         sm:before:dark:bg-neutral-600 sm:before:transition-colors sm:before:duration-300
+                         hover:sm:before:bg-orange-700 hover:sm:before:dark:bg-orange-300"
                         :class="[
                           isShiftSelected(shift)
-                            ? 'selected text-warning dark:text-warning-light border-l-2 border-l-warning dark:border-l-warning-light sm:border-l-0 sm:before:w-0.5 sm:before:bg-warning sm:before:dark:bg-warning-light'
+                            ? 'selected text-orange-700 dark:text-orange-300 border-l-2 border-l-orange-700 dark:border-l-orange-300 sm:border-l-0 sm:before:w-0.5 sm:before:bg-orange-700 sm:before:dark:bg-orange-300'
                             : 'sm:before:w-px',
                           { 'shift-detail-morph': isShiftSelected(shift) && morphSource },
                         ]"
                         @click="selectShift(shift)">
-                  <span class="group-hover:font-medium transition-[font-weight] duration-300">
+                  <span class="transition-[font-weight] duration-300">
                     {{ shift.formattedTime }}
                   </span>
-                  <span class="text-neutral-500 dark:text-neutral-300 group-[.selected]:text-warning dark:group-[.selected]:text-warning-light font-light group-hover:font-medium transition-[font-weight] duration-300">
+                  <span class="group-[.selected]:text-orange-700 dark:group-[.selected]:text-orange-300 font-light transition-[font-weight] duration-300">
                     {{ shift.location }}
                   </span>
                 </button>
