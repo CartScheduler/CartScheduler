@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { format, parse } from "date-fns";
+import { onMounted, useTemplateRef } from "vue";
 import relativeDateToNow from "@/Utils/relativeDateToNow";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { AuthUser } from "@/types/laravel-request-helpers";
@@ -26,6 +27,15 @@ const gridCols: Record<Location["max_volunteers"], string> = {
 
 const today = new Date();
 const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:mm a");
+
+const shiftWrapper = useTemplateRef("shiftWrapper");
+
+onMounted(() => {
+  const element = shiftWrapper.value?.querySelector(".is-reserved");
+  if (element) {
+    element.closest(".shift-group")?.scrollIntoView(true);
+  }
+});
 </script>
 
 <template>
@@ -42,66 +52,69 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
     <div v-html="location.description"
          class="p-3 pt-0 w-full description dark:text-gray-100"></div>
     <div class="grid gap-x-2 gap-y-3 w-full sm:gap-y-4"
-         :class="gridCols[location.max_volunteers]">
+         :class="gridCols[location.max_volunteers]"
+         ref="shiftWrapper">
       <div v-for="shift in location.filterShifts"
            :key="shift.id"
-           class="grid grid-cols-subgrid col-span-full
-           group has-[.is-reserved]:outline outline-1 outline-rostered-marker/50 dark:outline-rostered-marker-light/50 rounded-md
+           class="grid grid-cols-subgrid col-span-full pt-3 shift-group">
+        <div class="grid grid-cols-subgrid col-span-full group has-[.is-reserved]:outline outline-1
+           outline-rostered-marker/50 dark:outline-rostered-marker-light/50 rounded-md
            has-[.is-reserved]:bg-rostered-marker/5 dark:has-[.is-reserved]:bg-rostered-marker-light/10">
-        <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col
+          <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col
              group-has-[.is-reserved]:text-rostered-marker dark:group-has-[.is-reserved]:text-rostered-marker-light">
-          <span class="font-bold">{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>
-          <span class="text-xs">{{ relativeDateToNow(date, new Date()) }}</span>
-        </div>
-        <div v-for="(volunteer, index) in shift.volunteers"
-             :key="index"
-             class="justify-self-center self-center pt-4">
-          <template v-if="volunteer">
-            <template v-if="user.uuid && volunteer.uuid === user.uuid">
-              <button v-if="!isRestricted"
-                      type="button"
-                      class="is-reserved block"
-                      @click="$emit('toggleReservation', location.id, shift.id, false)">
-                <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
-              </button>
-              <User status="reserved" v-else />
+            <span class="font-bold">{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>
+            <span class="text-xs">{{ relativeDateToNow(date, new Date()) }}</span>
+          </div>
+          <div v-for="(volunteer, index) in shift.volunteers"
+               :key="index"
+               class="justify-self-center self-center pt-4">
+            <template v-if="volunteer">
+              <template v-if="user.uuid && volunteer.uuid === user.uuid">
+                <button v-if="!isRestricted"
+                        type="button"
+                        class="is-reserved block"
+                        @click="$emit('toggleReservation', location.id, shift.id, false)">
+                  <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
+                </button>
+                <User v-else status="reserved" />
+              </template>
+
+              <User v-else-if="volunteer.gender === 'male'" status="male" v-tooltip="volunteer.name" />
+              <User v-else-if="volunteer.gender === 'female'"
+                    status="female"
+                    v-tooltip="volunteer.name" />
             </template>
 
-            <User status="male" v-else-if="volunteer.gender === 'male'" v-tooltip="volunteer.name" />
-            <User status="female"
-                  v-else-if="volunteer.gender === 'female'"
-                  v-tooltip="volunteer.name" />
-          </template>
+            <EmptySlot v-else-if="isRestricted" v-tooltip="'You cannot reserve a shift'" />
+            <EmptySlot v-else-if="index === shift.volunteers.length - 1 && shift.maxedFemales && user.gender === 'female'"
+                       color="#79B9ED"
+                       v-tooltip="'This slot can only be reserved by a brother'" />
+            <button v-else
+                    type="button"
+                    class="block"
+                    @click="$emit('toggleReservation', location.id, shift.id, true)">
+              <EmptySlot v-tooltip="'Tap to reserve this shift'" />
+            </button>
+          </div>
+          <div class="col-span-full px-3 rounded bg-surface-200 dark:bg-surface-800 dark:text-gray-50 sm:py-2">
+            <ul>
+              <li v-for="(volunteer, index) in shift.volunteers"
+                  :key="index"
+                  class="flex justify-between py-2 border-b border-gray-400 last:border-b-0">
+                <template v-if="volunteer">
+                  <div>{{ volunteer.name }}</div>
+                  <div>
+                    Ph:
+                    <a :href="`tel:${volunteer.mobile_phone}`" class="tabular-nums">{{ volunteer.mobile_phone }}</a>
+                  </div>
+                </template>
 
-          <EmptySlot v-else-if="isRestricted" v-tooltip="'You cannot reserve a shift'" />
-          <EmptySlot v-else-if="index === shift.volunteers.length - 1 && shift.maxedFemales && user.gender === 'female'"
-                     color="#79B9ED"
-                     v-tooltip="'This slot can only be reserved by a brother'" />
-          <button v-else
-                  type="button"
-                  class="block"
-                  @click="$emit('toggleReservation', location.id, shift.id, true)">
-            <EmptySlot v-tooltip="'Tap to reserve this shift'" />
-          </button>
-        </div>
-        <div class="col-span-full px-3 rounded bg-surface-200 dark:bg-surface-800 dark:text-gray-50 sm:py-2">
-          <ul>
-            <li v-for="(volunteer, index) in shift.volunteers"
-                :key="index"
-                class="flex justify-between py-2 border-b border-gray-400 last:border-b-0">
-              <template v-if="volunteer">
-                <div>{{ volunteer.name }}</div>
-                <div>
-                  Ph:
-                  <a :href="`tel:${volunteer.mobile_phone}`" class="tabular-nums">{{ volunteer.mobile_phone }}</a>
-                </div>
-              </template>
-
-              <template v-else>
-                <div>—</div>
-              </template>
-            </li>
-          </ul>
+                <template v-else>
+                  <div>—</div>
+                </template>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
