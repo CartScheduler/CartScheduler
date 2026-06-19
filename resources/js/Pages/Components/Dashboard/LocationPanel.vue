@@ -22,7 +22,8 @@ defineEmits<{
     <div class="flex justify-start border-b std-border-bottom pt-2 pb-6">
       <LocationTitle :location="location"
                      :is-rostered="isRostered"
-                     :is-restricted="isRestricted" />
+                     :is-restricted="isRestricted"
+                     :do-mark-as-rostered="false"/>
     </div>
     <LocationDetails :location="location"
                      :is-restricted="isRestricted"

@@ -89,7 +89,7 @@ const toggleReservation = async (locationId: number, shiftId: number, toggleOn: 
 
 const locationsOnDates = ref<LocationsOnDate[]>([]);
 const locationsForSelectedDate = computedWithControl(
-  // Only execute when shiftMarkers changes, otherwise 'date' will also execute this, causing a race conditional problem
+  // Only execute when shiftMarkers changes; otherwise 'date' will also execute this, causing a race conditional problem
   () => shiftMarkers.value,
   () => shiftMarkers.value.map(
     (marker) => ({
@@ -110,6 +110,7 @@ const isRestricted = computed(() => !usePage().props.isUnrestricted);
 const userShiftLocations = reactive<Set<Location["id"]>>(new Set());
 const firstReservationForUser = ref<number | undefined>();
 const expandedAccordionPanelIndex = ref<number | undefined>();
+const selectedShift = ref<SelectedShift | undefined>();
 
 const markRosteredLocations = () => {
   firstReservationForUser.value = undefined;
@@ -153,7 +154,6 @@ const reservationWatch = watch(firstReservationForUser, (val) => {
   expandedAccordionPanelIndex.value = val;
 });
 
-const selectedShift = ref<SelectedShift | undefined>();
 watch(selectedShift, (val) => {
   if (!val) return;
   expandedAccordionPanelIndex.value = val.locationId;
@@ -163,15 +163,14 @@ watch(selectedShift, (val) => {
 const selectedLocation = computed(() => locations.value.find((location) => location.id === selectedShift.value?.locationId));
 
 /**
- * True once the loaded shift data matches the selected date — distinguishes
- * "still fetching" (spinner) from "genuinely unavailable" (fallback message)
- * in the shift detail views.
+ * True, once the loaded shift data matches the selected date — distinguishes * "still fetching" (spinner) from
+ * "genuinely unavailable" (fallback message) * in the shift detail views.
  */
 const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.value));
 
 /**
- * Identity of the shift currently shown in the detail card. Drives the
- * card's <Transition> so selecting a different shift fades out→in.
+ * Identity of the shift currently shown in the detail card. Drives the * card's <Transition>, so selecting a different
+ * shift fades out→in.
  */
 const cardKey = computed(() => {
   const shift = selectedShift.value;
@@ -179,9 +178,8 @@ const cardKey = computed(() => {
 });
 
 /**
- * Suppress the fade while a refetch is in flight so the spinner appears
- * instantly; fade only when resolved (details out→in, and spinner→details
- * once the new day's data lands).
+ * Suppress the fade while a re-fetch is in flight so the spinner appears * instantly; fade only when resolved
+ * (details * out→in, and spinner→details * once the new day's data lands).
  */
 const cardTransitionName = computed(() => isShiftDataResolved.value ? "fade" : "");
 

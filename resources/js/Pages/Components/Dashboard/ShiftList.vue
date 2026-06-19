@@ -104,7 +104,7 @@ watch(shifts, () => {
   if (!selectedShift.value) {
     selectedShift.value = shifts.value.size > 0 ? shifts.value.values().next().value?.[0] : undefined;
   }
-});
+}, { immediate: true });
 
 const selectShift = async (shift: ShiftItem) => {
   selectedShift.value = shift;

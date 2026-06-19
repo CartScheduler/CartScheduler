@@ -41,12 +41,13 @@ const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:m
 
     <div v-html="location.description"
          class="p-3 pt-0 w-full description dark:text-gray-100"></div>
-    <div class="grid gap-x-2 gap-y-2 w-full sm:gap-y-4"
+    <div class="grid gap-x-2 gap-y-3 w-full sm:gap-y-4"
          :class="gridCols[location.max_volunteers]">
       <div v-for="shift in location.filterShifts"
            :key="shift.id"
            class="grid grid-cols-subgrid col-span-full
-           group has-[.is-reserved]:outline outline-1 outline-warning/50 dark:outline-warning-light/50 rounded-md">
+           group has-[.is-reserved]:outline outline-1 outline-rostered-marker/50 dark:outline-rostered-marker-light/50 rounded-md
+           has-[.is-reserved]:bg-rostered-marker/5 dark:has-[.is-reserved]:bg-rostered-marker-light/10">
         <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col
              group-has-[.is-reserved]:text-rostered-marker dark:group-has-[.is-reserved]:text-rostered-marker-light">
           <span class="font-bold">{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>

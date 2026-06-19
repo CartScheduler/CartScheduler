@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Location } from "@/Composables/useLocationFilter";
 
-defineProps<{
+const { doMarkAsRostered = true } = defineProps<{
   location: Location;
   isRostered: boolean;
   isRestricted: boolean;
+  doMarkAsRostered?: boolean;
 }>();
 </script>
 
@@ -12,11 +13,11 @@ defineProps<{
   <div class="flex items-center">
     <span class="location-name"
           :class="[
-            isRostered
-              ? 'text-green-800 dark:text-green-300 border-b-2 border-green-500'
+            isRostered && doMarkAsRostered
+              ? 'text-green-800 dark:text-green-200 border-b-2 border-green-500'
               : 'dark:text-gray-200'
           ]"
-          v-tooltip="isRostered ? 'You have at least one shift' : undefined">
+          v-tooltip="isRostered && doMarkAsRostered ? 'You have at least one shift' : undefined">
       {{ location.name }}
     </span>
     <div class="flex items-center py-1.5 ml-2 group"
