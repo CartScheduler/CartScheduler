@@ -11,7 +11,8 @@ import type { TwentyFourHourTime } from "@/types/types";
 export type ShiftItem = {
   date: Date;
   formattedDate: string;
-  formattedTime: string;
+  startTime: string;
+  endTime: string;
   location: string;
   locationId: number;
 };
@@ -57,10 +58,19 @@ const parseShiftsOnDate = (shiftGroup: App.Data.AvailableShiftsData["shifts"][st
         milliseconds: 0,
       });
 
+      const [endHours, endMinutes, endSeconds] = tupleTime(shift.end_time);
+      const endDate = set(modifiedDate, {
+        hours: endHours,
+        minutes: endMinutes,
+        seconds: endSeconds,
+        milliseconds: 0,
+      });
+
       return {
         date: modifiedDate,
         formattedDate: formatISO(modifiedDate, { representation: "date" }),
-        formattedTime: format(modifiedDate, "HH:mm a"),
+        startTime: format(modifiedDate, "h:mm a"),
+        endTime: format(endDate, "h:mm a"),
         location: shift.location_name,
         locationId: shift.location_id,
       } satisfies ShiftItem;
@@ -157,7 +167,7 @@ onMounted(() => {
 });
 
 const isShiftSelected = (shift: ShiftItem) => selectedShift.value?.locationId === shift.locationId
-  && selectedShift.value?.formattedTime === shift.formattedTime
+  && selectedShift.value?.startTime === shift.startTime
   && selectedShift.value?.formattedDate === shift.formattedDate;
 
 const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDate === selectedShift.value?.formattedDate;
@@ -235,7 +245,7 @@ bg-white dark:bg-sub-panel-dark rounded border std-border"
                         ]"
                         @click="selectShift(shift)">
                   <span class="transition-[font-weight] duration-300">
-                    {{ shift.formattedTime }}
+                    {{ shift.startTime }} - {{ shift.endTime }}
                   </span>
                   <span class="group-[.selected]:text-orange-700 dark:group-[.selected]:text-orange-300 font-light transition-[font-weight] duration-300">
                     {{ shift.location }}
