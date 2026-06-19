@@ -174,7 +174,7 @@ const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.valu
  */
 const cardKey = computed(() => {
   const shift = selectedShift.value;
-  return shift ? `${shift.locationId}-${shift.formattedTime}-${shift.formattedDate}` : "none";
+  return shift ? `${shift.locationId}-${shift.startTime}-${shift.formattedDate}` : "none";
 });
 
 /**
@@ -295,7 +295,7 @@ debouncedWatch(locations, () => {
                    :locations="locations"
                    :morph-source="!isDetailOpen"
                    @clicked="openShiftDetail" />
-        <div v-if="selectedShift"
+        <div v-if="selectedShift && isNotMobile"
              class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
           <Transition :name="cardTransitionName" mode="out-in">
             <ComponentSpinner v-if="!isShiftDataResolved" key="loading" :show="true" class="h-40" />
@@ -343,7 +343,7 @@ debouncedWatch(locations, () => {
                 <div class="flex items-center text-base font-bold p-2">
                   <LocationTitle :location="location"
                                  :is-rostered="userShiftLocations.has(location.id)"
-                                 :is-restricted="isRestricted" />
+                                 :is-restricted="isRestricted"/>
                 </div>
               </template>
 
