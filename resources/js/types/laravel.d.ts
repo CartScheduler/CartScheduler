@@ -201,6 +201,7 @@ declare namespace App.Data {
     location_id: number;
     location_name: string;
     start_time: TwentyFourHourTime;
+    end_time: TwentyFourHourTime;
     max_volunteers: number;
     available_from?: string;
     available_to?: string;
