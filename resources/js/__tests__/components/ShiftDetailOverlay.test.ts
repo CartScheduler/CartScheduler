@@ -8,7 +8,8 @@ import type { AuthUser } from "@/types/laravel-request-helpers";
 const shift: ShiftItem = {
   date: new Date("2025-09-15T09:00:00"),
   formattedDate: "2025-09-15",
-  formattedTime: "09:00 AM",
+  startTime: "09:00 AM",
+  endTime: "11:00 AM",
   location: "Town Square",
   locationId: 7,
 };
