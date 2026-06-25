@@ -6,24 +6,23 @@ import { format, isSameDay } from "date-fns";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
 import useToast from "@/Composables/useToast";
-import { useViewTransition } from "@/Composables/useViewTransition";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
 import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
+import getShiftItem from "@/Pages/Components/Dashboard/lib/getShiftItem";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
 import LocationPanel from "@/Pages/Components/Dashboard/LocationPanel.vue";
 import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
-import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
 import { useGlobalState } from "@/store";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { LocationsOnDate } from "@/Pages/Components/Dashboard/DatePicker.vue";
-import type { ShiftItem as SelectedShift } from "@/Pages/Components/Dashboard/ShiftList.vue";
+import type { ShiftItem as SelectedShift } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
 const page = usePage();
 const toast = useToast();
 
 const user = computed(() => page.props.auth.user);
-const timezone = computed(() => usePage().props.shiftAvailability.timezone);
+const timezone = computed(() => page.props.shiftAvailability.timezone);
 
 const {
   date,
@@ -40,10 +39,8 @@ const shiftMarkers = useShiftMarkers(serverDates);
 
 const state = useGlobalState();
 const shiftView = computed({
-  get() {
-    return state.value.shiftView;
-  },
-  set(value) {
+  get: () => state.value.shiftView,
+  set: (value) => {
     state.value.shiftView = value;
   },
 });
@@ -106,13 +103,14 @@ const hasShift = (location: App.Data.LocationData) => locationsForSelectedDate.v
   (date) => date?.locations.includes(location.id),
 ) >= 0;
 
-const isRestricted = computed(() => !usePage().props.isUnrestricted);
+const isRestricted = computed(() => !page.props.isUnrestricted);
 const userShiftLocations = reactive<Set<Location["id"]>>(new Set());
 const firstReservationForUser = ref<number | undefined>();
 const expandedAccordionPanelIndex = ref<number | undefined>();
-const selectedShift = ref<SelectedShift | undefined>();
+const selectedShift = ref<SelectedShift | undefined>(); // Can be controlled by the ShiftList component
 
 const markRosteredLocations = () => {
+  let firstShift: App.Data.UserShiftData | undefined = undefined;
   firstReservationForUser.value = undefined;
   userShiftLocations.clear();
 
@@ -123,10 +121,30 @@ const markRosteredLocations = () => {
 
     userShiftLocations.add(location.id);
     if (!firstReservationForUser.value) {
-      firstReservationForUser.value = selectedShift.value?.locationId || location.id;
+      if (shiftView.value === "list") {
+        firstReservationForUser.value = selectedShift.value?.locationId;
+        continue;
+      }
+      if (!firstShift && serverDates.value) {
+        const dates = Object.keys(serverDates.value);
+        const selectedDateKey = dates.find((dateKey) => isSameDay(new Date(dateKey), date.value));
+        if (selectedDateKey) {
+          const selectedDate = serverDates.value[selectedDateKey];
+          if (selectedDate) {
+            const shiftKeys = Object.keys(selectedDate);
+            if (shiftKeys[0]) {
+              firstShift = selectedDate[shiftKeys[0] as unknown as number]?.[0];
+            }
+          }
+        }
+      }
+
+      if (firstShift) {
+        selectedShift.value = getShiftItem(firstShift, date.value);
+      }
+      firstReservationForUser.value = location.id;
     }
   }
-
 };
 
 const setOpenedPanel = () => {
@@ -186,31 +204,6 @@ const cardTransitionName = computed(() => isShiftDataResolved.value ? "fade" : "
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
-const isDetailOpen = ref(false);
-const { withViewTransition } = useViewTransition();
-
-const openShiftDetail = () => {
-  if (isNotMobile.value) {
-    return;
-  }
-  withViewTransition(() => {
-    isDetailOpen.value = true;
-  });
-};
-
-const closeShiftDetail = () => {
-  withViewTransition(() => {
-    isDetailOpen.value = false;
-  });
-};
-
-// A stranded overlay makes no sense once the horizontal timeline takes over.
-watch(isNotMobile, (isDesktop) => {
-  if (isDesktop) {
-    isDetailOpen.value = false;
-  }
-});
-
 let prefersReducedMotion: boolean;
 onMounted(() => {
   prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -241,7 +234,7 @@ const enter = (el: Element, done: () => void) => {
 
 let cancelTimeout = 0;
 const afterEnter = (_: Element) => {
-  clearTimeout(cancelTimeout as number);
+  clearTimeout(cancelTimeout);
   cancelTimeout = window.setTimeout(() => {
     transitionContainerHeight.value = "auto";
   }, 1000);
@@ -270,6 +263,8 @@ debouncedWatch(locations, () => {
 }, {
   debounce: 500,
 });
+
+// TODO const {} = useSwipe()
 </script>
 
 <template>
@@ -293,8 +288,8 @@ debouncedWatch(locations, () => {
         <ShiftList v-model="selectedShift"
                    :marker-dates="serverDates"
                    :locations="locations"
-                   :morph-source="!isDetailOpen"
-                   @clicked="openShiftDetail" />
+                   :is-restricted="isRestricted"
+                   @toggle-reservation="toggleReservation" />
         <div v-if="selectedShift && isNotMobile"
              class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
           <Transition :name="cardTransitionName" mode="out-in">
@@ -343,7 +338,7 @@ debouncedWatch(locations, () => {
                 <div class="flex items-center text-base font-bold p-2">
                   <LocationTitle :location="location"
                                  :is-rostered="userShiftLocations.has(location.id)"
-                                 :is-restricted="isRestricted"/>
+                                 :is-restricted="isRestricted" />
                 </div>
               </template>
 
@@ -357,30 +352,20 @@ debouncedWatch(locations, () => {
         </ComponentSpinner>
       </div>
     </Transition>
-    <ShiftDetailOverlay :show="isDetailOpen"
-                        :shift="selectedShift"
-                        :location="selectedLocation"
-                        :is-resolved="isShiftDataResolved"
-                        :is-rostered="selectedLocation ? userShiftLocations.has(selectedLocation.id) : false"
-                        :is-restricted="isRestricted"
-                        :date="date"
-                        :user="user"
-                        @close="closeShiftDetail"
-                        @toggle-reservation="toggleReservation" />
   </div>
 </template>
 
 <!--suppress CssUnusedSymbol -->
 <style scoped>
-.transition-container {
-    --timing: 150ms;
-    height: v-bind(transitionContainerHeight);
-    transition: height var(--timing) ease-in-out;
-}
+/*.transition-container {*/
+/*    --timing: 150ms;*/
+/*    height: v-bind(transitionContainerHeight);*/
+/*    transition: height var(--timing) ease-in-out;*/
+/*}*/
 
-.transition-container > div {
-    transition: transform var(--timing) ease-out, opacity var(--timing) ease-out;
-}
+/*.transition-container > div {*/
+/*    transition: transform var(--timing) ease-out, opacity var(--timing) ease-out;*/
+/*}*/
 
 .fade-enter-active,
 .fade-leave-active {

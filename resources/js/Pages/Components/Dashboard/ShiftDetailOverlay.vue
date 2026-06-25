@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { onUnmounted, watch } from "vue";
+import { usePage } from "@inertiajs/vue3";
+import { computed, onUnmounted, watch } from "vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
 import type { Location } from "@/Composables/useLocationFilter";
-import type { ShiftItem } from "@/Pages/Components/Dashboard/ShiftList.vue";
-import type { AuthUser } from "@/types/laravel-request-helpers";
+import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
 const { show } = defineProps<{
   show: boolean;
   shift: ShiftItem | undefined;
   location: Location | undefined;
-  isResolved: boolean;
-  isRostered: boolean;
   isRestricted: boolean;
   date: Date;
-  user: AuthUser;
 }>();
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
 
 defineEmits<{
   close: [];
@@ -38,7 +38,7 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
 <template>
   <Teleport to="body">
     <div v-if="show && shift && location"
-         class="text-gray-800 dark:text-gray-200 shift-detail-morph fixed inset-0 z-50 backdrop-blur bg-page dark:bg-page-dark">
+         class="text-gray-800 dark:text-gray-200 fixed inset-0 z-50 backdrop-blur bg-page dark:bg-page-dark">
       <div class="grid grid-rows-[auto_1fr_auto] gap-3 p-3 h-full max-h-full">
         <header class="flex flex-0 items-center text-base font-bold px-4 py-2 rounded shrink-0 bg-white dark:bg-sub-panel-dark border std-border">
           <h3>{{ shift.location }}</h3>
@@ -51,8 +51,7 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
         </header>
 
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded p-4 bg-white dark:bg-sub-panel-dark border std-border">
-          <ComponentSpinner v-if="!isResolved" :show="true" class="h-full" />
-          <LocationDetails v-else-if="location"
+          <LocationDetails v-if="location"
                            :location="location"
                            :is-restricted="isRestricted"
                            :date="date"
