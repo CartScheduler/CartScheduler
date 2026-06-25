@@ -23,13 +23,15 @@ export default function(serverDates: ShallowRef<App.Data.AvailableShiftsData["sh
 
       let isoDate = undefined;
       for (const shiftId in shiftDateGroup) {
-        if (!Object.prototype.hasOwnProperty.call(shiftDateGroup, shiftId)) {
+        if (!Object.hasOwn(shiftDateGroup, shiftId)) {
           continue;
         }
 
-        const shifts = shiftDateGroup[shiftId];
+        const shifts = shiftDateGroup[shiftId] || [];
         for (let shiftCount = 0; shiftCount < shifts.length; shiftCount++) {
           const shift = shifts[shiftCount];
+          if (!shift) continue;
+
           if (!isoDate) {
             isoDate = utcToZonedTime(date, page.props.shiftAvailability.timezone);
           }
