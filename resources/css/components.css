@@ -6,7 +6,7 @@
     }
 
     .scroll-gradient-x {
-        @apply before:absolute before:inset-y-0 before:left-0 before:w-16 before:z-10 before:opacity-0;
+        @apply before:absolute before:inset-y-0 before:left-0 before:w-16 before:z-20 before:opacity-0;
         @apply before:pointer-events-none before:rounded-s before:bg-no-repeat;
         @apply before:bg-gradient-to-r before:from-white before:dark:from-sub-panel-dark before:to-transparent;
 
@@ -134,4 +134,3 @@
     from { opacity: 1; }
     to { opacity: 0; }
 }
-

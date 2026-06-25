@@ -38,33 +38,35 @@ onUnmounted(() => document.body.style.removeProperty("overflow"));
 <template>
   <Teleport to="body">
     <div v-if="show && shift && location"
-         class="text-gray-800 dark:text-gray-200 shift-detail-morph fixed inset-0 z-50 flex flex-col bg-white dark:bg-sub-panel-dark">
-      <header class="flex items-center text-base font-bold p-6 border-b std-border shrink-0">
-        <h1>{{ shift.location }}</h1>
-        <button type="button"
-                class="ms-auto flex items-center"
-                aria-label="Close"
-                @click="$emit('close')">
-          <span class="iconify mdi--close text-2xl" />
-        </button>
-      </header>
+         class="text-gray-800 dark:text-gray-200 shift-detail-morph fixed inset-0 z-50 backdrop-blur bg-page dark:bg-page-dark">
+      <div class="grid grid-rows-[auto_1fr_auto] gap-3 p-3 h-full max-h-full">
+        <header class="flex flex-0 items-center text-base font-bold px-4 py-2 rounded shrink-0 bg-white dark:bg-sub-panel-dark border std-border">
+          <h3>{{ shift.location }}</h3>
+          <button type="button"
+                  class="ms-auto flex items-center"
+                  aria-label="Close"
+                  @click="$emit('close')">
+            <span class="iconify mdi--close text-xl" />
+          </button>
+        </header>
 
-      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
-        <ComponentSpinner v-if="!isResolved" :show="true" class="h-full" />
-        <LocationDetails v-else-if="location"
-                         :location="location"
-                         :is-restricted="isRestricted"
-                         :date="date"
-                         :user="user"
-                         @toggle-reservation="(locationId, shiftId, toggleOn) => $emit('toggleReservation', locationId, shiftId, toggleOn)" />
-        <div v-else class="p-4 text-neutral-500 dark:text-neutral-300">
-          Location details unavailable for this date.
+        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain rounded p-4 bg-white dark:bg-sub-panel-dark border std-border">
+          <ComponentSpinner v-if="!isResolved" :show="true" class="h-full" />
+          <LocationDetails v-else-if="location"
+                           :location="location"
+                           :is-restricted="isRestricted"
+                           :date="date"
+                           :user="user"
+                           @toggle-reservation="(locationId, shiftId, toggleOn) => $emit('toggleReservation', locationId, shiftId, toggleOn)" />
+          <div v-else class="p-4 text-neutral-500 dark:text-neutral-300">
+            Location details unavailable for this date.
+          </div>
         </div>
-      </div>
 
-      <footer class="shrink-0 border-t std-border p-4">
-        <CloseButton class="w-full" @click="$emit('close')"/>
-      </footer>
+        <footer class="shrink-0 p-3">
+          <CloseButton class="w-full border border-info-light" @click="$emit('close')"/>
+        </footer>
+      </div>
     </div>
   </Teleport>
 </template>

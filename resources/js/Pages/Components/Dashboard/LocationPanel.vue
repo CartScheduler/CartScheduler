@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
-import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { AuthUser } from "@/types/laravel-request-helpers";
 
@@ -19,12 +18,7 @@ defineEmits<{
 
 <template>
   <div class="flex flex-col gap-4 justify-center items-stretch text-base font-bold p-4">
-    <div class="flex justify-start border-b std-border-bottom pt-2 pb-6">
-      <LocationTitle :location="location"
-                     :is-rostered="isRostered"
-                     :is-restricted="isRestricted"
-                     :do-mark-as-rostered="false"/>
-    </div>
+    <h3 class="pb-4 border-b std-border-bottom">{{ location.name }}</h3>
     <LocationDetails :location="location"
                      :is-restricted="isRestricted"
                      :date="date"
