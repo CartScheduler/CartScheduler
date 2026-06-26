@@ -195,64 +195,12 @@ const cardKey = computed(() => {
   return shift ? `${shift.locationId}-${shift.startTime}-${shift.formattedDate}` : "none";
 });
 
-/**
- * Suppress the fade while a re-fetch is in flight so the spinner appears * instantly; fade only when resolved
- * (details * out→in, and spinner→details * once the new day's data lands).
- */
-const cardTransitionName = computed(() => isShiftDataResolved.value ? "fade" : "");
-
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
-let prefersReducedMotion: boolean;
 onMounted(() => {
-  prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   void getShifts();
 });
-
-const transitionContainerHeight = ref<string>("auto");
-
-const beforeEnter = (el: Element) => {
-  const wrapper = el as HTMLElement;
-  wrapper.style.opacity = "0";
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(110%)";
-  }
-};
-
-const enter = (el: Element, done: () => void) => {
-  const wrapper = el as HTMLElement;
-  transitionContainerHeight.value = `${wrapper.scrollHeight}px`;
-  wrapper.style.opacity = "1";
-
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(0)";
-  }
-  done();
-};
-
-let cancelTimeout = 0;
-const afterEnter = (_: Element) => {
-  clearTimeout(cancelTimeout);
-  cancelTimeout = window.setTimeout(() => {
-    transitionContainerHeight.value = "auto";
-  }, 1000);
-};
-
-const beforeLeave = async (el: Element) => {
-
-  const wrapper = el as HTMLElement;
-  transitionContainerHeight.value = `${wrapper.scrollHeight}px`;
-
-  wrapper.style.transitionDelay = "50ms";
-  wrapper.style.opacity = "0";
-
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(-110%)";
-  }
-  wrapper.style.height = `${wrapper.scrollHeight}px`;
-};
 
 const hasInitialised = computed(() => locations.value.length > 0);
 
@@ -269,111 +217,82 @@ debouncedWatch(locations, () => {
 
 <template>
   <div class="flex-1 grid gap-3 grid-cols-1 sm:grid-rows-1 sm:min-h-full">
-    <Transition mode="out-in"
-                @before-enter="beforeEnter"
-                @enter="enter"
-                @after-enter="afterEnter"
-                @before-leave="beforeLeave">
-      <div v-if="shiftView === 'list'"
-           class="grid grid-cols-1 grid-rows-[auto_auto_1fr] gap-2 sm:h-0 sm:min-h-full"
-           key="list">
+    <div v-if="shiftView === 'list'"
+         class="grid grid-cols-1 grid-rows-[auto_auto_1fr] gap-2 sm:h-0 sm:min-h-full"
+         key="list">
+      <PButton size="small"
+               class="shadow-sm"
+               variant="outlined"
+               severity="info"
+               @click="shiftView = 'calendar'">
+        <span class="iconify mdi--calendar-month-outline" />
+        Switch to Calendar view
+      </PButton>
+      <ShiftList v-model="selectedShift"
+                 :marker-dates="serverDates"
+                 :locations="locations"
+                 :is-restricted="isRestricted"
+                 @toggle-reservation="toggleReservation" />
+      <div v-if="selectedShift && isNotMobile"
+           class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
+        <FadeTransition mode="out-in">
+          <ComponentSpinner v-if="!isShiftDataResolved" key="loading" class="h-full" />
+          <LocationPanel v-else-if="selectedLocation"
+                         :key="cardKey"
+                         :location="selectedLocation"
+                         :is-rostered="userShiftLocations.has(selectedLocation.id)"
+                         :is-restricted="isRestricted"
+                         :date="date"
+                         :user="user"
+                         @toggle-reservation="toggleReservation" />
+          <div v-else key="fallback" class="p-4 text-neutral-500 dark:text-neutral-300">
+            Location details unavailable for this date.
+          </div>
+        </FadeTransition>
+      </div>
+    </div>
+    <div v-else key="calendar" class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
+      <div class="grid grid-col grid-cols-1 gap-2 grid-rows-[auto_1fr]">
         <PButton size="small"
                  class="shadow-sm"
                  variant="outlined"
                  severity="info"
-                 @click="shiftView = 'calendar'">
-          <span class="iconify mdi--calendar-month-outline" />
-          Switch to Calendar view
+                 @click="shiftView = 'list'">
+          <span class="iconify mdi--timeline-text-outline" />
+          Switch to Timeline view
         </PButton>
-        <ShiftList v-model="selectedShift"
-                   :marker-dates="serverDates"
-                   :locations="locations"
-                   :is-restricted="isRestricted"
-                   @toggle-reservation="toggleReservation" />
-        <div v-if="selectedShift && isNotMobile"
-             class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
-          <Transition :name="cardTransitionName" mode="out-in">
-            <ComponentSpinner v-if="!isShiftDataResolved" key="loading" :show="true" class="h-40" />
-            <LocationPanel v-else-if="selectedLocation"
-                           :key="cardKey"
-                           :location="selectedLocation"
-                           :is-rostered="userShiftLocations.has(selectedLocation.id)"
-                           :is-restricted="isRestricted"
-                           :date="date"
-                           :user="user"
-                           @toggle-reservation="toggleReservation" />
-            <div v-else key="fallback" class="p-4 text-neutral-500 dark:text-neutral-300">
-              Location details unavailable for this date.
-            </div>
-          </Transition>
-        </div>
+        <DatePicker v-model:date="date"
+                    :shiftMarkers
+                    :isLoading="!!locations"
+                    :max-date="maxReservationDate"
+                    :free-shifts="freeShifts"
+                    :marker-dates="serverDates"
+                    @locations-for-day="setLocationMarkers" />
       </div>
-      <div v-else key="calendar" class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
-        <div class="grid grid-col grid-cols-1 gap-2 grid-rows-[auto_1fr]">
-          <PButton size="small"
-                   class="shadow-sm"
-                   variant="outlined"
-                   severity="info"
-                   @click="shiftView = 'list'">
-            <span class="iconify mdi--timeline-text-outline" />
-            Switch to Timeline view
-          </PButton>
-          <DatePicker v-model:date="date"
-                      :shiftMarkers
-                      :isLoading="!!locations"
-                      :max-date="maxReservationDate"
-                      :free-shifts="freeShifts"
-                      :marker-dates="serverDates"
-                      @locations-for-day="setLocationMarkers" />
-        </div>
-        <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
-          <Accordion v-model="expandedAccordionPanelIndex"
-                     :hasInitialised="hasInitialised"
-                     class="border std-border rounded border-b-0">
-            <AccordionPanel v-for="location in locations"
-                            :key="location.id"
-                            :unique-id="location.id"
-                            :contentTrigger="`${location.id}-${shiftDate}`">
-              <template #title>
-                <div class="flex items-center text-base font-bold p-2">
-                  <LocationTitle :location="location"
-                                 :is-rostered="userShiftLocations.has(location.id)"
-                                 :is-restricted="isRestricted" />
-                </div>
-              </template>
+      <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
+        <Accordion v-model="expandedAccordionPanelIndex"
+                   :hasInitialised="hasInitialised"
+                   class="border std-border rounded border-b-0">
+          <AccordionPanel v-for="location in locations"
+                          :key="location.id"
+                          :unique-id="location.id"
+                          :contentTrigger="`${location.id}-${shiftDate}`">
+            <template #title>
+              <div class="flex items-center text-base font-bold p-2">
+                <LocationTitle :location="location"
+                               :is-rostered="userShiftLocations.has(location.id)"
+                               :is-restricted="isRestricted" />
+              </div>
+            </template>
 
-              <LocationDetails :location="location"
-                               :is-restricted="isRestricted"
-                               :date="date"
-                               :user="user"
-                               @toggle-reservation="toggleReservation" />
-            </AccordionPanel>
-          </Accordion>
-        </ComponentSpinner>
-      </div>
-    </Transition>
+            <LocationDetails :location="location"
+                             :is-restricted="isRestricted"
+                             :date="date"
+                             :user="user"
+                             @toggle-reservation="toggleReservation" />
+          </AccordionPanel>
+        </Accordion>
+      </ComponentSpinner>
+    </div>
   </div>
 </template>
-
-<!--suppress CssUnusedSymbol -->
-<style scoped>
-/*.transition-container {*/
-/*    --timing: 150ms;*/
-/*    height: v-bind(transitionContainerHeight);*/
-/*    transition: height var(--timing) ease-in-out;*/
-/*}*/
-
-/*.transition-container > div {*/
-/*    transition: transform var(--timing) ease-out, opacity var(--timing) ease-out;*/
-/*}*/
-
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 150ms ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
-}
-</style>
