@@ -1,9 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { nextTick } from "vue";
 import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
 import type { Location } from "@/Composables/useLocationFilter";
-import type { ShiftItem } from "@/Pages/Components/Dashboard/ShiftList.vue";
-import type { AuthUser } from "@/types/laravel-request-helpers";
+import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
+
+vi.mock("@inertiajs/vue3", () => ({
+  usePage: () => ({
+    props: {
+      auth: { user: { uuid: "user-1", gender: "male" } },
+    },
+  }),
+}));
 
 const shift: ShiftItem = {
   date: new Date("2025-09-15T09:00:00"),
@@ -23,18 +31,13 @@ const location = {
   filterShifts: [],
 } as unknown as Location;
 
-const user = { uuid: "user-1", gender: "male" } as AuthUser;
-
 const renderOverlay = (props: Record<string, unknown> = {}) => render(ShiftDetailOverlay, {
   props: {
     show: true,
     shift,
     location,
-    isResolved: true,
-    isRostered: false,
     isRestricted: false,
     date: shift.date,
-    user,
     ...props,
   },
   global: {
@@ -106,6 +109,14 @@ describe("ShiftDetailOverlay", () => {
     renderOverlay();
 
     expect(document.body.querySelector(".shift-detail-morph")).not.toBeNull();
+  });
+
+  it("routes focus to the heading once shown", async () => {
+    renderOverlay();
+    await nextTick();
+
+    const heading = document.body.querySelector("header h3");
+    expect(document.activeElement).toBe(heading);
   });
 
   it("locks the page scroll while shown and releases it when hidden", async () => {

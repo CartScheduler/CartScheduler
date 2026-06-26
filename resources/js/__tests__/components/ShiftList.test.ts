@@ -19,6 +19,7 @@ const makeShift = (overrides: Record<string, unknown>) => ({
   max_volunteers: 5,
   available_from: null,
   available_to: null,
+  end_time: "17:00:00",
   ...overrides,
 });
 

@@ -3,7 +3,7 @@ import { usePage } from "@inertiajs/vue3";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { useViewTransition } from "@/Composables/useViewTransition";
 import getShiftItem from "@/Pages/Components/Dashboard/lib/getShiftItem";
 import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
@@ -11,10 +11,16 @@ import relativeDateToNow from "@/Utils/relativeDateToNow";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
-const { markerDates, locations, isRestricted } = defineProps<{
+const { markerDates, locations, isRestricted, morphSource = true } = defineProps<{
   markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
   locations: Location[];
   isRestricted: boolean;
+  /**
+   * When true (default), the selected shift carries the shared
+   * `view-transition-name` so the detail overlay morphs out of it. The parent
+   * can disable this to opt the list out of the morph.
+   */
+  morphSource?: boolean;
 }>();
 
 const selectedShift = defineModel<ShiftItem | undefined>({ required: false });
@@ -74,6 +80,10 @@ watch(shifts, () => {
 
 const selectShift = async (shift: ShiftItem) => {
   selectedShift.value = shift;
+  // Flush the selection first so the tapped shift owns the shared transition
+  // name before the overlay's view transition captures its "old" snapshot;
+  // otherwise the morph grows from the previously selected shift (or nowhere).
+  await nextTick();
   openShiftDetail();
 };
 
@@ -168,13 +178,17 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
                             'border-l-rostered-marker sm:border-l-0 sm:before:w-0.5 sm:before:bg-rostered-marker-light ' +
                             'sm:before:dark:bg-rostered-marker-light'
                           : 'sm:before:w-px',
+                        morphSource && isShiftSelected(shift) && !isDetailOpen
+                          ? 'shift-detail-morph'
+                          : '',
                       ]"
                       @click="selectShift(shift)">
                 <span class="transition-[font-weight] duration-300">
                   {{ shift.startTime }} - {{ shift.endTime }}
                 </span>
                 <span class="group-[.selected]:text-rostered-marker
-                    dark:group-[.selected]:text-rostered-marker-light font-light transition-[font-weight] duration-300">
+                    dark:group-[.selected]:text-rostered-marker-light font-light transition-[font-weight] duration-300"
+                      :class="morphSource && isShiftSelected(shift) && !isDetailOpen ? 'shift-detail-title' : ''">
                   {{ shift.location }}
                 </span>
               </button>
@@ -195,6 +209,26 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
 
 <!--suppress CssUnusedSymbol -->
 <style scoped>
+/*
+ * Shared name for the open/close View Transition. The selected shift owns this
+ * name only while the overlay is closed; the overlay (ShiftDetailOverlay) takes
+ * it over while open, so the browser morphs the button into the overlay and
+ * back. The name is never duplicated within a single snapshot.
+ */
+.shift-detail-morph {
+    view-transition-name: shift-detail;
+}
+
+/*
+ * The selected shift's location text morphs into the overlay card heading.
+ * fit-content keeps both ends at their natural text width so it doesn't stretch
+ * while travelling. Same gating as the panel name: selected row, overlay closed.
+ */
+.shift-detail-title {
+    view-transition-name: shift-detail-title;
+    width: fit-content;
+}
+
 /* Background hover animation for non-mobile "sm" screens */
 @media screen(sm) {
     .anchor-nav {
