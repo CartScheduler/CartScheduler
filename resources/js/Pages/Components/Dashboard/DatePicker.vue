@@ -6,7 +6,6 @@ import {
   endOfMonth,
   isAfter,
   isBefore,
-  lastDayOfMonth,
   parseISO,
   set,
   setHours,
@@ -14,7 +13,7 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
-import { computed } from "vue";
+import { computed, nextTick, ref } from "vue";
 import type { DatePickerDateSlotOptions, DatePickerMonthChangeEvent } from "primevue";
 import type { DateMark } from "@/types/types";
 
@@ -105,42 +104,55 @@ const restrictedDates = computed(() => {
   return restricted;
 });
 
+// Template ref to the PrimeVue DatePicker so we can keep its displayed month/year
+// in sync after we programmatically change the selected date (see syncView).
+const datePicker = ref<{ currentMonth: number; currentYear: number } | null>(null);
+
 /**
- * Used to set the date when the user changes month (or year). This ensures that the next month's values are loaded.
+ * PrimeVue re-derives its displayed month/year from a stale internal value whenever the
+ * v-model changes externally (its `modelValue` watcher calls `updateCurrentMetaData()`
+ * before refreshing `rawValue`). That causes the calendar to snap back to the previous
+ * month after navigation. Re-assert the view on the next tick, once the model has settled.
  */
-const updateMonthYear = ({ month, year }: DatePickerMonthChangeEvent) => {
-  // PrimeVue DatePickerMonthChangeEvent `month` event is 1 indexed (1 = January) instead of JS 0 indexed (0 = January)`
-  month--;
-  // Setting the 'day of month' to 0, sets the day to the previous month's last day
-  const lastDay = lastDayOfMonth(new Date(year, month, 1, 12));
-  const currentDate = selectedDate.value;
-
-  // Going back in time
-  if (isAfter(currentDate, lastDay)) {
-    if (!canViewHistorical) {
-      if (isBefore(lastDay, notBefore)) {
-        selectedDate.value = notBefore;
-        return;
-      }
-    }
-
-    // set the date to the last day of the previous month
-    selectedDate.value = new Date(year, month, lastDay.getDate());
-    return;
-  }
-
-  // Going forward in time
-
-  // If cannotViewHistorical (non-admin dashboard), make sure they cannot go further than the maximum allowed date
-  if (!canViewHistorical && notAfter.value) {
-    if (isAfter(lastDay, notAfter.value)) {
-      // Not allowed, set the date to the maximum allowed date
-      selectedDate.value = notAfter.value;
+const syncView = (date: Date) => {
+  void nextTick(() => {
+    if (!datePicker.value) {
       return;
     }
+    datePicker.value.currentMonth = date.getMonth();
+    datePicker.value.currentYear = date.getFullYear();
+  });
+};
+
+/**
+ * Used to set the date when the user changes month (or year). This ensures that the next month's values are loaded.
+ *
+ * Navigating forward selects the first day of the new month, navigating back selects the last day,
+ * rather than carrying the previously selected day across months.
+ */
+const updateMonthYear = ({ month, year }: DatePickerMonthChangeEvent) => {
+  // PrimeVue DatePickerMonthChangeEvent `month` event is 1 indexed (1 = January) instead of JS 0 indexed (0 = January)
+  month--;
+
+  const currentDate = selectedDate.value;
+  const goingForward = year > currentDate.getFullYear()
+    || (year === currentDate.getFullYear() && month > currentDate.getMonth());
+
+  // Forward -> first day of the new month; back -> last day of the new month
+  // (day 0 of the following month resolves to the last day of the target month).
+  let newDate = goingForward
+    ? new Date(year, month, 1, 12)
+    : new Date(year, month + 1, 0, 12);
+
+  // Keep the selection within the allowed range.
+  if (isBefore(newDate, notBefore)) {
+    newDate = notBefore;
+  } else if (notAfter.value && isAfter(newDate, notAfter.value)) {
+    newDate = notAfter.value;
   }
 
-  selectedDate.value = new Date(year, month, 1, 12);
+  selectedDate.value = newDate;
+  syncView(newDate);
 };
 
 // Function to check if a date is highlighted (has free shifts)
@@ -185,7 +197,8 @@ const canGoForward = computed(() => {
 
 <template>
   <div>
-    <PDatePicker v-model="selectedDate"
+    <PDatePicker ref="datePicker"
+                 v-model="selectedDate"
                  inline
                  selectOtherMonths
                  :minDate="notBefore"
