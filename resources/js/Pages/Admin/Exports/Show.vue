@@ -6,6 +6,7 @@ import JetLabel from "@/Jetstream/Label.vue";
 import JetSecondaryButton from "@/Jetstream/SecondaryButton.vue";
 
 type ExportRouteName =
+  | "admin.exports.reports"
   | "admin.exports.shift-assignments"
   | "admin.exports.shift-counts"
   | "admin.exports.user-availabilities";
@@ -23,6 +24,13 @@ const download = (routeName: ExportRouteName, params: Record<string, string> = {
   });
 
   window.location.href = url.toString();
+};
+
+const downloadReports = () => {
+  download("admin.exports.reports", {
+    start_date: startDate.value,
+    end_date: endDate.value,
+  });
 };
 
 const downloadShiftAssignments = () => {
@@ -53,7 +61,7 @@ const downloadUserAvailabilities = () => {
       <div>
         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-200">Date range</h3>
         <JetHelpText class="mt-1">
-          Required for shift assignment and shift count exports.
+          Required for reports, shift assignment, and shift count exports.
         </JetHelpText>
 
         <div class="mt-4 grid gap-4 sm:grid-cols-2 max-w-xl">
@@ -75,6 +83,17 @@ const downloadUserAvailabilities = () => {
       </div>
 
       <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div>
+            <h3 class="font-medium text-gray-900 dark:text-gray-200">Reports</h3>
+            <JetHelpText>Shift reports for the selected date range.</JetHelpText>
+          </div>
+          <JetSecondaryButton :disabled="!canDownloadDateRangeExports"
+                              @click="downloadReports">
+            Download CSV
+          </JetSecondaryButton>
+        </div>
+
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
           <div>
             <h3 class="font-medium text-gray-900 dark:text-gray-200">Shift assignments</h3>

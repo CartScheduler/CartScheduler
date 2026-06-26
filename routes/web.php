@@ -11,6 +11,7 @@ use App\Http\Controllers\AvailableShiftsController;
 use App\Http\Controllers\DeleteShiftsController;
 use App\Http\Controllers\DownloadUserImportSpreadsheetController;
 use App\Http\Controllers\DownloadUsersAsSpreadsheetController;
+use App\Http\Controllers\ExportReportsController;
 use App\Http\Controllers\ExportShiftAssignmentsController;
 use App\Http\Controllers\ExportUserAvailabilitiesController;
 use App\Http\Controllers\ExportUserShiftCountsController;
@@ -188,6 +189,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             )->name('admin.user-import-template');
 
             Route::get('/exports', ShowExportsController::class)->name('admin.exports');
+            Route::get('/exports/reports', ExportReportsController::class)->name('admin.exports.reports');
             Route::get('/exports/shift-assignments', ExportShiftAssignmentsController::class)->name('admin.exports.shift-assignments');
             Route::get('/exports/shift-counts', ExportUserShiftCountsController::class)->name('admin.exports.shift-counts');
             Route::get('/exports/user-availabilities', ExportUserAvailabilitiesController::class)->name('admin.exports.user-availabilities');
