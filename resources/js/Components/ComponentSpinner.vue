@@ -1,6 +1,7 @@
 <script setup lang="ts">
-const { show } = defineProps<{
-  show: boolean;
+const { show = true } = defineProps<{
+  // If not set, use your own show/hide logic in the parent component
+  show?: boolean;
 }>();
 
 // TODO, this really shouldn't wrap the <slot>
@@ -10,7 +11,7 @@ const { show } = defineProps<{
   <div class="spinner relative block">
     <Transition>
       <div v-if="show"
-           class="rounded absolute top-0 right-0 bottom-0 left-0 bg-neutral-500/50 dark:bg-neutral-700/75 z-[50] backdrop-blur-sm">
+           class="rounded absolute top-0 right-0 bottom-0 left-0 bg-neutral-500/25 dark:bg-neutral-700/75 z-[50] backdrop-blur-sm">
         <div role="status" class="absolute -translate-x-1/2 -translate-y-1/2 top-2/4 left-1/2 z-[100]">
           <svg aria-hidden="true"
                class="inline w-12 h-12 text-gray-200 animate-spin dark:text-gray-800 fill-purple-500"
