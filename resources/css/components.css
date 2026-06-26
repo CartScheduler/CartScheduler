@@ -44,15 +44,6 @@
         scroll-timeline-axis: x;
     }
 
-    /* The selected shift button (overlay closed) and the mobile shift-detail
-       overlay (open) share this name, giving the View Transitions API its
-       old/new pair for the grow/shrink morph. A view-transition-name must be
-       unique in the document at snapshot time — ShiftList drops the class via
-       its morphSource prop while the overlay is open. */
-    .shift-detail-morph {
-        view-transition-name: shift-detail;
-    }
-
     .std-border {
         @apply border-neutral-300/75 dark:border-neutral-700/75;
     }
