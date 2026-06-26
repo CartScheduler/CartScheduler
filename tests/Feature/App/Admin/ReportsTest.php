@@ -17,6 +17,8 @@ class ReportsTest extends TestCase
 
     public function test_only_admin_can_retrieve_reports(): void
     {
+        $this->travelTo('2023-02-01');
+
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
         $user  = User::factory()->userRoleUser()->create(['is_enabled' => true]);
 
@@ -57,6 +59,8 @@ class ReportsTest extends TestCase
 
     public function test_reports_work_without_metadata(): void
     {
+        $this->travelTo('2023-02-01');
+
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         Location::factory()
@@ -91,6 +95,33 @@ class ReportsTest extends TestCase
                     ->whereNull('2.metadata')
                     ->etc()
                 )
+            );
+    }
+
+    public function test_reports_are_limited_to_last_two_months(): void
+    {
+        $this->travelTo('2024-03-15');
+
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+        $location = Location::factory()->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
+
+        Report::factory()->create([
+            'shift_id' => $shift->id,
+            'shift_date' => '2024-02-01',
+        ]);
+        Report::factory()->create([
+            'shift_id' => $shift->id,
+            'shift_date' => '2024-01-10',
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/reports')
+            ->assertSuccessful()
+            ->assertInertia(fn(AssertableInertia $page) => $page
+                ->component('Admin/Reports/List')
+                ->has('reports', 1)
+                ->where('reports.0.shift_date', '2024-02-01')
             );
     }
 }
