@@ -7,15 +7,20 @@ import { nextTick } from "vue";
  * keeps jsdom (which lacks it) on the direct path too.
  */
 export function useViewTransition() {
-  const withViewTransition = (mutate: () => void): void => {
+  /**
+   * Returns the started ViewTransition so callers can await its `finished`
+   * promise (e.g. to reveal heavy content only once the morph completes), or
+   * `undefined` when the transition was skipped (reduced motion / unsupported).
+   */
+  const withViewTransition = (mutate: () => void): ViewTransition | undefined => {
     const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
     if (prefersReducedMotion || !document.startViewTransition) {
       mutate();
-      return;
+      return undefined;
     }
 
-    document.startViewTransition(async () => {
+    return document.startViewTransition(async () => {
       mutate();
       // Vue flushes DOM updates asynchronously; the browser must capture the
       // "new" snapshot only after the mutation has rendered.
