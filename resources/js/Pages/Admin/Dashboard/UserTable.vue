@@ -3,6 +3,7 @@ import { format, parse } from "date-fns";
 import { Menu as VMenu } from "floating-vue";
 import { computed, inject, ref, watchEffect } from "vue";
 import DataTable from "@/Components/DataTable.vue";
+import { numberOfWeeks } from "@/Composables/useAvailabilityActions";
 import QuestionCircle from "@/Components/Icons/QuestionCircle.vue";
 import useToast from "@/Composables/useToast";
 import FilledShiftsIndicator from "@/Pages/Admin/Dashboard/FilledShiftsIndicator.vue";
@@ -51,6 +52,8 @@ const state = useGlobalState();
 const columnFilters = computed(() => state.value["columnFilters"]);
 const enableUserAvailability = inject(EnableUserAvailability);
 const volunteers = ref<App.Data.ExtendedUserData[]>([]);
+
+const shiftDayKey = computed(() => format(props.date, "EEEE").toLowerCase());
 
 const tableHeaders = computed(() => {
   const headers = [
@@ -115,6 +118,11 @@ const tableHeaders = computed(() => {
       sortable: false,
     });
   }
+  headers.push({
+    text: "Last Shift",
+    value: "lastShift",
+    sortable: true,
+  });
   if (columnFilters.value.lastLocation.value) {
     headers.push({
       text: "Last Location",
@@ -129,11 +137,13 @@ const tableHeaders = computed(() => {
       sortable: true,
     });
   }
-  headers.push({
-    text: "Last Shift",
-    value: "lastShift",
-    sortable: true,
-  });
+  if (enableUserAvailability && columnFilters.value.weeksPerMonth.value) {
+    headers.push({
+      text: "Weeks/Month",
+      value: "weeksPerMonth",
+      sortable: true,
+    });
+  }
   if (enableUserAvailability) {
     headers.push({
       text: "Availability",
@@ -171,6 +181,9 @@ const tableRows = computed(() => {
       saturday: (volunteer.filled_saturdays < daysAvailable.saturday ? volunteer.filled_saturdays : daysAvailable.saturday) || 0,
     };
 
+    const numDaysKey = `num_${shiftDayKey.value}s` as keyof App.Data.ExtendedUserData;
+    const weeksPerMonth = (volunteer[numDaysKey] as number | undefined) ?? 0;
+
     return {
       id: volunteer.id,
       name: `${prefix} ${volunteer.name}`,
@@ -179,6 +192,7 @@ const tableRows = computed(() => {
       lastShift: volunteer.last_shift_date ? volunteer.last_shift_date : null,
       lastShiftTime: volunteer.last_shift_start_time ? volunteer.last_shift_start_time : null,
       filledShifts: calcShiftPercentage(daysAlreadyRostered, daysAvailable),
+      weeksPerMonth,
       responsibleBrother: volunteer.responsible_brother,
       appointment: volunteer.appointment,
       servingAs: volunteer.serving_as,
@@ -379,6 +393,11 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
 
       <template #item-lastShift="{ lastShift, lastShiftTime }">
         {{ formatShiftDate(lastShift, lastShiftTime) }}
+      </template>
+
+      <template #item-weeksPerMonth="{ weeksPerMonth }">
+        <span v-if="weeksPerMonth > 0">{{ numberOfWeeks[weeksPerMonth as keyof typeof numberOfWeeks] }}</span>
+        <span v-else class="italic text-gray-500">Not set</span>
       </template>
 
       <template #item-filledShifts="{ daysAlreadyRostered, daysAvailable, filledShifts }">
