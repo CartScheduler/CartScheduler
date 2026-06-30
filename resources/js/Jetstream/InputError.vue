@@ -3,7 +3,7 @@ import { promiseTimeout } from "@vueuse/core";
 import { computed, watch, ref } from "vue";
 
 const { message } = defineProps<{
-  message?: string;
+  message?: string | undefined;
 }>();
 
 const trimmedMessage = computed(() => message?.trim() || undefined);

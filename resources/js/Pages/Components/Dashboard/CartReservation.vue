@@ -18,6 +18,8 @@ import type { ShiftItem as SelectedShift } from "@/Pages/Components/Dashboard/Sh
 const page = usePage();
 const toast = useToast();
 
+const shiftRemoveConfirmMessage = computed(() => page.props.shiftRemoveConfirmMessage);
+
 const user = computed(() => page.props.auth.user);
 const timezone = computed(() => usePage().props.shiftAvailability.timezone);
 
@@ -89,6 +91,31 @@ const toggleReservation = async (locationId: number, shiftId: number, toggleOn: 
     isLoading.value = false;
     reservationWatch.resume();
   }
+};
+
+const showRemoveReservationModal = ref(false);
+const pendingRemoval = ref<{ locationId: number; shiftId: number } | null>(null);
+
+const promptRemoveReservation = (locationId: number, shiftId: number) => {
+  if (!shiftRemoveConfirmMessage.value) {
+    void toggleReservation(locationId, shiftId, false);
+    return;
+  }
+
+  pendingRemoval.value = { locationId, shiftId };
+  showRemoveReservationModal.value = true;
+};
+
+const cancelRemoveReservation = () => {
+  showRemoveReservationModal.value = false;
+  pendingRemoval.value = null;
+};
+
+const confirmRemoveReservation = () => {
+  if (pendingRemoval.value) {
+    void toggleReservation(pendingRemoval.value.locationId, pendingRemoval.value.shiftId, false);
+  }
+  cancelRemoveReservation();
 };
 
 const locationsOnDates = ref<LocationsOnDate[]>([]);
@@ -347,8 +374,8 @@ debouncedWatch(locations, () => {
                       <button v-if="!isRestricted"
                               type="button"
                               class="block"
-                              @click="toggleReservation(location.id, shift.id, false)">
-                        <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
+                              @click="promptRemoveReservation(location.id, shift.id)">
+                        <User status="reserved" v-tooltip="`${volunteer.name}: Tap to remove your reservation from this shift`" />
                       </button>
                       <User status="reserved" v-else />
                     </template>
@@ -396,6 +423,17 @@ debouncedWatch(locations, () => {
       </Accordion>
     </ComponentSpinner>
   </div>
+  <PDialog v-model:visible="showRemoveReservationModal"
+           modal
+           header="Confirmation"
+           pt:root="w-[calc(100vw-2rem)] max-w-lg">
+    <p class="dark:text-gray-100">{{ shiftRemoveConfirmMessage }}</p>
+
+    <template #footer>
+      <PButton label="Cancel" severity="secondary" outlined @click="cancelRemoveReservation" />
+      <PButton label="Remove Reservation" @click="confirmRemoveReservation" />
+    </template>
+  </PDialog>
 </template>
 
 <!--suppress CssUnusedSymbol -->
