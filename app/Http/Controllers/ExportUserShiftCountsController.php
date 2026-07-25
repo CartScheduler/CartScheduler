@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\ExportUserShiftCountData;
 use App\Http\Requests\ExportDateRangeRequest;
-use App\Http\Resources\ExportUserShiftCountResource;
 use App\Http\Responses\ExportResponseFormatter;
 use App\Models\ShiftUser;
 use App\Settings\GeneralSettings;
@@ -19,7 +19,7 @@ class ExportUserShiftCountsController extends Controller
         $startDate = $request->validated('start_date');
         $endDate = $request->validated('end_date');
 
-        $resource = ExportUserShiftCountResource::collection(
+        $rows = ExportUserShiftCountData::collect(
             ShiftUser::query()
                 ->join('users', 'users.id', '=', 'shift_user.user_id')
                 ->whereBetween('shift_user.shift_date', [$startDate, $endDate])
@@ -35,8 +35,7 @@ class ExportUserShiftCountsController extends Controller
         );
 
         return ExportResponseFormatter::download(
-            $request,
-            $resource,
+            $rows,
             $this->filename('shift-counts'),
         );
     }

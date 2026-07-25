@@ -2,19 +2,20 @@
 
 namespace App\Http\Responses;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Resources\MissingValue;
+use Spatie\LaravelData\Data;
+use Spatie\LaravelData\DataCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExportResponseFormatter
 {
+    /**
+     * @param  DataCollection<int, Data>|iterable<Data>  $rows
+     */
     public static function download(
-        Request $request,
-        AnonymousResourceCollection $resource,
+        DataCollection|iterable $rows,
         string $filename,
     ): Response {
-        $rows = self::rowsFromResource($resource, $request);
+        $rows = self::rowsToArrays($rows);
 
         $handle = fopen('php://temp', 'r+');
 
@@ -22,7 +23,7 @@ class ExportResponseFormatter
             fputcsv($handle, array_keys($rows[0]));
 
             foreach ($rows as $row) {
-                fputcsv($handle, self::normalizeRow($row));
+                fputcsv($handle, array_values($row));
             }
         }
 
@@ -39,31 +40,13 @@ class ExportResponseFormatter
     /**
      * @return list<array<string, mixed>>
      */
-    private static function rowsFromResource(
-        AnonymousResourceCollection $resource,
-        Request $request,
-    ): array {
-        $resolved = $resource->toArray($request);
-
-        if (array_is_list($resolved)) {
-            return $resolved;
-        }
-
-        return $resolved['data'] ?? [];
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     * @return list<mixed>
-     */
-    private static function normalizeRow(array $row): array
+    private static function rowsToArrays(DataCollection|iterable $rows): array
     {
-        return array_map(static function (mixed $value): mixed {
-            if ($value instanceof MissingValue) {
-                return null;
-            }
+        $items = $rows instanceof DataCollection ? $rows->items() : $rows;
 
-            return $value;
-        }, $row);
+        return array_values(array_map(
+            static fn (Data $row): array => $row->toArray(),
+            is_array($items) ? $items : iterator_to_array($items),
+        ));
     }
 }

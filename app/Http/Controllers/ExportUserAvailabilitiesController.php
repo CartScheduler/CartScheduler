@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ExportUserAvailabilityResource;
+use App\Data\ExportUserAvailabilityData;
 use App\Http\Responses\ExportResponseFormatter;
 use App\Models\UserAvailability;
 use App\Settings\GeneralSettings;
@@ -16,7 +16,7 @@ class ExportUserAvailabilitiesController extends Controller
 
     public function __invoke(Request $request): Response
     {
-        $resource = ExportUserAvailabilityResource::collection(
+        $rows = ExportUserAvailabilityData::collect(
             UserAvailability::query()
                 ->select('user_availabilities.*')
                 ->join('users', 'users.id', '=', 'user_availabilities.user_id')
@@ -26,8 +26,7 @@ class ExportUserAvailabilitiesController extends Controller
         );
 
         return ExportResponseFormatter::download(
-            $request,
-            $resource,
+            $rows,
             $this->filename('user-availabilities'),
         );
     }

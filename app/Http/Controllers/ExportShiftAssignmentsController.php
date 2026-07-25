@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\ExportShiftAssignmentData;
 use App\Http\Requests\ExportDateRangeRequest;
-use App\Http\Resources\ExportShiftAssignmentResource;
 use App\Http\Responses\ExportResponseFormatter;
 use App\Models\ShiftUser;
 use App\Settings\GeneralSettings;
@@ -19,7 +19,7 @@ class ExportShiftAssignmentsController extends Controller
         $startDate = $request->validated('start_date');
         $endDate = $request->validated('end_date');
 
-        $resource = ExportShiftAssignmentResource::collection(
+        $rows = ExportShiftAssignmentData::collect(
             ShiftUser::query()
                 ->select('shift_user.*')
                 ->join('users', 'users.id', '=', 'shift_user.user_id')
@@ -31,8 +31,7 @@ class ExportShiftAssignmentsController extends Controller
         );
 
         return ExportResponseFormatter::download(
-            $request,
-            $resource,
+            $rows,
             $this->filename('shift-assignments'),
         );
     }

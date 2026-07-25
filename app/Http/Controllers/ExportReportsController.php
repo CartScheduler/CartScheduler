@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\ExportReportData;
 use App\Http\Requests\ExportDateRangeRequest;
-use App\Http\Resources\ExportReportsDataResource;
 use App\Http\Responses\ExportResponseFormatter;
 use App\Models\Report;
 use App\Settings\GeneralSettings;
@@ -19,7 +19,7 @@ class ExportReportsController extends Controller
         $startDate = $request->validated('start_date');
         $endDate = $request->validated('end_date');
 
-        $resource = ExportReportsDataResource::collection(
+        $rows = ExportReportData::collect(
             Report::query()
                 ->with(['tags'])
                 ->whereBetween('shift_date', [$startDate, $endDate])
@@ -29,8 +29,7 @@ class ExportReportsController extends Controller
         );
 
         return ExportResponseFormatter::download(
-            $request,
-            $resource,
+            $rows,
             $this->filename('reports'),
         );
     }
