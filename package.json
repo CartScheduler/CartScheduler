@@ -1,5 +1,6 @@
 {
   "private": true,
+  "name": "CartScheduler",
   "type": "module",
   "scripts": {
     "dev": "vite",
