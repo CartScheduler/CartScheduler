@@ -1,0 +1,22 @@
+{
+    "agents": [
+        "claude_code"
+    ],
+    "cloud": false,
+    "guidelines": true,
+    "herd_mcp": false,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "packages": [
+        "spatie/laravel-ray"
+    ],
+    "sail": true,
+    "skills": [
+        "infer-conventions",
+        "fortify-development",
+        "laravel-best-practices",
+        "inertia-vue-development",
+        "tailwindcss-development",
+        "debugging-output-and-previewing-html-using-ray"
+    ]
+}
