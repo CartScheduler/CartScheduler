@@ -1,5 +1,12 @@
 const SCROLLABLE_OVERFLOW = /^(auto|scroll|overlay)$/;
 
+/**
+ * Marks a scroll container the walk must not touch. The view carousel sets it:
+ * its horizontal scroll position is which view you are looking at, so aligning
+ * a date inside one pane must never be allowed to slide the other pane in.
+ */
+export const SCROLL_ALIGN_BOUNDARY = "data-scroll-align-boundary";
+
 const scrollsHorizontally = (element: HTMLElement, overflowX: string) =>
   SCROLLABLE_OVERFLOW.test(overflowX) && element.scrollWidth > element.clientWidth;
 
@@ -12,8 +19,9 @@ const scrollsVertically = (element: HTMLElement, overflowY: string) =>
  *
  * Deliberately not `Element.scrollIntoView()`: that walks the entire ancestor
  * chain up to and including the viewport, so it scrolls the page itself and
- * pushes the site header out of view. This stops at the body, leaving the page
- * scroll position exactly where the user left it.
+ * pushes the site header out of view. This stops at the body — or sooner, at a
+ * container marked with `SCROLL_ALIGN_BOUNDARY` — leaving the page scroll
+ * position exactly where the user left it.
  */
 export default function alignToScrollContainers(element: HTMLElement): void {
   const { scrollMarginTop, scrollMarginLeft } = getComputedStyle(element);
@@ -22,7 +30,10 @@ export default function alignToScrollContainers(element: HTMLElement): void {
 
   for (
     let container = element.parentElement;
-    container && container !== document.body && container !== document.documentElement;
+    container
+    && container !== document.body
+    && container !== document.documentElement
+    && !container.hasAttribute(SCROLL_ALIGN_BOUNDARY);
     container = container.parentElement
   ) {
     const { overflowX, overflowY } = getComputedStyle(container);

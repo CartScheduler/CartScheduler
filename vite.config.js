@@ -36,6 +36,10 @@ export default defineConfig({
       dts: "./resources/js/types/auto-import-components.d.ts",
       directoryAsNamespace: true,
       resolvers: [
+        // TODO This also auto-registers PrimeVue's `v-tooltip` directive, which is
+        //  why `v-tooltip` resolves without appearing in main.ts. Replace it with a
+        //  better alternative as part of moving off PrimeVue, then drop the
+        //  remaining `v-tooltip` usages (see LocationDetails.vue).
         PrimeVueResolver({ components: { prefix: "P" } }),
         IconsResolver(),
       ],

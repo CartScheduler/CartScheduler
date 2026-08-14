@@ -15,6 +15,8 @@ const props = defineProps<{
   date: Date;
   user: AuthUser;
   userShiftLocations: Set<number>;
+  /** False while this view is parked off-screen in the mobile view carousel. */
+  isActive?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -61,6 +63,7 @@ const cardKey = computed(() => {
                    :marker-dates="markerDates"
                    :locations="locations"
                    :is-restricted="isRestricted"
+                   :is-active="isActive ?? true"
                    @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
         <div v-if="selectedShift && isNotMobile"
              class="overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">

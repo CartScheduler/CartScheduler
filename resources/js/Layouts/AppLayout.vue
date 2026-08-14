@@ -10,7 +10,7 @@ import useViewportShell from "@/Composables/useViewportShell";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys.js"; // TODO AFTER REMOVING FLOATING-VUE, DELETE
 import "@vuepic/vue-datepicker/dist/main.css"; // FIXME AFTER REMOVING VUE-DATEPICKER, DELETE
-import "floating-vue/dist/style.css";
+import "floating-vue/dist/style.css"; // TODO AFTER REMOVING FLOATING-VUE, DELETE — the plugin itself is already gone, only this stylesheet remains
 
 defineProps<{
   fullWidth?: boolean;

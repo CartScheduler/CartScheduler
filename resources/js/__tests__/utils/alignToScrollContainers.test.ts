@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import alignToScrollContainers from "@/Utils/alignToScrollContainers";
+import alignToScrollContainers, { SCROLL_ALIGN_BOUNDARY } from "@/Utils/alignToScrollContainers";
 
 /**
  * jsdom implements no layout, so scroll geometry has to be faked. Each element
@@ -117,6 +117,34 @@ describe("alignToScrollContainers", () => {
     alignToScrollContainers(target);
 
     expect(clipped.scrollLeft).toBe(0);
+  });
+
+  it("stops at a container marked as a boundary, without moving it", () => {
+    // The view carousel: its scrollLeft is which view you are looking at, so
+    // aligning a date inside one pane must not slide the other pane in.
+    const carousel = makeElement("overflow-x: auto", {
+      rect: { left: 0 },
+      scrollWidth: 800,
+      clientWidth: 400,
+    });
+    carousel.setAttribute(SCROLL_ALIGN_BOUNDARY, "");
+
+    const pane = makeElement("overflow-y: auto", {
+      rect: { top: 0 },
+      scrollHeight: 3000,
+      clientHeight: 600,
+    });
+    const target = makeElement("", { rect: { top: 250, left: 500 } });
+
+    pane.append(target);
+    carousel.append(pane);
+    document.body.append(carousel);
+
+    alignToScrollContainers(target);
+
+    // The pane's own scroller still moves; the carousel is left alone.
+    expect(pane.scrollTop).toBe(250);
+    expect(carousel.scrollLeft).toBe(0);
   });
 
   it("never scrolls the document, even when the body reports overflow", () => {

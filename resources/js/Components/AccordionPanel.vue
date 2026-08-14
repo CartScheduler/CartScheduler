@@ -18,6 +18,20 @@ if (!ctx) {
 const open = computed(() => ctx.openedPanel.value === uniqueId);
 const isInitialised = computed(() => ctx.isInitialised);
 
+/**
+ * Panel bodies are built on first expand rather than up front. `v-show` alone
+ * constructed every body at mount — on the dashboard that meant every
+ * location's shift grid, plus a tooltip binding per volunteer slot, for the one
+ * panel the user actually opens. Once built the body stays mounted, so
+ * re-opening is instant and the height transition still has content to measure.
+ */
+const hasBeenOpened = ref(false);
+watch(open, (isOpen) => {
+  if (isOpen) {
+    hasBeenOpened.value = true;
+  }
+}, { immediate: true });
+
 onMounted(() => {
   if (!trigger.value) throw new Error("A fatal error has occurred. Please refresh the page.");
   ctx.registerPanel(uniqueId, trigger.value);
@@ -106,7 +120,8 @@ watch(() => contentTrigger, async (val) => {
            :aria-labelledby="headerId">
         <div ref="panel-content" class="p-2">
           <!-- Nested padding is needed to prevent the panel from jumping when the content is collapsed and then removed -->
-          <slot />
+          <!-- The wrapper always renders so `panel-content` stays a live ref for setHeight() to measure. -->
+          <slot v-if="hasBeenOpened" />
         </div>
       </div>
     </Transition>

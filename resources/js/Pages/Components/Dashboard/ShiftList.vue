@@ -3,7 +3,7 @@ import { usePage } from "@inertiajs/vue3";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { format } from "date-fns";
 import { utcToZonedTime } from "date-fns-tz";
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import getShiftItem from "@/Pages/Components/Dashboard/lib/getShiftItem";
 import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
 import alignToScrollContainers from "@/Utils/alignToScrollContainers";
@@ -11,10 +11,12 @@ import relativeDateToNow from "@/Utils/relativeDateToNow";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
-const { markerDates, locations, isRestricted } = defineProps<{
+const { markerDates, locations, isRestricted, isActive = true } = defineProps<{
   markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
   locations: Location[];
   isRestricted: boolean;
+  /** False while the timeline is parked off-screen in the mobile view carousel. */
+  isActive?: boolean;
 }>();
 
 const selectedShift = defineModel<ShiftItem | undefined>({ required: false });
@@ -88,20 +90,28 @@ watch(isNotMobile, (val) => {
   }
 });
 
-onMounted(() => {
-  // The timeline isn't re-rendered on a calendar→timeline switch, so CSS
-  // `scroll-initial-target` can't re-fire — the selected date has to be aligned
-  // imperatively. Only the timeline's own scrollers move (horizontal on
-  // desktop, the vertical scroller on mobile); the page keeps its scroll
-  // position, so the site header stays put. `scroll-mt`/`scroll-ms` on the date
-  // leave a little breathing room.
+// The timeline isn't re-rendered on a calendar→timeline switch, so CSS
+// `scroll-initial-target` can't re-fire — the selected date has to be aligned
+// imperatively. Only the timeline's own scrollers move (horizontal on desktop,
+// the vertical scroller on mobile); the page keeps its scroll position, so the
+// site header stays put. `scroll-mt`/`scroll-ms` on the date leave a little
+// breathing room.
+//
+// Keyed off `isActive` rather than `onMounted`, because in the carousel this
+// component stays mounted while the user is on the calendar — the date they
+// pick over there has to be aligned when the timeline slides back into view.
+watch(() => isActive, (active) => {
+  if (!active) {
+    return;
+  }
+
   void nextTick(() => {
     const selectedDate = root.value?.querySelector<HTMLElement>(".scroll-target");
     if (selectedDate) {
       alignToScrollContainers(selectedDate);
     }
   });
-});
+}, { immediate: true });
 
 const isShiftSelected = (shift: ShiftItem) => selectedShift.value?.locationId === shift.locationId
   && selectedShift.value?.startTime === shift.startTime

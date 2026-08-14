@@ -186,6 +186,30 @@ describe("ShiftList", () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
+  it("does not align while parked off-screen in the carousel", async () => {
+    alignToScrollContainers.mockClear();
+
+    renderShiftList({ isActive: false });
+    await nextTick();
+    await nextTick();
+
+    expect(alignToScrollContainers).not.toHaveBeenCalled();
+  });
+
+  it("aligns when it slides back into view, picking up a date chosen elsewhere", async () => {
+    const { rerender, container } = renderShiftList({ isActive: false });
+    await nextTick();
+    alignToScrollContainers.mockClear();
+
+    // In the carousel this component is never remounted, so activation — not
+    // mounting — is what has to trigger the alignment.
+    await rerender({ isActive: true });
+    await nextTick();
+    await nextTick();
+
+    expect(alignToScrollContainers).toHaveBeenCalledWith(container.querySelector(".scroll-target"));
+  });
+
   it("lays the timeline out horizontally on sm+ via responsive classes", () => {
     const { container } = renderShiftList();
 

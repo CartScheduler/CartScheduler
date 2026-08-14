@@ -1,0 +1,144 @@
+import { render } from "@testing-library/vue";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
+import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
+
+// Plain object, not a ref: hoisted factories run before the `vue` import.
+const store = vi.hoisted(() => ({ shiftView: "list" as "list" | "calendar" }));
+
+vi.mock("@inertiajs/vue3", () => ({
+  usePage: () => ({
+    props: {
+      auth: { user: { uuid: "u1" } },
+      shiftAvailability: { timezone: "Australia/Melbourne" },
+      isUnrestricted: true,
+    },
+  }),
+}));
+
+vi.mock("@/store", () => ({ useGlobalState: () => ref(store) }));
+
+vi.mock("@/Composables/useLocationFilter", () => ({
+  default: () => ({
+    date: ref(new Date("2025-09-15T12:00:00")),
+    freeShifts: ref(undefined),
+    isLoading: ref(false),
+    loadedDate: ref(new Date("2025-09-15T12:00:00")),
+    locations: ref([]),
+    maxReservationDate: ref(undefined),
+    serverDates: ref(undefined),
+    getShifts: vi.fn(),
+  }),
+}));
+
+vi.mock("@/Pages/Components/Dashboard/composables/useShiftMarkers", () => ({ default: () => ref([]) }));
+
+vi.mock("@/Pages/Components/Dashboard/composables/useRosteredLocations", () => ({
+  default: () => ({
+    selectedShift: ref(undefined),
+    expandedAccordionPanelIndex: ref(undefined),
+    userShiftLocations: ref(new Set<number>()),
+    reservationWatch: vi.fn(),
+  }),
+}));
+
+vi.mock("@/Pages/Components/Dashboard/composables/useReservation", () => ({
+  default: () => ({ toggleReservation: vi.fn() }),
+}));
+
+const stubs = {
+  ShiftTimelineView: {
+    props: ["isActive"],
+    template: "<div data-testid='timeline' :data-active='String(isActive)' />",
+  },
+  ShiftCalendarView: { template: "<div data-testid='calendar' />" },
+};
+
+/** vueuse reads the breakpoint through matchMedia, which jsdom stubs as false. */
+const setViewport = (isDesktop: boolean) => {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: isDesktop,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+};
+
+const renderCartReservation = () => render(CartReservation, { global: { stubs } });
+
+const getTrack = (container: Element) => container.firstElementChild as HTMLElement;
+
+beforeEach(() => {
+  store.shiftView = "list";
+  setViewport(false);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("CartReservation", () => {
+  it("renders both views as snapping panes on mobile", async () => {
+    const { container, findByTestId } = renderCartReservation();
+
+    const track = getTrack(container);
+    expect(track.className).toContain("max-sm:snap-x");
+    expect(track.className).toContain("max-sm:snap-mandatory");
+    expect(track.className).toContain("max-sm:overflow-x-auto");
+    // One axis set to auto makes the other compute to auto, which would hand
+    // vertical scrolling back to the shell.
+    expect(track.className).toContain("max-sm:overflow-y-hidden");
+
+    // The off-screen pane arrives once the browser is idle.
+    await findByTestId("calendar");
+    await findByTestId("timeline");
+
+    // A pane each, both full width so a page is exactly one view.
+    expect(track.children).toHaveLength(2);
+    for (const pane of track.children) {
+      expect(pane.className).toContain("max-sm:w-full");
+      expect(pane.className).toContain("max-sm:snap-center");
+      expect(pane.className).toContain("sm:contents");
+    }
+  });
+
+  it("stops date alignment from sliding the panes", () => {
+    const { container } = renderCartReservation();
+
+    // Without this, mounting the timeline behind the calendar would scroll the
+    // track sideways and silently swipe the user to the other view.
+    expect(getTrack(container).hasAttribute("data-scroll-align-boundary")).toBe(true);
+  });
+
+  it("tells the timeline whether it is the pane on screen", async () => {
+    const onTimeline = renderCartReservation();
+    expect((await onTimeline.findByTestId("timeline")).dataset["active"]).toBe("true");
+    onTimeline.unmount();
+
+    // Parked off-screen it must not realign itself, or it would fight the date
+    // the user is choosing in the pane they can actually see.
+    store.shiftView = "calendar";
+    const onCalendar = renderCartReservation();
+    expect((await onCalendar.findByTestId("timeline")).dataset["active"]).toBe("false");
+  });
+
+  it("renders only the active view on desktop, in the single-cell grid", async () => {
+    setViewport(true);
+
+    const { container, queryByTestId, findByTestId } = renderCartReservation();
+
+    const track = getTrack(container);
+    // classList, not the string: "max-sm:overflow-x-auto" contains the sm: form.
+    expect(track.classList.contains("sm:grid-rows-1")).toBe(true);
+    expect(track.classList.contains("sm:overflow-x-auto")).toBe(false);
+    expect(track.classList.contains("sm:snap-x")).toBe(false);
+
+    await findByTestId("timeline");
+    // No carousel on desktop, so the inactive view is never built.
+    await vi.waitFor(() => expect(queryByTestId("calendar")).toBeNull());
+  });
+});

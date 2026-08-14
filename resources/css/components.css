@@ -83,6 +83,19 @@
         scroll-timeline-axis: y;
     }
 
+    /* For scrollers the user drives by gesture rather than by the bar — the view
+       carousel's page indicator is the view itself, so a scrollbar is noise. */
+    .no-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    /* Not nested under the rule above: a nested pseudo-element does not survive
+       Tailwind rewriting the selector for a variant, and is silently dropped. */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
     .std-border {
         @apply border-neutral-300/75 dark:border-neutral-700/75;
     }
