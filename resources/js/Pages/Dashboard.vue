@@ -32,7 +32,9 @@ const showReportsModal = ref(false);
       </div>
     </div>
   </PageHeader>
-  <div class="flex flex-col sm:rounded-lg py-2 max-w-7xl sm:min-h-full max-sm:flex-1 max-sm:min-h-0">
+  <!-- No top padding: the layout already pads above, and doubling it up put
+    more space over the view-switch button than its own gap leaves below. -->
+  <div class="flex flex-col sm:rounded-lg pb-2 max-w-7xl sm:min-h-full max-sm:flex-1 max-sm:min-h-0">
     <CartReservation/>
   </div>
   <ReportsModal v-model="showReportsModal"

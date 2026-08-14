@@ -98,4 +98,17 @@ describe("ShiftCalendarView", () => {
     // On sm+ the wrapper collapses so its children join the two-column grid.
     expect(scrollRegion.className).toContain("sm:contents");
   });
+
+  it("sits the switch button evenly between the panel edge and the content", () => {
+    const { container } = renderView();
+
+    const root = container.firstElementChild as HTMLElement;
+    // The layout pads 0.5rem above; the row gap has to match it, or the button
+    // ends up hard against the content with a wide margin over it.
+    expect(root.className).toContain("gap-y-2");
+    expect(root.className).not.toContain("gap-3");
+    // The column gap is unchanged, and no longer needs a breakpoint variant.
+    expect(root.className).toContain("gap-x-3");
+    expect(root.className).not.toContain("sm:gap-");
+  });
 });

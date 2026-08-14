@@ -40,8 +40,10 @@ debouncedWatch(() => props.locations, () => {
 </script>
 
 <template>
-  <div class="grid gap-3 grid-cols-1 grid-rows-[auto_1fr] min-h-0
-              sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:gap-x-3 sm:gap-y-2 sm:min-h-full">
+  <!-- `gap-y-2` matches the layout's top padding, so the switch button sits
+    evenly between the panel edge and the content below it. -->
+  <div class="grid gap-x-3 gap-y-2 grid-cols-1 grid-rows-[auto_1fr] min-h-0
+              sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full">
     <PButton size="small"
              class="shadow-sm sm:col-start-1 sm:row-start-1"
              variant="outlined"

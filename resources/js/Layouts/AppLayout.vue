@@ -92,8 +92,11 @@ onMounted(() => {
         <!-- Page Content -->
         <section class="flex-1 w-dvw page-grid"
                  :class="{ 'max-sm:min-h-0 max-sm:grid-rows-[minmax(0,1fr)]': fillsViewport }">
-          <div class="pt-4 sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5"
-               :class="{ 'max-sm:flex max-sm:flex-col max-sm:min-h-0': fillsViewport }">
+          <!-- Viewport-filling pages get a tighter top pad: their first row is
+            usually a control whose own gap sets the rhythm below it, and the
+            default `pt-4` on top of the page's padding reads as lopsided. -->
+          <div class="sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5"
+               :class="fillsViewport ? 'pt-2 max-sm:flex max-sm:flex-col max-sm:min-h-0' : 'pt-4'">
             <slot />
           </div>
         </section>
