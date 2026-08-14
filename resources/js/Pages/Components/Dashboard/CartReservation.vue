@@ -2,14 +2,16 @@
 import { usePage } from "@inertiajs/vue3";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { isSameDay } from "date-fns";
-import { computed, onMounted, useTemplateRef } from "vue";
+import { computed, onMounted, ref, useTemplateRef } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
 import useViewCarousel from "@/Composables/useViewCarousel";
+import useViewSwitchButton from "@/Composables/useViewSwitchButton";
 import useReservation from "@/Pages/Components/Dashboard/composables/useReservation";
 import useRosteredLocations from "@/Pages/Components/Dashboard/composables/useRosteredLocations";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
 import ShiftCalendarView from "@/Pages/Components/Dashboard/ShiftCalendarView.vue";
 import ShiftTimelineView from "@/Pages/Components/Dashboard/ShiftTimelineView.vue";
+import ViewSwitchHint from "@/Pages/Components/Dashboard/ViewSwitchHint.vue";
 import { useGlobalState } from "@/store";
 
 const page = usePage();
@@ -88,6 +90,37 @@ const { isBuilt } = useViewCarousel({
 /** On mobile a view is rendered once built; on desktop only the active one is. */
 const isViewRendered = (view: typeof VIEWS[number]) =>
   isCarousel.value ? isBuilt(view) : shiftView.value === view;
+
+const { isSwitchButtonShown, hasChosen, setSwitchButtonShown } = useViewSwitchButton();
+
+// Desktop has no carousel to swipe, so there the button is the only way across
+// and the stored preference must not be allowed to take it away.
+const showSwitchButton = computed(() => isNotMobile.value || isSwitchButtonShown.value);
+
+/**
+ * Long enough for the dashboard to have settled and the user to have looked at
+ * it, so the hint reads as an offer rather than as part of loading.
+ */
+const HINT_DELAY = 900;
+
+const isHintVisible = ref(false);
+
+onMounted(() => {
+  if (!isCarousel.value || hasChosen.value) {
+    return;
+  }
+
+  setTimeout(() => {
+    // Re-checked on the way in: the user may have crossed to desktop, or
+    // answered from their preferences, while the timer was running.
+    isHintVisible.value = isCarousel.value && !hasChosen.value;
+  }, HINT_DELAY);
+});
+
+const onHintChoice = (keep: boolean) => {
+  setSwitchButtonShown(keep);
+  isHintVisible.value = false;
+};
 </script>
 
 <template>
@@ -119,6 +152,7 @@ const isViewRendered = (view: typeof VIEWS[number]) =>
         <ShiftTimelineView v-if="isViewRendered('list')"
                            v-model="selectedShift"
                            :is-active="shiftView === 'list'"
+                           :show-switch-button="showSwitchButton"
                            :locations="locations"
                            :marker-dates="serverDates"
                            :is-restricted="isRestricted"
@@ -136,6 +170,7 @@ const isViewRendered = (view: typeof VIEWS[number]) =>
         <ShiftCalendarView v-if="isViewRendered('calendar')"
                            v-model:date="date"
                            v-model:expanded-panel="expandedAccordionPanelIndex"
+                           :show-switch-button="showSwitchButton"
                            :shift-markers="shiftMarkers"
                            :locations="locations"
                            :is-loading="isLoading"
@@ -153,8 +188,14 @@ const isViewRendered = (view: typeof VIEWS[number]) =>
     <!--
       Says which of the two views you are on, and that there is exactly one
       other to reach. The dot is small but its button is a full tap target.
+
+      The safe-area padding matters here: the shell is pinned to `h-dvh`, so
+      without it these sit under the home indicator on a notched phone.
     -->
-    <nav class="flex shrink-0 items-center justify-center sm:hidden" aria-label="Dashboard views">
+    <nav class="relative flex shrink-0 items-center justify-center pb-[env(safe-area-inset-bottom)] sm:hidden"
+         aria-label="Dashboard views">
+      <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
+
       <button v-for="view in VIEWS"
               :key="view"
               type="button"
@@ -162,10 +203,12 @@ const isViewRendered = (view: typeof VIEWS[number]) =>
               :aria-label="`Show the ${VIEW_LABELS[view]}`"
               :aria-current="view === shiftView ? 'true' : undefined"
               @click="shiftView = view">
+        <!-- The inactive dot still has to read as a place you can go, so it is
+          only a step down in weight from the active one, not a hint of one. -->
         <span class="size-2 rounded-full transition-colors"
               :class="view === shiftView
-                ? 'bg-neutral-500 dark:bg-neutral-300'
-                : 'bg-neutral-300 dark:bg-neutral-600'" />
+                ? 'bg-neutral-600 dark:bg-neutral-200'
+                : 'bg-neutral-400 dark:bg-neutral-500'" />
       </button>
     </nav>
   </div>

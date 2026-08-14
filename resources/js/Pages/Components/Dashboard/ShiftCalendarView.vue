@@ -8,7 +8,8 @@ import type { Location } from "@/Composables/useLocationFilter";
 import type { AuthUser } from "@/types/laravel-request-helpers";
 import type { DateMark } from "@/types/types";
 
-const props = defineProps<{
+// Destructured for the default: Vue casts an absent Boolean prop to `false`.
+const { locations, showSwitchButton = true } = defineProps<{
   shiftMarkers: DateMark[];
   locations: Location[];
   isLoading: boolean;
@@ -18,6 +19,8 @@ const props = defineProps<{
   isRestricted: boolean;
   user: AuthUser;
   userShiftLocations: Set<number>;
+  /** False once the user has hidden the switch button and swipes instead. */
+  showSwitchButton?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -28,11 +31,11 @@ const emit = defineEmits<{
 const date = defineModel<Date>("date", { required: true });
 const expandedPanel = defineModel<number | undefined>("expandedPanel");
 
-const hasInitialised = computed(() => props.locations.length > 0);
+const hasInitialised = computed(() => locations.length > 0);
 
 const shiftDate = ref(date.value);
 
-debouncedWatch(() => props.locations, () => {
+debouncedWatch(() => locations, () => {
   shiftDate.value = date.value;
 }, {
   debounce: 500,
@@ -40,11 +43,17 @@ debouncedWatch(() => props.locations, () => {
 </script>
 
 <template>
-  <!-- `gap-y-2` matches the layout's top padding, so the switch button sits
-    evenly between the panel edge and the content below it. -->
-  <div class="grid gap-x-3 gap-y-2 grid-cols-1 grid-rows-[auto_1fr] min-h-0
-              sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full">
-    <PButton size="small"
+  <!--
+    `gap-y-2` matches the layout's top padding, so the switch button sits evenly
+    between the panel edge and the content below it. The button only ever goes
+    on mobile, so hiding it collapses the unprefixed row track and leaves the
+    desktop one alone.
+  -->
+  <div class="grid gap-x-3 gap-y-2 grid-cols-1 min-h-0
+              sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full"
+       :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'max-sm:grid-rows-1'">
+    <PButton v-if="showSwitchButton"
+             size="small"
              class="shadow-sm sm:col-start-1 sm:row-start-1"
              variant="outlined"
              severity="info"

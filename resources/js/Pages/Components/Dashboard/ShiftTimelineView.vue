@@ -6,7 +6,9 @@ import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem as SelectedShift } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 import type { AuthUser } from "@/types/laravel-request-helpers";
 
-const props = defineProps<{
+// Destructured for the defaults: Vue casts an absent Boolean prop to `false`,
+// so `isActive` and `showSwitchButton` would both be off unless declared here.
+const { locations, isActive = true, showSwitchButton = true } = defineProps<{
   locations: Location[];
   markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
   isRestricted: boolean;
@@ -17,6 +19,8 @@ const props = defineProps<{
   userShiftLocations: Set<number>;
   /** False while this view is parked off-screen in the mobile view carousel. */
   isActive?: boolean;
+  /** False once the user has hidden the switch button and swipes instead. */
+  showSwitchButton?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -27,7 +31,7 @@ const emit = defineEmits<{
 const selectedShift = defineModel<SelectedShift | undefined>();
 
 const selectedLocation = computed(
-  () => props.locations.find((location) => location.id === selectedShift.value?.locationId),
+  () => locations.find((location) => location.id === selectedShift.value?.locationId),
 );
 
 /**
@@ -41,8 +45,12 @@ const cardKey = computed(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 min-h-0 sm:h-0 sm:min-h-full">
-    <PButton size="small"
+  <!-- Without the button there is no header row left to size, so the scroller
+    takes the whole grid rather than being pushed down by an empty track. -->
+  <div class="grid grid-cols-1 gap-2 min-h-0 sm:h-0 sm:min-h-full"
+       :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'grid-rows-1'">
+    <PButton v-if="showSwitchButton"
+             size="small"
              class="w-full shadow-sm"
              variant="outlined"
              severity="info"
@@ -63,7 +71,7 @@ const cardKey = computed(() => {
                    :marker-dates="markerDates"
                    :locations="locations"
                    :is-restricted="isRestricted"
-                   :is-active="isActive ?? true"
+                   :is-active="isActive"
                    @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
         <div v-if="selectedShift && isNotMobile"
              class="overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">

@@ -4,7 +4,10 @@ import { ref } from "vue";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
 
 // Plain object, not a ref: hoisted factories run before the `vue` import.
-const store = vi.hoisted(() => ({ shiftView: "list" as "list" | "calendar" }));
+const store = vi.hoisted(() => ({
+  shiftView: "list" as "list" | "calendar",
+  viewSwitchButton: {} as Record<string, "shown" | "hidden">,
+}));
 
 vi.mock("@inertiajs/vue3", () => ({
   usePage: () => ({
@@ -48,10 +51,14 @@ vi.mock("@/Pages/Components/Dashboard/composables/useReservation", () => ({
 
 const stubs = {
   ShiftTimelineView: {
-    props: ["isActive"],
-    template: "<div data-testid='timeline' :data-active='String(isActive)' />",
+    props: ["isActive", "showSwitchButton"],
+    template: "<div data-testid='timeline' :data-active='String(isActive)'"
+      + " :data-switch-button='String(showSwitchButton)' />",
   },
-  ShiftCalendarView: { template: "<div data-testid='calendar' />" },
+  ShiftCalendarView: {
+    props: ["showSwitchButton"],
+    template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)' />",
+  },
 };
 
 /** vueuse reads the breakpoint through matchMedia, which jsdom stubs as false. */
@@ -76,6 +83,8 @@ const getTrack = (container: Element) => container.querySelector("[data-scroll-a
 
 beforeEach(() => {
   store.shiftView = "list";
+  // Answered, so the first-run hint stays out of the way of these tests.
+  store.viewSwitchButton = { u1: "shown" };
   setViewport(false);
 });
 
@@ -148,6 +157,51 @@ describe("CartReservation", () => {
     store.shiftView = "calendar";
     const onCalendar = renderCartReservation();
     expect((await onCalendar.findByTestId("timeline")).dataset["active"]).toBe("false");
+  });
+
+  it("offers to remove the switch button on a first visit", async () => {
+    store.viewSwitchButton = {};
+    const { findByRole, queryByRole } = renderCartReservation();
+
+    // Held back briefly so it reads as an offer rather than as part of loading.
+    expect(queryByRole("dialog")).toBeNull();
+
+    const hint = await findByRole("dialog", {}, { timeout: 2000 });
+    expect(hint.textContent).toContain("Swipe left and right");
+    expect(hint.textContent).toContain("user preferences");
+  });
+
+  it("does not offer again once the user has answered", async () => {
+    store.viewSwitchButton = { u1: "shown" };
+    const { queryByRole, findByTestId } = renderCartReservation();
+
+    await findByTestId("calendar");
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    expect(queryByRole("dialog")).toBeNull();
+  });
+
+  it("takes the button away when the offer is accepted, and remembers it", async () => {
+    store.viewSwitchButton = {};
+    const { findByRole, getByRole, findByTestId } = renderCartReservation();
+    const timeline = await findByTestId("timeline");
+    expect(timeline.dataset["switchButton"]).toBe("true");
+
+    await findByRole("dialog", {}, { timeout: 2000 });
+    getByRole("button", { name: "Hide it" }).click();
+
+    await vi.waitFor(() => expect(timeline.dataset["switchButton"]).toBe("false"));
+    expect(store.viewSwitchButton["u1"]).toBe("hidden");
+  });
+
+  it("keeps the button on desktop whatever the user chose", async () => {
+    store.viewSwitchButton = { u1: "hidden" };
+    setViewport(true);
+
+    const { findByTestId } = renderCartReservation();
+
+    // Desktop has no carousel to swipe, so the button is the only way across.
+    expect((await findByTestId("timeline")).dataset["switchButton"]).toBe("true");
   });
 
   it("renders only the active view on desktop, in the single-cell grid", async () => {
