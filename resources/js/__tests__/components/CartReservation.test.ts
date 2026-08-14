@@ -70,7 +70,9 @@ const setViewport = (isDesktop: boolean) => {
 
 const renderCartReservation = () => render(CartReservation, { global: { stubs } });
 
-const getTrack = (container: Element) => container.firstElementChild as HTMLElement;
+const dotLabel = /Show the/;
+
+const getTrack = (container: Element) => container.querySelector("[data-scroll-align-boundary]") as HTMLElement;
 
 beforeEach(() => {
   store.shiftView = "list";
@@ -97,6 +99,10 @@ describe("CartReservation", () => {
     await findByTestId("calendar");
     await findByTestId("timeline");
 
+    // Twice the shell's px-4 page margin, so mid-swipe each pane keeps the
+    // margin down its own side rather than the two panels butting together.
+    expect(track.classList.contains("max-sm:gap-8")).toBe(true);
+
     // A pane each, both full width so a page is exactly one view.
     expect(track.children).toHaveLength(2);
     for (const pane of track.children) {
@@ -111,7 +117,25 @@ describe("CartReservation", () => {
 
     // Without this, mounting the timeline behind the calendar would scroll the
     // track sideways and silently swipe the user to the other view.
-    expect(getTrack(container).hasAttribute("data-scroll-align-boundary")).toBe(true);
+    expect(getTrack(container)).not.toBeNull();
+  });
+
+  it("indicates which of the two views is on screen, and switches on tap", async () => {
+    const { getAllByRole, findByTestId } = renderCartReservation();
+    await findByTestId("calendar");
+
+    const dots = getAllByRole("button", { name: dotLabel });
+    expect(dots.map((dot) => dot.getAttribute("aria-label"))).toEqual([
+      "Show the timeline view",
+      "Show the calendar view",
+    ]);
+    expect(dots[0]?.getAttribute("aria-current")).toBe("true");
+    expect(dots[1]?.getAttribute("aria-current")).toBeNull();
+
+    // The dots are the affordance once the switch button can be turned off.
+    dots[1]?.click();
+    await vi.waitFor(() => expect(dots[1]?.getAttribute("aria-current")).toBe("true"));
+    expect(dots[0]?.getAttribute("aria-current")).toBeNull();
   });
 
   it("tells the timeline whether it is the pane on screen", async () => {

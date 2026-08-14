@@ -7,6 +7,9 @@ const VIEWS = ["list", "calendar"] as const;
 type View = typeof VIEWS[number];
 
 const PANE_WIDTH = 400;
+/** Gutter between panes, so the maths cannot quietly assume they are flush. */
+const GAP = 32;
+const STRIDE = PANE_WIDTH + GAP;
 /** Comfortably past the composable's settle debounce. */
 const SETTLED = 200;
 
@@ -19,9 +22,11 @@ type Harness = {
 };
 
 /**
- * Mounts the composable against a real element. jsdom does no layout, so the
- * pane width and the scroll position are supplied by hand, and `scrollTo` is
- * recorded rather than performed.
+ * Mounts the composable against a real track holding one pane per view.
+ *
+ * jsdom does no layout, so the geometry is simulated: the track sits at x=0 and
+ * each pane's rect is derived from the current scroll offset, exactly as a real
+ * scroller would report it. `scrollTo` records the call and moves the offset.
  */
 const mountCarousel = (initial: View = "list", enabled = true): Harness => {
   const active = ref<View>(initial);
@@ -30,30 +35,49 @@ const mountCarousel = (initial: View = "list", enabled = true): Harness => {
   const scrollTo = vi.fn();
   let isBuilt: (view: View) => boolean = () => false;
 
+  const layOut = (element: HTMLElement) => {
+    element.scrollLeft = 0;
+    element.getBoundingClientRect = () => ({ left: 0, width: PANE_WIDTH }) as DOMRect;
+
+    [...element.children].forEach((child, index) => {
+      child.getBoundingClientRect = () => ({
+        left: index * STRIDE - element.scrollLeft,
+        width: PANE_WIDTH,
+      }) as DOMRect;
+    });
+
+    scrollTo.mockImplementation((options: ScrollToOptions) => {
+      element.scrollLeft = options.left ?? element.scrollLeft;
+    });
+    element.scrollTo = scrollTo;
+  };
+
   const { unmount } = render(defineComponent({
     setup() {
       const carousel = useViewCarousel({ views: VIEWS, active, track, isEnabled });
       isBuilt = carousel.isBuilt;
-      return () => h("div", {
-        ref: (el) => {
-          const element = el as HTMLElement | null;
-          if (element && !track.value) {
-            Object.defineProperty(element, "clientWidth", { value: PANE_WIDTH, configurable: true });
-            element.scrollTo = scrollTo;
-            element.scrollLeft = 0;
-          }
-          track.value = element;
+      return () => h(
+        "div",
+        {
+          ref: (el) => {
+            const element = el as HTMLElement | null;
+            if (element && !track.value) {
+              layOut(element);
+            }
+            track.value = element;
+          },
         },
-      });
+        VIEWS.map((view) => h("div", { key: view })),
+      );
     },
   }));
 
   return { active, track: track.value as HTMLElement, isBuilt: (v) => isBuilt(v), scrollTo, unmount };
 };
 
-/** Scrolls the track and lets the settle debounce elapse. */
+/** Scrolls the track to a pane and lets the settle debounce elapse. */
 const swipeTo = async (harness: Harness, index: number) => {
-  harness.track.scrollLeft = index * PANE_WIDTH;
+  harness.track.scrollLeft = index * STRIDE;
   harness.track.dispatchEvent(new Event("scroll"));
   await vi.advanceTimersByTimeAsync(SETTLED);
 };
@@ -108,7 +132,7 @@ describe("useViewCarousel", () => {
     const carousel = mountCarousel("calendar");
 
     // Index 1, and without animating — this is the starting position, not a move.
-    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: PANE_WIDTH, behavior: "auto" });
+    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: STRIDE, behavior: "auto" });
 
     carousel.unmount();
   });
@@ -126,7 +150,7 @@ describe("useViewCarousel", () => {
   it("rounds a part-way scroll to the nearest pane", async () => {
     const carousel = mountCarousel("list");
 
-    carousel.track.scrollLeft = PANE_WIDTH * 0.4;
+    carousel.track.scrollLeft = STRIDE * 0.4;
     carousel.track.dispatchEvent(new Event("scroll"));
     await vi.advanceTimersByTimeAsync(SETTLED);
 
@@ -138,7 +162,7 @@ describe("useViewCarousel", () => {
   it("waits for the track to stop before settling", async () => {
     const carousel = mountCarousel("list");
 
-    carousel.track.scrollLeft = PANE_WIDTH;
+    carousel.track.scrollLeft = STRIDE;
     carousel.track.dispatchEvent(new Event("scroll"));
     await vi.advanceTimersByTimeAsync(50);
 
@@ -159,7 +183,7 @@ describe("useViewCarousel", () => {
     await nextTick();
 
     // Animated, because this one is a move the user should see.
-    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: PANE_WIDTH, behavior: "smooth" });
+    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: STRIDE, behavior: "smooth" });
 
     carousel.unmount();
   });
@@ -173,7 +197,7 @@ describe("useViewCarousel", () => {
     await nextTick();
 
     // scrollTo ignores the motion preference, unlike CSS scroll-behavior.
-    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: PANE_WIDTH, behavior: "auto" });
+    expect(carousel.scrollTo).toHaveBeenCalledWith({ left: STRIDE, behavior: "auto" });
 
     carousel.unmount();
   });
@@ -188,7 +212,7 @@ describe("useViewCarousel", () => {
     // The watcher fires, but targets the position the user already scrolled to,
     // so the track never fights the gesture.
     const calls = carousel.scrollTo.mock.calls.map(([options]) => options.left);
-    expect(new Set(calls)).toEqual(new Set([PANE_WIDTH]));
+    expect(new Set(calls)).toEqual(new Set([STRIDE]));
 
     carousel.unmount();
   });

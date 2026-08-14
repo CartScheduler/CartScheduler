@@ -62,14 +62,28 @@ export default function useViewCarousel<T extends string>({ views, active, track
   // does, so animated moves have to be dropped by hand.
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
+  /** The pane element backing a view. Panes are the track's direct children. */
+  const paneFor = (view: T) => track.value?.children[views.indexOf(view)] as HTMLElement | undefined;
+
+  /**
+   * How far a pane's leading edge currently sits from the scrollport's.
+   *
+   * Measured rather than derived from `index * clientWidth`, so that whatever
+   * the panes are spaced by — the gutter between them, padding on the track —
+   * is accounted for without this having to know about it.
+   */
+  const paneOffset = (pane: HTMLElement, element: HTMLElement) =>
+    pane.getBoundingClientRect().left - element.getBoundingClientRect().left;
+
   const scrollToActive = (behavior: ScrollBehavior) => {
     const element = track.value;
-    if (!element || !isEnabled.value) {
+    const pane = paneFor(active.value);
+    if (!element || !pane || !isEnabled.value) {
       return;
     }
 
     element.scrollTo({
-      left: views.indexOf(active.value) * element.clientWidth,
+      left: element.scrollLeft + paneOffset(pane, element),
       behavior: prefersReducedMotion.value ? "auto" : behavior,
     });
   };
@@ -77,13 +91,28 @@ export default function useViewCarousel<T extends string>({ views, active, track
   /** Whichever pane the track came to rest nearest becomes the active view. */
   const settleActiveView = useDebounceFn(() => {
     const element = track.value;
-    if (!element || !isEnabled.value || !element.clientWidth) {
+    if (!element || !isEnabled.value) {
       return;
     }
 
-    const view = views[Math.round(element.scrollLeft / element.clientWidth)];
-    if (view) {
-      active.value = view;
+    let nearest: T | undefined;
+    let shortest = Number.POSITIVE_INFINITY;
+
+    for (const view of views) {
+      const pane = paneFor(view);
+      if (!pane) {
+        continue;
+      }
+
+      const distance = Math.abs(paneOffset(pane, element));
+      if (distance < shortest) {
+        shortest = distance;
+        nearest = view;
+      }
+    }
+
+    if (nearest) {
+      active.value = nearest;
     }
   }, SETTLE_DELAY);
 
