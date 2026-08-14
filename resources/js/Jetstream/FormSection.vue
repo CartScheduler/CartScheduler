@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { computed, useSlots } from "vue";
+import { computed, inject, useSlots } from "vue";
+import { SectionTitleProvidedByParent } from "@/Utils/provide-inject-keys";
 import JetSectionTitle from "./SectionTitle.vue";
 
 defineEmits(["submitted"]);
 
 const hasActions = computed(() => !!useSlots().actions);
+
+/** True where the surrounding page already names this section, e.g. a panel header. */
+const isTitledByParent = inject(SectionTitleProvidedByParent, false);
 </script>
 
 <template>
-  <div class="md:grid md:grid-cols-3 md:gap-4">
-    <JetSectionTitle>
+  <div :class="isTitledByParent ? '' : 'md:grid md:grid-cols-3 md:gap-4'">
+    <JetSectionTitle v-if="!isTitledByParent">
       <template #title>
         <slot name="title" />
       </template>
@@ -19,7 +23,7 @@ const hasActions = computed(() => !!useSlots().actions);
       </template>
     </JetSectionTitle>
 
-    <div class="mt-5 md:mt-0 md:col-span-2">
+    <div :class="isTitledByParent ? '' : 'mt-5 md:mt-0 md:col-span-2'">
       <form @submit.prevent="$emit('submitted')">
         <div class="px-4 py-5 bg-panel dark:bg-panel-dark sm:p-6 sm:rounded-bl-md sm:rounded-br-md"
              :class="hasActions ? 'sm:rounded-tl-md sm:rounded-tr-md' : 'sm:rounded-md'">

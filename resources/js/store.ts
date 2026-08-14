@@ -22,6 +22,16 @@ export type LocalStore = {
     mobilePhone: { label: Labels.MobilePhone; value: boolean };
   };
   shiftView: "list" | "calendar";
+  /**
+   * Whether the dashboard's view switch button is shown, keyed by user uuid.
+   *
+   * Keyed rather than a single flag because localStorage belongs to the browser,
+   * not the account: on a shared device one user would otherwise inherit
+   * another's choice. A user with no entry has not been asked yet, which is what
+   * brings up the hint — so absent, "shown" and "hidden" are three distinct
+   * states, not two.
+   */
+  viewSwitchButton: Record<string, "shown" | "hidden">;
 };
 
 const defaults: LocalStore = {
@@ -37,6 +47,7 @@ const defaults: LocalStore = {
     mobilePhone: { label: Labels.MobilePhone, value: false },
   },
   shiftView: "calendar",
+  viewSwitchButton: {},
 };
 
 export const useGlobalState = createGlobalState(

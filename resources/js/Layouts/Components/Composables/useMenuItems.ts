@@ -81,7 +81,8 @@ export default () => {
   const userNavMenuItems = computed(() => {
     if (!page.props.auth || !page.props.auth.user) return [];
     const items: MenuItem[] = [
-      { label: "Profile", icon: "iconify mdi--user", routeName: "profile.show", href: route("profile.show") },
+      // Route name stays `profile.show`; only what the user sees is renamed.
+      { label: "Preferences", icon: "iconify mdi--user", routeName: "profile.show", href: route("profile.show") },
     ];
     if (page.props.enableUserAvailability) {
       items.push({

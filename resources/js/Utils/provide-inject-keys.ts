@@ -13,3 +13,13 @@ export const EnableUserAvailability: InjectionKey<boolean> = Symbol();
 export const ReportTags: InjectionKey<Ref<App.Data.ReportTagData[]>> = Symbol();
 export const AccordionContext: InjectionKey<AccordionContext<unknown>> = Symbol();
 export const HtmlEditor: InjectionKey<ShallowRef<Editor | undefined>> = Symbol();
+
+/**
+ * Suppresses the heading a Jetstream form or action section draws beside itself.
+ *
+ * Set by pages that already label each section, such as the preferences
+ * accordion — the panel header names the section, so the section repeating that
+ * name inside itself reads as a duplicate. Provided rather than passed as a
+ * prop so the section partials in between need no changes.
+ */
+export const SectionTitleProvidedByParent: InjectionKey<boolean> = Symbol();
