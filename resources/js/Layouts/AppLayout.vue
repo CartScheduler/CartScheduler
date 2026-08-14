@@ -6,6 +6,7 @@ import { computed, onMounted, provide, ref, watch } from "vue";
 import ObtrusiveNotification from "@/Components/ObtrusiveNotification.vue";
 import useCurrentPageInfo from "@/Composables/useCurrentPageInfo";
 import { useDarkMode } from "@/Composables/useDarkMode.js";
+import useViewportShell from "@/Composables/useViewportShell";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys.js"; // TODO AFTER REMOVING FLOATING-VUE, DELETE
 import "@vuepic/vue-datepicker/dist/main.css"; // FIXME AFTER REMOVING VUE-DATEPICKER, DELETE
@@ -32,6 +33,7 @@ onMounted(() => {
 });
 
 const { isDarkMode } = useDarkMode();
+const { fillsViewport } = useViewportShell();
 
 provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
 
@@ -60,7 +62,15 @@ onMounted(() => {
 
 <template>
   <div class="text-neutral-900 dark:text-neutral-100 bg-gradient-to-b from-page  to-neutral-50 dark:bg-page-dark dark:bg-gradient-to-b dark:from-page-dark dark:to-neutral-950">
-    <div class="flex flex-col content-start min-h-dvh w-dvw max-w-full-dvw justify-stretch">
+    <!--
+      `fillsViewport` pages pin the shell to the device height on mobile, so
+      overflow lands in a scroll container inside the page instead of moving
+      the whole layout. Every wrapper down to the page slot needs `min-h-0`,
+      or the default `min-height: auto` on flex/grid items lets content push
+      the shell taller than the viewport again.
+    -->
+    <div class="flex flex-col content-start w-dvw max-w-full-dvw justify-stretch"
+         :class="fillsViewport ? 'max-sm:h-dvh max-sm:overflow-hidden sm:min-h-dvh' : 'min-h-dvh'">
       <Nav class="border-b page-grid border-neutral-300 dark:border-neutral-700/85"
            @toggle-dark-mode="isDarkMode = $event" />
 
@@ -72,15 +82,18 @@ onMounted(() => {
         <slot name="header" />
       </header>
 
-      <main class="flex-1 flex sm:flex-col">
+      <main class="flex-1 flex sm:flex-col"
+            :class="{ 'max-sm:min-h-0': fillsViewport }">
         <!-- Page Top -->
         <section v-if="$slots['page-top']" class="page-grid text-neutral-900 dark:text-neutral-100">
           <slot name="page-top" />
         </section>
 
         <!-- Page Content -->
-        <section class="flex-1 w-dvw page-grid">
-          <div class="pt-4 sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5">
+        <section class="flex-1 w-dvw page-grid"
+                 :class="{ 'max-sm:min-h-0 max-sm:grid-rows-[minmax(0,1fr)]': fillsViewport }">
+          <div class="pt-4 sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5"
+               :class="{ 'max-sm:flex max-sm:flex-col max-sm:min-h-0': fillsViewport }">
             <slot />
           </div>
         </section>

@@ -66,7 +66,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex-1 grid gap-3 grid-cols-1 sm:grid-rows-1 sm:min-h-full">
+  <!-- `grid-rows-1` is minmax(0, 1fr): the active view gets exactly the
+    available height rather than being sized by its own content. -->
+  <div class="flex-1 grid gap-3 grid-cols-1 grid-rows-1 min-h-0 sm:min-h-full">
     <ShiftTimelineView v-if="shiftView === 'list'"
                        key="list"
                        v-model="selectedShift"

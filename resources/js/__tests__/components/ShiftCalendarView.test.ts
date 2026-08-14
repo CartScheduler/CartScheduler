@@ -80,4 +80,22 @@ describe("ShiftCalendarView", () => {
 
     expect(emitted("toggleReservation")).toEqual([[7, 5, true]]);
   });
+
+  it("scrolls the picker and locations together beneath a pinned switch button", () => {
+    const { container } = renderView();
+
+    const root = container.firstElementChild as HTMLElement;
+    // The button is its own grid row, so it stays put while the rest scrolls.
+    expect(root.firstElementChild?.textContent).toContain("Switch to Timeline view");
+
+    const scrollRegion = root.children[1] as HTMLElement;
+    expect(scrollRegion.className).toContain("max-sm:overflow-y-auto");
+    expect(scrollRegion.className).toContain("max-sm:min-h-0");
+    // Both the picker and the locations live inside that one region.
+    expect(scrollRegion.querySelector("[data-testid='date-picker']")).not.toBeNull();
+    expect(scrollRegion.querySelector("[data-testid='panel']")).not.toBeNull();
+
+    // On sm+ the wrapper collapses so its children join the two-column grid.
+    expect(scrollRegion.className).toContain("sm:contents");
+  });
 });

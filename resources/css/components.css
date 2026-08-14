@@ -1,18 +1,16 @@
 @layer components {
     .scroll-gradient {
-        @apply after:absolute after:h-24 after:z-10 after:bottom-0 after:left-0 after:right-0;
-        @apply after:pointer-events-none after:border after:border-transparent after:rounded-b after:bg-no-repeat;
-        @apply after:bg-gradient-to-t after:from-white after:dark:from-sub-panel-dark after:to-transparent;
+        @apply after:dark:from-sub-panel-dark after:pointer-events-none after:absolute after:right-0 after:bottom-0;
+        @apply after:left-0 after:z-10 after:h-24 after:rounded-b after:border after:border-transparent;
+        @apply after:bg-gradient-to-t after:from-white after:to-transparent after:bg-no-repeat;
     }
 
     .scroll-gradient-x {
-        @apply before:absolute before:inset-y-0 before:left-0 before:w-16 before:z-20 before:opacity-0;
-        @apply before:pointer-events-none before:rounded-s before:bg-no-repeat;
-        @apply before:bg-gradient-to-r before:from-white before:dark:from-sub-panel-dark before:to-transparent;
-
-        @apply after:absolute after:inset-y-0 after:right-0 after:w-16 after:z-10 after:opacity-0;
-        @apply after:pointer-events-none after:rounded-e after:bg-no-repeat;
-        @apply after:bg-gradient-to-l after:from-white after:dark:from-sub-panel-dark after:to-transparent;
+        @apply before:dark:from-sub-panel-dark after:dark:from-sub-panel-dark before:pointer-events-none before:absolute;
+        @apply before:inset-y-0 before:left-0 before:z-40 before:w-16 before:rounded-s before:bg-gradient-to-r;
+        @apply before:from-white before:to-transparent before:bg-no-repeat before:opacity-0 after:pointer-events-none;
+        @apply after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-16 after:rounded-e after:bg-gradient-to-l;
+        @apply after:from-white after:to-transparent after:bg-no-repeat after:opacity-0;
 
         /* Progressive enhancement: base opacity-0 means unsupporting browsers and
            no-overflow states (inactive timeline) show nothing. Left fade appears
@@ -20,13 +18,45 @@
         @supports (animation-timeline: scroll()) {
             &::before {
                 animation: scroll-edge-fade-in linear both;
-                animation-timeline: --shift-x;
+                animation-timeline: --scroll-edge-x;
                 animation-range: 0 4rem;
             }
 
             &::after {
                 animation: scroll-edge-fade-out linear both;
-                animation-timeline: --shift-x;
+                animation-timeline: --scroll-edge-x;
+                animation-range: calc(100% - 4rem) 100%;
+            }
+        }
+    }
+
+    /* Vertical counterpart of .scroll-gradient-x. Top fade appears over the
+       first 4rem of scroll; bottom fade disappears over the last 4rem. Same
+       progressive-enhancement gating: the base opacity-0 means unsupporting
+       browsers, and any layout where the scroller doesn't overflow (leaving
+       --scroll-edge-y inactive), show nothing.
+
+       Each host pairs .scroll-edge-scope-y with one .scroll-edge-source-y in
+       its own subtree, so several can coexist — the mobile timeline and an
+       open dialog resolve the name independently. The fade colours match both
+       the timeline panel and the dialog surface (white / neutral-900). */
+    .scroll-gradient-y {
+        @apply before:dark:from-sub-panel-dark after:dark:from-sub-panel-dark before:pointer-events-none before:absolute;
+        @apply before:inset-x-0 before:top-0 before:z-40 before:h-16 before:rounded-t before:bg-gradient-to-b;
+        @apply before:from-white before:to-transparent before:bg-no-repeat before:opacity-0 after:pointer-events-none;
+        @apply after:absolute after:inset-x-0 after:bottom-0 after:z-40 after:h-16 after:rounded-b after:bg-gradient-to-t;
+        @apply after:from-white after:to-transparent after:bg-no-repeat after:opacity-0;
+
+        @supports (animation-timeline: scroll()) {
+            &::before {
+                animation: scroll-edge-fade-in linear both;
+                animation-timeline: --scroll-edge-y;
+                animation-range: 0 4rem;
+            }
+
+            &::after {
+                animation: scroll-edge-fade-out linear both;
+                animation-timeline: --scroll-edge-y;
                 animation-range: calc(100% - 4rem) 100%;
             }
         }
@@ -35,13 +65,22 @@
     /* Lifts the scroller's named timeline so ancestor-hosted overlays can bind
        to it (covers the declaring element and its subtree). */
     .scroll-edge-scope {
-        timeline-scope: --shift-x;
+        timeline-scope: --scroll-edge-x;
+    }
+
+    .scroll-edge-scope-y {
+        timeline-scope: --scroll-edge-y;
     }
 
     /* Declared by the scroll container the gradients react to. */
     .scroll-edge-source {
-        scroll-timeline-name: --shift-x;
+        scroll-timeline-name: --scroll-edge-x;
         scroll-timeline-axis: x;
+    }
+
+    .scroll-edge-source-y {
+        scroll-timeline-name: --scroll-edge-y;
+        scroll-timeline-axis: y;
     }
 
     .std-border {
@@ -63,7 +102,7 @@
     }
 
     .card {
-        @apply border std-border p-4 rounded text-neutral-600 dark:text-neutral-300;
+        @apply std-border rounded border p-4 text-neutral-600 dark:text-neutral-300;
 
         a&, &.action {
             @apply

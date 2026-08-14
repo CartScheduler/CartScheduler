@@ -14,6 +14,8 @@ export default defineConfig({
     },
     setupFiles: [
       'vitest-localstorage-mock',
+      './resources/js/__tests__/utils/nativeDialogShim.ts',
+      './resources/js/__tests__/utils/pointerEventShim.ts',
     ],
     coverage: {
       reportsDirectory: "./resources/js/__coverage__",

@@ -49,6 +49,39 @@ describe("ShiftTimelineView", () => {
     expect(emitted("switchView")).toHaveLength(1);
   });
 
+  it("takes its height from the shell and keeps the switch button out of the scroller", () => {
+    const { container } = renderView();
+
+    const root = container.firstElementChild as HTMLElement;
+    // No hardcoded viewport maths: `min-h-0` lets the row shrink so the
+    // scroller absorbs the overflow instead of the page.
+    expect(root.className).toContain("min-h-0");
+    expect(root.className).not.toContain("max-h-[calc");
+    expect(root.className).not.toContain("overflow-y-auto");
+
+    // The button is a direct child of the root, above the scrolling area, so
+    // it stays visible without `sticky` and never sits under the top fade.
+    const switchButton = root.firstElementChild as HTMLElement;
+    expect(switchButton.textContent).toContain("Switch to Calendar view");
+  });
+
+  it("hosts the vertical edge gradients on a wrapper outside the scroller", () => {
+    const { container } = renderView();
+
+    // Non-scrolling host: lifts the scroller's timeline into scope and owns the
+    // gradient pseudo-elements.
+    const gradientHost = container.querySelector(".scroll-gradient-y");
+    expect(gradientHost).not.toBeNull();
+    expect(gradientHost?.classList.contains("scroll-edge-scope-y")).toBe(true);
+    expect(gradientHost?.classList.contains("relative")).toBe(true);
+
+    // The scroller declares the timeline and holds the shift list.
+    const scroller = gradientHost?.querySelector(".scroll-edge-source-y");
+    expect(scroller).not.toBeNull();
+    expect(scroller?.className).toContain("max-sm:overflow-y-auto");
+    expect(scroller?.querySelector("[data-testid='shift-list']")).not.toBeNull();
+  });
+
   it("shows the loading spinner while the shift data is unresolved", () => {
     renderView({ isShiftDataResolved: false });
 

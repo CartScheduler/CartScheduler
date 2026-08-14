@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { usePage } from "@inertiajs/vue3";
-import { computed, nextTick, useTemplateRef, watch } from "vue";
+import { computed } from "vue";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
-const { show } = defineProps<{
+const { show, shift } = defineProps<{
   show: boolean;
   shift: ShiftItem | undefined;
   location: Location | undefined;
@@ -13,74 +13,48 @@ const { show } = defineProps<{
   date: Date;
 }>();
 
-const page = usePage();
-const user = computed(() => page.props.auth.user);
-
-const locationsRef = useTemplateRef<HTMLElement>("locations");
-
-defineEmits<{
+const emit = defineEmits<{
   close: [];
   toggleReservation: [locationId: number, shiftId: number, toggleOn: boolean];
 }>();
 
-watch(() => show, (isShown) => {
-  if (isShown) {
-    // Route focus to the locations after the view transition.
-    void nextTick(() => locationsRef.value?.focus());
-  }
-}, { immediate: true });
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+
+/**
+ * Bridges the parent's `show`/`close` pair onto the dialog's two-way `visible`,
+ * so Escape and the backdrop close it through the same path as the buttons.
+ */
+const isVisible = computed({
+  get: () => show && !!shift,
+  set: (value) => {
+    if (!value) {
+      emit("close");
+    }
+  },
+});
 </script>
 
 <template>
-  <Teleport to="body">
-    <div v-if="show && shift && location"
-         class="shift-detail-modal shift-detail-morph text-gray-800 dark:text-gray-200 fixed inset-0 z-50 bg-page dark:bg-page-dark">
-      <div class="grid grid-rows-[auto_1fr_auto] gap-3 p-3 h-full max-h-full">
-        <header class="flex flex-0 items-center text-base font-bold px-4 py-2 rounded shrink-0 bg-white dark:bg-sub-panel-dark border std-border">
-          <h3 tabindex="-1" class="shift-detail-title outline-none">{{ shift.location }}</h3>
-          <button type="button"
-                  class="ms-auto flex items-center"
-                  aria-label="Close"
-                  @click="$emit('close')">
-            <span class="iconify mdi--close text-xl" />
-          </button>
-        </header>
+  <Dialog v-model:visible="isVisible"
+          dismissable-mask
+          position="bottom">
+    <template #header>
+      <h3 class="text-xl font-semibold">{{ shift?.location }}</h3>
+    </template>
 
-        <div ref="locations"
-             class="flex-1 min-h-0 overflow-y-auto rounded p-4 bg-white dark:bg-sub-panel-dark border std-border overscroll-contain">
-          <LocationDetails v-if="location"
-                           :location="location"
-                           :is-restricted="isRestricted"
-                           :date="date"
-                           :user="user"
-                           @toggle-reservation="(locationId, shiftId, toggleOn) => $emit('toggleReservation', locationId, shiftId, toggleOn)" />
-          <div v-else class="p-4 text-neutral-500 dark:text-neutral-300">
-            Location details unavailable for this date.
-          </div>
-        </div>
-
-        <footer class="shrink-0 p-3">
-          <CloseButton class="w-full border border-info-light" @click="$emit('close')"/>
-        </footer>
-      </div>
+    <LocationDetails v-if="location"
+                     :location="location"
+                     :is-restricted="isRestricted"
+                     :date="date"
+                     :user="user"
+                     @toggle-reservation="(locationId, shiftId, toggleOn) => emit('toggleReservation', locationId, shiftId, toggleOn)" />
+    <div v-else class="text-neutral-500 dark:text-neutral-300">
+      Location details unavailable for this date.
     </div>
-  </Teleport>
+
+    <template #footer>
+      <CloseButton class="border border-info-light" @click="emit('close')" />
+    </template>
+  </Dialog>
 </template>
-
-<style scoped>
-.shift-detail-morph {
-    view-transition-name: shift-detail;
-}
-
-.shift-detail-title {
-    view-transition-name: shift-detail-title;
-    width: fit-content;
-}
-</style>
-
-<style>
-/*noinspection CssUnusedSymbol*/
-body:has(.shift-detail-modal) {
-    overflow: hidden;
-}
-</style>

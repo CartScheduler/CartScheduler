@@ -39,36 +39,47 @@ const cardKey = computed(() => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 grid-rows-[auto_auto_1fr] gap-2 sm:h-0 sm:min-h-full">
+  <div class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 min-h-0 sm:h-0 sm:min-h-full">
     <PButton size="small"
-             class="shadow-sm"
+             class="w-full shadow-sm"
              variant="outlined"
              severity="info"
              @click="emit('switchView')">
       <span class="iconify mdi--calendar-month-outline" />
       Switch to Calendar view
     </PButton>
-    <ShiftList v-model="selectedShift"
-               :marker-dates="markerDates"
-               :locations="locations"
-               :is-restricted="isRestricted"
-               @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
-    <div v-if="selectedShift && isNotMobile"
-         class="hidden sm:block overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
-      <FadeTransition mode="out-in">
-        <ComponentSpinner v-if="!isShiftDataResolved" key="loading" class="h-full" />
-        <LocationPanel v-else-if="selectedLocation"
-                       :key="cardKey"
-                       :location="selectedLocation"
-                       :is-rostered="userShiftLocations.has(selectedLocation.id)"
-                       :is-restricted="isRestricted"
-                       :date="date"
-                       :user="user"
-                       @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
-        <div v-else key="fallback" class="p-4 text-neutral-500 dark:text-neutral-300">
-          Location details unavailable for this date.
+
+    <!--
+      The switch button sits outside the scroller so it stays put without
+      `sticky`, which leaves this wrapper free to host the edge fades: it hugs
+      the scroll viewport but never scrolls itself, so the gradients stay
+      pinned to the top and bottom edges while the list moves underneath.
+    -->
+    <div class="scroll-edge-scope-y scroll-gradient-y relative grid min-h-0 grid-rows-1">
+      <div class="scroll-edge-source-y grid min-h-0 grid-cols-1 grid-rows-[auto_1fr] gap-2 max-sm:overflow-y-auto">
+        <ShiftList v-model="selectedShift"
+                   :marker-dates="markerDates"
+                   :locations="locations"
+                   :is-restricted="isRestricted"
+                   @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
+        <div v-if="selectedShift && isNotMobile"
+             class="overflow-y-auto rounded border std-border bg-white dark:bg-sub-panel-dark">
+          <FadeTransition mode="out-in">
+            <ComponentSpinner v-if="!isShiftDataResolved" key="loading" class="h-full" />
+            <LocationPanel v-else-if="selectedLocation"
+                           :key="cardKey"
+                           :location="selectedLocation"
+                           :is-rostered="userShiftLocations.has(selectedLocation.id)"
+                           :is-restricted="isRestricted"
+                           :date="date"
+                           :user="user"
+                           @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
+            <div v-else key="fallback" class="p-4 text-neutral-500 dark:text-neutral-300">
+              Location details unavailable for this date.
+            </div>
+          </FadeTransition>
         </div>
-      </FadeTransition>
+      </div>
     </div>
   </div>
 </template>

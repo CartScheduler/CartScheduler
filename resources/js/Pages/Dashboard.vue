@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import useViewportShell from "@/Composables/useViewportShell";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
 import ReportsModal from "@/Pages/Components/Dashboard/ReportsModal.vue";
+
+// The shift views own their scrolling, so the shell must not scroll as well.
+useViewportShell().fillViewport();
 
 const outstandingReportCount = ref(0);
 
@@ -28,7 +32,7 @@ const showReportsModal = ref(false);
       </div>
     </div>
   </PageHeader>
-  <div class="flex flex-col sm:rounded-lg py-2 max-w-7xl sm:min-h-full">
+  <div class="flex flex-col sm:rounded-lg py-2 max-w-7xl sm:min-h-full max-sm:flex-1 max-sm:min-h-0">
     <CartReservation/>
   </div>
   <ReportsModal v-model="showReportsModal"

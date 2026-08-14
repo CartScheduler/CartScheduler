@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { nextTick } from "vue";
+import Dialog from "@/Components/Dialog.vue";
 import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
@@ -42,92 +42,85 @@ const renderOverlay = (props: Record<string, unknown> = {}) => render(ShiftDetai
   },
   global: {
     directives: { tooltip: () => {} },
+    // Auto-imported in the app build; the dialog is under test here, so it is
+    // registered for real rather than stubbed.
+    components: { Dialog },
     stubs: {
       // Auto-imported in the app build; not registered in Vitest.
       ComponentSpinner: { template: "<div data-testid='spinner' />" },
       PButton: { template: "<button><slot /></button>" },
+      CloseButton: { template: "<button type='button'>Close</button>" },
       User: { template: "<div />" },
       EmptySlot: { template: "<div />" },
     },
   },
 });
 
-describe("ShiftDetailOverlay", () => {
-  afterEach(() => {
-    document.body.style.removeProperty("overflow");
-  });
+// The dialog is teleported to body, so queries go through the document.
+const getDialog = () => document.body.querySelector("dialog") as HTMLDialogElement;
 
-  it("renders the location title and details when resolved", () => {
+afterEach(() => {
+  document.body.innerHTML = "";
+});
+
+describe("ShiftDetailOverlay", () => {
+  it("opens a bottom sheet headed by the shift's location", () => {
     renderOverlay();
 
-    screen.getByText("Town Square");
+    expect(getDialog().open).toBe(true);
+    expect(getDialog().classList.contains("app-dialog--sheet")).toBe(true);
+    expect(document.body.querySelector("header h3")?.textContent).toBe("Town Square");
     screen.getByText("North entry, near the fountain");
-    expect(screen.queryByTestId("spinner")).toBeNull();
   });
 
-  it("shows a spinner with the plain-name header while loading", () => {
-    renderOverlay({ location: undefined, isResolved: false });
+  it("stays closed while show is false", () => {
+    renderOverlay({ show: false });
 
-    screen.getByTestId("spinner");
-    screen.getByText("Town Square");
-    expect(screen.queryByText("Location details unavailable for this date.")).toBeNull();
-    // header close icon is present even while loading (Teleport renders to body, not container)
-    expect(document.body.querySelector("header button[aria-label='Close']")).not.toBeNull();
+    expect(getDialog().open).toBe(false);
   });
 
-  it("shows a fallback message when the load finished without a match", () => {
-    renderOverlay({ location: undefined, isResolved: true });
+  it("stays closed when there is no shift to describe", () => {
+    renderOverlay({ shift: undefined });
 
+    expect(getDialog().open).toBe(false);
+  });
+
+  it("shows a fallback message when the location is unavailable", () => {
+    renderOverlay({ location: undefined });
+
+    expect(getDialog().open).toBe(true);
     screen.getByText("Location details unavailable for this date.");
-    expect(screen.queryByTestId("spinner")).toBeNull();
   });
 
   it("emits close from the header close icon", async () => {
     const { emitted } = renderOverlay();
 
-    // Teleport renders to body, not container
-    const closeIcon = document.body.querySelector("header button");
-    await fireEvent.click(closeIcon as HTMLElement);
+    await fireEvent.click(document.body.querySelector("header button[aria-label='Close']") as HTMLElement);
 
     expect(emitted("close")).toHaveLength(1);
   });
 
-  it("emits close from the footer Close button in every state", async () => {
-    const resolved = renderOverlay();
-    // Teleport renders to body, not container
+  it("emits close from the footer Close button", async () => {
+    const { emitted } = renderOverlay();
+
     await fireEvent.click(document.body.querySelector("footer button") as HTMLElement);
-    expect(resolved.emitted("close")).toHaveLength(1);
-    resolved.unmount();
 
-    const loading = renderOverlay({ location: undefined, isResolved: false });
-    await fireEvent.click(document.body.querySelector("footer button") as HTMLElement);
-    expect(loading.emitted("close")).toHaveLength(1);
-    loading.unmount();
+    expect(emitted("close")).toHaveLength(1);
   });
 
-  it("carries the shared view-transition class", () => {
-    renderOverlay();
+  it("emits close when the dialog dismisses itself, as Escape does", () => {
+    const { emitted } = renderOverlay();
 
-    expect(document.body.querySelector(".shift-detail-morph")).not.toBeNull();
+    getDialog().close();
+
+    expect(emitted("close")).toHaveLength(1);
   });
 
-  it("routes focus to the heading once shown", async () => {
-    renderOverlay();
-    await nextTick();
+  it("emits close on a backdrop click", async () => {
+    const { emitted } = renderOverlay();
 
-    const heading = document.body.querySelector("header h3");
-    expect(document.activeElement).toBe(heading);
-  });
+    await fireEvent.click(getDialog());
 
-  it("locks the page scroll while shown and releases it when hidden", async () => {
-    const { rerender } = renderOverlay();
-
-    expect(document.body.style.overflow).toBe("hidden");
-    screen.getByText("Town Square");
-
-    await rerender({ show: false });
-
-    expect(screen.queryByText("Town Square")).toBeNull();
-    expect(document.body.style.overflow).toBe("");
+    expect(emitted("close")).toHaveLength(1);
   });
 });

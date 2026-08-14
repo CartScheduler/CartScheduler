@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
+import alignToScrollContainersImport from "@/Utils/alignToScrollContainers";
 import type { ShiftItem } from "@/Pages/Components/Dashboard/ShiftList.vue";
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -11,6 +12,15 @@ vi.mock("@inertiajs/vue3", () => ({
     },
   }),
 }));
+
+// Scroll alignment needs real layout; it has its own unit test. Here we only
+// care that the component hands it the right element.
+vi.mock("@/Utils/alignToScrollContainers", () => ({ default: vi.fn() }));
+const alignToScrollContainers = vi.mocked(alignToScrollContainersImport);
+
+// jsdom implements no layout/scrolling, so any stray scrollIntoView call would
+// throw. Stub it so the dedicated test can assert it is never used.
+const scrollIntoView = vi.fn();
 
 const makeShift = (overrides: Record<string, unknown>) => ({
   shift_date: "2025-09-15T00:00:00+10:00",
@@ -48,12 +58,16 @@ const renderShiftList = (props: Record<string, unknown> = {}) => render(ShiftLis
   props: {
     markerDates,
     locations: [],
+    isRestricted: false,
     ...props,
   },
   global: {
     stubs: {
       // Auto-imported in the app build; not registered in Vitest.
       ComponentSpinner: { template: "<div><slot /></div>" },
+      CloseButton: { template: "<button type='button' />" },
+      // The detail dialog has its own tests; keep it out of the way here.
+      Dialog: { template: "<div />" },
     },
   },
 });
@@ -62,6 +76,8 @@ describe("ShiftList", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2025-09-15T00:00:00Z"));
+    scrollIntoView.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
   });
 
   afterEach(() => {
@@ -84,25 +100,23 @@ describe("ShiftList", () => {
     const buttons = screen.getAllByRole("button");
 
     expect(buttons).toHaveLength(3);
-    expect(buttons[0].textContent).toContain("09:00");
+    expect(buttons[0].textContent).toContain("9:00 AM");
     expect(buttons[0].textContent).toContain("Station St");
-    expect(buttons[1].textContent).toContain("15:00");
+    expect(buttons[1].textContent).toContain("3:00 PM");
     expect(buttons[1].textContent).toContain("Town Square");
-    expect(buttons[2].textContent).toContain("12:00");
+    expect(buttons[2].textContent).toContain("12:00 PM");
     expect(buttons[2].textContent).toContain("Mall Entrance");
   });
 
-  it("emits clicked and marks the shift selected when clicked", async () => {
+  it("updates the model and marks the shift selected when clicked", async () => {
     const { emitted } = renderShiftList();
 
     await fireEvent.click(screen.getAllByRole("button")[1]);
 
-    const clicked = emitted("clicked");
-    expect(clicked).toHaveLength(1);
-    expect((clicked[0] as ShiftItem[])[0]).toMatchObject({ location: "Town Square", locationId: 2 });
+    // The first emit is the mount-time auto-select; the click is the last one.
     const modelValueUpdates = emitted("update:modelValue");
-    expect(modelValueUpdates).toHaveLength(1);
-    expect((modelValueUpdates[0] as ShiftItem[])[0]).toMatchObject({ location: "Town Square", locationId: 2 });
+    expect(modelValueUpdates).toHaveLength(2);
+    expect((modelValueUpdates.at(-1) as ShiftItem[])[0]).toMatchObject({ location: "Town Square", locationId: 2 });
     expect(screen.getAllByRole("button")[1].classList.contains("selected")).toBe(true);
   });
 
@@ -139,16 +153,50 @@ describe("ShiftList", () => {
     expect(buttons[1].classList.contains("sm:before:w-px")).toBe(true);
   });
 
+  it("marks the selected date's marker as the sole initial scroll target", async () => {
+    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
+    await rerender({ markerDates });
+    await nextTick();
+    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
+
+    const { container } = renderShiftList({ modelValue: selected });
+
+    // Exactly one target per scroll container (scroll-initial-target rule),
+    // and it is the date column (<dt>) that owns the selected shift.
+    const targets = container.querySelectorAll(".scroll-target");
+    expect(targets).toHaveLength(1);
+    expect(targets[0].tagName).toBe("DT");
+    expect(targets[0].querySelector(".selected")).not.toBeNull();
+  });
+
+  it("aligns the selected date inside the timeline's scrollers when it mounts", async () => {
+    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
+    await rerender({ markerDates });
+    await nextTick();
+    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
+
+    alignToScrollContainers.mockClear();
+    const { container } = renderShiftList({ modelValue: selected });
+    await nextTick();
+    await nextTick();
+
+    // Aligned the selected date's marker, not some other element.
+    expect(alignToScrollContainers).toHaveBeenCalledWith(container.querySelector(".scroll-target"));
+    // scrollIntoView walks up to the viewport and would drag the page with it.
+    expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
   it("lays the timeline out horizontally on sm+ via responsive classes", () => {
     const { container } = renderShiftList();
 
     const timeline = container.querySelector("dl");
 
     expect(timeline).not.toBeNull();
-    // Lane flips to a row, rail flips to a horizontal dashed line, end-cap hidden.
+    // Lane flips to a row, rail flips to a horizontal dashed line, end-cap
+    // loses its border so it no longer caps the vertical rail.
     expect(timeline?.classList.contains("sm:flex-row")).toBe(true);
     expect(timeline?.classList.contains("sm:before:border-t")).toBe(true);
-    expect(timeline?.classList.contains("sm:after:hidden")).toBe(true);
+    expect(timeline?.classList.contains("sm:after:border-none")).toBe(true);
   });
 
   it("wires up the scroll-aware edge gradients", () => {
@@ -167,27 +215,4 @@ describe("ShiftList", () => {
     expect(scroller?.querySelector("dl")).not.toBeNull();
   });
 
-  it("marks the selected shift as the view-transition morph source", async () => {
-    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
-    await rerender({ markerDates });
-    await nextTick();
-    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
-
-    const { container } = renderShiftList({ modelValue: selected });
-
-    const buttons = container.querySelectorAll("button");
-    expect(buttons[0].classList.contains("shift-detail-morph")).toBe(true);
-    expect(buttons[1].classList.contains("shift-detail-morph")).toBe(false);
-  });
-
-  it("yields the morph source while the overlay owns the transition name", async () => {
-    const { emitted, rerender } = renderShiftList({ markerDates: undefined });
-    await rerender({ markerDates });
-    await nextTick();
-    const selected = (emitted("update:modelValue").at(-1) as ShiftItem[])[0];
-
-    const { container } = renderShiftList({ modelValue: selected, morphSource: false });
-
-    expect(container.querySelectorAll("button")[0].classList.contains("shift-detail-morph")).toBe(false);
-  });
 });
