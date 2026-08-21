@@ -1,155 +1,77 @@
 <script setup lang="ts">
-import { onClickOutside } from "@vueuse/core";
-import { ref, useTemplateRef } from "vue";
 import { useDarkMode } from "@/Composables/useDarkMode.js";
-import type { ColorMode } from "@/Composables/useDarkMode.js";
 
-const { colorMode, setMode } = useDarkMode();
-
-const popover = useTemplateRef("color-mode-buttons");
-const themeToggle = useTemplateRef("themeToggle");
-const buttonContainer = useTemplateRef("buttonContainer");
-
-const expand = ref(false);
-
-const radius = ref("0");
-
-const isHtmlElement = (el?: Element | null): el is HTMLElement => !!el && el instanceof HTMLElement;
-
-const onButtonClicked = (event: MouseEvent) => {
-  if (!event.target || !(event.target instanceof HTMLElement) || !themeToggle.value) {
-    return;
-  }
-  radius.value = themeToggle.value.offsetWidth / 2 + "px";
-  expand.value = !expand.value;
-};
-
-const onBeforeEnter = (el: Element) => {
-  if (!el || !isHtmlElement(el) || !isHtmlElement(themeToggle.value)) {
-    return;
-  }
-
-  el.style.transition = "all 0.25s ease";
-  el.style.overflow = "hidden";
-  el.style.width = `${themeToggle.value.scrollWidth}px`;
-  el.style.height = `${themeToggle.value.scrollHeight}px`;
-};
-const onEnter = (el: Element, done: () => void) => {
-  if (!el || !isHtmlElement(el) || !isHtmlElement(themeToggle.value) || !isHtmlElement(buttonContainer.value)) {
-    done();
-    return;
-  }
-  el.addEventListener("transitionend", () => done(), { once: true });
-
-  themeToggle.value.style.transition = "opacity .1s ease";
-  themeToggle.value.style.opacity = "0";
-
-  el.style.width = `${el.scrollWidth}px`;
-  el.style.height = `${el.scrollHeight}px`;
-  el.style.opacity = "1";
-};
-const onAfterEnter = (el: Element) => {
-  if (!el || !isHtmlElement(el)) {
-    return;
-  }
-  el.style.transition = "none";
-  el.style.overflow = "";
-  el.style.width = "max-content";
-  el.style.height = "max-content";
-};
-const onBeforeLeave = (el: Element) => {
-  const elements = el.getElementsByClassName("button-container");
-
-  if (!el || !isHtmlElement(el) || !isHtmlElement(themeToggle.value) || !isHtmlElement(elements[0])) {
-    return;
-  }
-
-  const buttonContainer = elements[0];
-  buttonContainer.style.transition = "opacity 0.2s ease";
-  buttonContainer.style.opacity = "0";
-
-  el.style.overflow = "hidden";
-  el.style.transition = "all 0.25s ease";
-  el.style.width = `${themeToggle.value.clientWidth}px`;
-  el.style.height = `${themeToggle.value.clientHeight}px`;
-};
-const onLeave = (el: Element, done: () => void) => {
-  if (!el || !isHtmlElement(el) || !isHtmlElement(themeToggle.value)) {
-    return;
-  }
-
-  el.addEventListener("transitionend", () => done(), { once: true });
-
-  themeToggle.value.style.transition = "opacity .1s ease";
-  themeToggle.value.style.opacity = "1";
-  el.style.zIndex = "-1";
-};
-
-onClickOutside(popover, () => {
-  if (!expand.value) return;
-  expand.value = false;
-});
-
-const setColorMode = async (mode: ColorMode) => {
-  await setMode(mode);
-  expand.value = false;
-};
+const { isDarkMode, toggleDarkMode } = useDarkMode();
 </script>
 
 <template>
-  <div class="relative">
-    <button id="theme-toggle"
-            ref="themeToggle"
-            type="button"
-            class="flex focus:outline-none focus:ring-1 focus:ring-neutral-500 rounded-full p-2 dark:bg-panel-dark"
-            aria-label="Toggle dark mode"
-            @click="onButtonClicked">
-      <span v-if="colorMode === 'dark'"
-            class="iconify mdi--moon-and-stars" />
-      <span v-else-if="colorMode === 'light'"
-            class="iconify mdi--weather-sunny" />
-      <span v-else
-            class="iconify mdi--cellphone sm:mdi--computer" />
-    </button>
-    <transition :css="false"
-                @before-enter="onBeforeEnter"
-                @enter="onEnter"
-                @after-enter="onAfterEnter"
-                @before-leave="onBeforeLeave"
-                @leave="onLeave">
-      <div ref="color-mode-buttons"
-           v-if="expand"
-           class="flex flex-col items-start absolute top-0 right-0 z-10 box-content border border-neutral-300 dark:border-neutral-500"
-           :style="{ borderRadius: radius }">
-        <div ref="buttonContainer"
-             class="button-container grid grid-cols-1 items-start justify-stretch box-content gap-3 p-2 w-max shadow-md bg-white  dark:bg-neutral-800"
-             :style="{ borderRadius: radius }">
-          <button class="flex justify-start items-center gap-2 min-w-max py-2 px-4 rounded-md hover:bg-sub-panel hover:dark:bg-sub-panel-dark"
-                  :class="[{ '!font-bold underline underline-offset-4 decoration-dashed after:iconify after:mdi--chevron-left ring-1 ring-neutral-300 dark:ring-neutral-500': colorMode === 'dark' }]"
-                  @click="setColorMode('dark')">
-            <span class="iconify mdi--moon-and-stars" />
-            Dark
-          </button>
-          <button class="flex justify-start items-center gap-2 min-w-max py-2 px-4 rounded-md hover:bg-sub-panel hover:dark:bg-sub-panel-dark"
-                  :class="[{ '!font-bold underline underline-offset-4 decoration-dashed after:iconify after:mdi--chevron-left ring-1 ring-neutral-300 dark:ring-neutral-500': colorMode === 'light' }]"
-                  @click="setColorMode('light')">
-            <span class="iconify mdi--weather-sunny" />
-            Light
-          </button>
-          <button class="flex justify-start items-center gap-2 min-w-max py-2 px-4 rounded-md hover:bg-sub-panel hover:dark:bg-sub-panel-dark"
-                  :class="[{ '!font-bold underline underline-offset-4 decoration-dashed after:iconify after:mdi--chevron-left ring-1 ring-neutral-300 dark:ring-neutral-500': colorMode === 'auto' }]"
-                  @click="setColorMode('auto')">
-            <span class="iconify mdi--cellphone sm:mdi--computer" />
-            System
-          </button>
-        </div>
+  <!--
+    Deliberately says nothing about where the current theme came from. Whether
+    it is pinned or inherited from the device is a distinction the user has no
+    live use for, and surfacing it is what prompts people to go hunting for a
+    third state they were not previously missing.
 
-        <button class="absolute -bottom-8 left-1 text-xs bg-panel dark:bg-panel-dark py-0.5 px-1.5 rounded-full shadow-md ring-1 ring-neutral-300 dark:ring-neutral-500 hover:bg-sub-panel hover:dark:bg-sub-panel-dark" @click="expand = false">
-          close
-        </button>
-      </div>
-    </transition>
-  </div>
+    `role="switch"` carries the state, so the accessible name stays put rather
+    than flipping between "switch to dark" and "switch to light" under the
+    user's cursor.
+
+    The button is a full 44px tap target around a 24px track — the switch reads
+    as small, but it sits in the mobile nav and has to be hittable.
+  -->
+  <button type="button"
+          role="switch"
+          :aria-checked="isDarkMode"
+          aria-label="Dark mode"
+          class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full
+                 focus:outline-none focus-visible:ring-1 focus-visible:ring-neutral-500"
+          @click="toggleDarkMode">
+    <!--
+      Track. `border-2 border-transparent` is load-bearing rather than
+      decoration: with border-box sizing it insets the 20px knob inside the
+      24px track, and leaves the knob flush with each end at either extreme of
+      its 20px travel.
+    -->
+    <span class="relative inline-flex h-6 w-11 rounded-full border-2 border-transparent
+                 transition-colors duration-300 ease-in-out motion-reduce:transition-none"
+          :class="isDarkMode ? 'bg-neutral-600' : 'bg-neutral-300'">
+      <!--
+        Knob. Carries both icons and cross-fades between them as it travels.
+
+        `theme-switch-knob` is not styling — it names the knob to the View
+        Transitions API. Without it the knob is part of the root snapshot, and
+        a snapshot cannot slide: the browser would freeze a picture of the knob
+        at the near end, cross-fade it against a picture at the far end, and
+        the real travel would happen unseen behind the overlay. Named, it
+        becomes its own transition group and the browser interpolates the
+        journey itself, on top of the page cross-fade rather than under it.
+
+        The duration here is the fallback path only (reduced motion aside,
+        that means browsers without the API); the named group's timing lives
+        in the stylesheet below.
+      -->
+      <span class="theme-switch-knob pointer-events-none relative inline-block size-5 rounded-full
+                   bg-white shadow ring-0 transition duration-300 ease-in-out
+                   motion-reduce:transition-none"
+            :class="isDarkMode ? 'translate-x-5' : 'translate-x-0'">
+        <!--
+          The icon plugin runs at scale 1.25, so the em-based sizing this
+          codebase uses everywhere else needs 0.6rem to land on 12px.
+        -->
+        <span aria-hidden="true"
+              class="absolute inset-0 flex size-full items-center justify-center transition-opacity
+                     motion-reduce:transition-none"
+              :class="isDarkMode ? 'opacity-0 duration-150 ease-out' : 'opacity-100 duration-300 ease-in'">
+          <span class="iconify mdi--weather-sunny text-[0.6rem] text-amber-500" />
+        </span>
+        <span aria-hidden="true"
+              class="absolute inset-0 flex size-full items-center justify-center transition-opacity
+                     motion-reduce:transition-none"
+              :class="isDarkMode ? 'opacity-100 duration-300 ease-in' : 'opacity-0 duration-150 ease-out'">
+          <span class="iconify mdi--moon-and-stars text-[0.6rem] text-indigo-600" />
+        </span>
+      </span>
+    </span>
+  </button>
 </template>
 
 <style>
@@ -169,6 +91,35 @@ html {
     /*noinspection ALL*/
     &.dark {
         color-scheme: dark;
+    }
+}
+
+/* Lifts the knob out of the root snapshot so it can travel during the theme
+   change instead of being frozen into it. `::view-transition-*` addresses
+   pseudo-elements on the document root, so these rules cannot be scoped. */
+.theme-switch-knob {
+    view-transition-name: theme-switch-knob;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* The knob's journey. Outlasts the page cross-fade below on purpose: the
+       colour settles first, then the eye follows the knob the rest of the way
+       and lands on the control that caused it. */
+    ::view-transition-group(theme-switch-knob) {
+        animation-duration: 400ms;
+        animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* The sun/moon swap, carried by the knob's own old and new snapshots. */
+    ::view-transition-image-pair(theme-switch-knob) {
+        animation-duration: 400ms;
+    }
+
+    /* Slower than the UA's 250ms default so the theme reads as changing rather
+       than as having changed. */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 300ms;
     }
 }
 </style>

@@ -40,7 +40,7 @@ declare module 'vue' {
     LinkSetButton: typeof import('./../Components/EditorToolbar/LinkSetButton.vue')['default']
     LinkUnsetButton: typeof import('./../Components/EditorToolbar/LinkUnsetButton.vue')['default']
     ListButton: typeof import('./../Components/EditorToolbar/ListButton.vue')['default']
-    Nav: typeof import('./../Layouts/Components/Nav.vue')['default']
+    NavBar: typeof import('./../Layouts/Components/NavBar.vue')['default']
     NavCurrentUser: typeof import('./../Layouts/Components/NavCurrentUser.vue')['default']
     NavDesktopMain: typeof import('./../Layouts/Components/NavDesktopMain.vue')['default']
     NavHamburgerButton: typeof import('./../Layouts/Components/NavHamburgerButton.vue')['default']

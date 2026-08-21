@@ -32,7 +32,10 @@ onMounted(() => {
   }
 });
 
-const { isDarkMode } = useDarkMode();
+// Called for the side effect, not the return: `useColorMode` is what puts
+// `.dark` on <html>, and the theme has to resolve for every page under this
+// layout rather than depending on the nav's switch happening to be mounted.
+useDarkMode();
 const { fillsViewport } = useViewportShell();
 
 provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
@@ -61,7 +64,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="text-neutral-900 dark:text-neutral-100 bg-gradient-to-b from-page  to-neutral-50 dark:bg-page-dark dark:bg-gradient-to-b dark:from-page-dark dark:to-neutral-950">
+  <div class="from-page dark:bg-page-dark dark:from-page-dark bg-gradient-to-b to-neutral-50 text-neutral-900 dark:bg-gradient-to-b dark:to-neutral-950 dark:text-neutral-100">
     <!--
       `fillsViewport` pages pin the shell to the device height on mobile, so
       overflow lands in a scroll container inside the page instead of moving
@@ -69,20 +72,17 @@ onMounted(() => {
       or the default `min-height: auto` on flex/grid items lets content push
       the shell taller than the viewport again.
     -->
-    <div class="flex flex-col content-start w-dvw max-w-full-dvw justify-stretch"
+    <div class="flex w-dvw max-w-full-dvw flex-col content-start justify-stretch"
          :class="fillsViewport ? 'max-sm:h-dvh max-sm:overflow-hidden sm:min-h-dvh' : 'min-h-dvh'">
-      <Nav class="border-b page-grid border-neutral-300 dark:border-neutral-700/85"
-           @toggle-dark-mode="isDarkMode = $event" />
+      <NavBar class="page-grid border-b border-neutral-300 dark:border-neutral-700/85" />
 
       <!-- Page Heading -->
       <header id="page-header"
-              class="page-grid
-                      px-4 xl:px-0 py-6
-                      border-b border-neutral-200 text-neutral-900 dark:text-neutral-100 dark:border-b dark:border-neutral-700/85">
+              class="page-grid border-b border-neutral-200 px-4 py-6 text-neutral-900 xl:px-0 dark:border-b dark:border-neutral-700/85 dark:text-neutral-100">
         <slot name="header" />
       </header>
 
-      <main class="flex-1 flex sm:flex-col"
+      <main class="flex flex-1 sm:flex-col"
             :class="{ 'max-sm:min-h-0': fillsViewport }">
         <!-- Page Top -->
         <section v-if="$slots['page-top']" class="page-grid text-neutral-900 dark:text-neutral-100">
@@ -90,12 +90,12 @@ onMounted(() => {
         </section>
 
         <!-- Page Content -->
-        <section class="flex-1 w-dvw page-grid"
+        <section class="page-grid w-dvw flex-1"
                  :class="{ 'max-sm:min-h-0 max-sm:grid-rows-[minmax(0,1fr)]': fillsViewport }">
           <!-- Viewport-filling pages get a tighter top pad: their first row is
             usually a control whose own gap sets the rhythm below it, and the
             default `pt-4` on top of the page's padding reads as lopsided. -->
-          <div class="sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5"
+          <div class="bg-panel dark:bg-panel-dark std-border overflow-hidden border border-t-0 px-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6"
                :class="fillsViewport ? 'pt-2 max-sm:flex max-sm:flex-col max-sm:min-h-0' : 'pt-4'">
             <slot />
           </div>
@@ -103,7 +103,7 @@ onMounted(() => {
       </main>
 
       <!-- Page Bottom -->
-      <section v-if="$slots['page-bottom']" class="px-4 py-6 w-7xl sm:px-6 lg:px-8 text-neutral-900 dark:text-neutral-100">
+      <section v-if="$slots['page-bottom']" class="w-7xl px-4 py-6 text-neutral-900 sm:px-6 lg:px-8 dark:text-neutral-100">
         <slot name="page-bottom" />
       </section>
     </div>
