@@ -3,6 +3,12 @@ import type { InjectionKey, Ref, ShallowRef } from "vue";
 
 export type AccordionContext<AllowedModelValues> = {
   isInitialised: Ref<Readonly<boolean>>;
+  /**
+   * True where the panels are a fixed layout rather than a set of disclosures:
+   * every panel stands open, the headers are headings instead of buttons, and
+   * none of the height machinery runs.
+   */
+  isStatic: Readonly<Ref<boolean>>;
   registerPanel: (key: AllowedModelValues, el: HTMLElement) => void;
   isPanelOpen: (key: AllowedModelValues) => boolean;
   toggle: (key: AllowedModelValues) => void;

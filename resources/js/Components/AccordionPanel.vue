@@ -3,10 +3,12 @@ import { useResizeObserver } from "@vueuse/core";
 import { computed, inject, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import { AccordionContext } from "@/Utils/provide-inject-keys";
 
-const { uniqueId, disabled = false, contentTrigger } = defineProps<{
+const { uniqueId, disabled = false, contentTrigger, description } = defineProps<{
   uniqueId: AllowedModelValues;
   contentTrigger?: ContentTrigger;
   disabled?: boolean;
+  /** One line under the heading saying what the panel is for. */
+  description?: string;
 }>();
 
 const trigger = useTemplateRef<HTMLElement>("trigger");
@@ -17,6 +19,7 @@ if (!ctx) {
 }
 
 const open = computed(() => ctx.isPanelOpen(uniqueId));
+const isStatic = computed(() => ctx.isStatic.value);
 const isInitialised = computed(() => ctx.isInitialised);
 
 /**
@@ -33,10 +36,20 @@ watch(open, (isOpen) => {
   }
 }, { immediate: true });
 
-onMounted(() => {
+/**
+ * Static panels have no header button to register, and nothing to arrow
+ * between. Re-run on the switch, because the layout can change under a resize.
+ */
+const registerHeader = () => {
+  if (isStatic.value) {
+    return;
+  }
   if (!trigger.value) throw new Error("A fatal error has occurred. Please refresh the page.");
   ctx.registerPanel(uniqueId, trigger.value);
-});
+};
+
+onMounted(registerHeader);
+watch(isStatic, () => void nextTick().then(registerHeader));
 
 const headerId = computed(() => `${uniqueId}-header`);
 const panelId = computed(() => `${uniqueId}-panel`);
@@ -65,8 +78,13 @@ const setHeight = (isOpening: boolean) => {
 
 const isMounted = ref(false);
 
+// None of the height machinery below applies to a static panel: it has no
+// `panel` element to measure, and its content simply flows.
 watch(isInitialised, async (val) => {
   await nextTick();
+  if (isStatic.value) {
+    return;
+  }
   if (val && open.value) {
     setHeight(true);
     // A panel that starts open runs no enter transition, so no `after-enter`
@@ -96,13 +114,13 @@ watch(isInitialised, async (val) => {
  * Only open panels are watched — a closed one is pinned to 0 on purpose, and
  * accordions like the dashboard's carry a panel per location.
  */
-useResizeObserver(computed(() => open.value ? panelContent.value : null), () => {
+useResizeObserver(computed(() => !isStatic.value && open.value ? panelContent.value : null), () => {
   panelHeight.value = `${panelContent.value?.scrollHeight}px`;
 });
 
 watch(() => contentTrigger, async (val) => {
   await nextTick();
-  if (val) {
+  if (val && !isStatic.value) {
     setHeight(open.value);
   }
 }, {
@@ -113,7 +131,15 @@ watch(() => contentTrigger, async (val) => {
 <template>
   <div class="std-border-bottom dark:bg-sub-panel-dark std-border border border-b-0 bg-white first:rounded-t last:rounded-b last:border-b sm:rounded sm:border-b"
        :style="`--panel-height: ${panelHeight}`">
-    <div role="heading" aria-level="1">
+    <!-- Static: a heading over its content, with nothing to open or close. -->
+    <div v-if="isStatic" :id="headerId" role="heading" aria-level="1" class="px-2 py-1">
+      <slot name="title" />
+      <p v-if="description" class="px-2 pb-1 text-sm text-neutral-500 dark:text-neutral-400">
+        {{ description }}
+      </p>
+    </div>
+
+    <div v-else role="heading" aria-level="1">
       <button ref="trigger"
               class="hhh focus-visible:outline-primary flex w-full cursor-pointer items-center justify-between rounded border-0 bg-transparent px-2 py-1 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
               type="button"
@@ -123,13 +149,30 @@ watch(() => contentTrigger, async (val) => {
               :disabled="disabled"
               @click="onClick"
               @keydown="onKeydown">
-        <slot name="title" />
+        <!--
+          The stacking wrapper only appears where there is a description to
+          stack, so headers without one keep the layout they have always had.
+        -->
+        <span v-if="description" class="flex min-w-0 flex-1 flex-col items-start">
+          <slot name="title" />
+          <span class="px-2 pb-1 text-left text-sm font-normal text-neutral-500 dark:text-neutral-400">
+            {{ description }}
+          </span>
+        </span>
+        <slot v-else name="title" />
+
         <span class="iconify mdi--chevron-down ml-auto text-2xl transition-rotate delay-100 duration-500 ease-in-out"
               :class="open ? 'rotate-180' : ''" />
       </button>
     </div>
 
-    <Transition @enter="setHeight(true)"
+    <!-- Static bodies are never measured or hidden, so they need no height. -->
+    <div v-if="isStatic" :id="panelId" class="p-2" role="region" :aria-labelledby="headerId">
+      <slot />
+    </div>
+
+    <Transition v-else
+                @enter="setHeight(true)"
                 @after-enter="(el) => el.classList.remove('overflow-hidden')"
                 @leave="setHeight(false)"
                 @after-leave="(el) => el.classList.remove('overflow-hidden')">

@@ -54,6 +54,29 @@ const renderMultiAccordion = async (openPanels: number[] = []) => {
   return utils;
 };
 
+/** The same two panels, laid out as fixed panels rather than disclosures. */
+const renderStaticAccordion = async (description?: string) => {
+  const utils = render(defineComponent({
+    components: { Accordion, AccordionPanel },
+    setup: () => ({ expanded: ref(undefined), description }),
+    template: `
+      <Accordion v-model="expanded" static-panels>
+        <AccordionPanel :unique-id="1" :description="description">
+          <template #title>Town Square</template>
+          <p data-testid="body-1">Town Square shifts</p>
+        </AccordionPanel>
+        <AccordionPanel :unique-id="2">
+          <template #title>Market Street</template>
+          <p data-testid="body-2">Market Street shifts</p>
+        </AccordionPanel>
+      </Accordion>
+    `,
+  }));
+
+  await nextTick();
+  return utils;
+};
+
 const townSquare = /Town Square/;
 const marketStreet = /Market Street/;
 
@@ -134,6 +157,63 @@ describe("Accordion", () => {
 
       expect(isExpanded(townSquare)).toBe("true");
       expect(isExpanded(marketStreet)).toBe("true");
+    });
+  });
+
+  describe("staticPanels", () => {
+    it("shows every body with nothing to press", async () => {
+      await renderStaticAccordion();
+
+      // Not "open": a panel layout has no state to communicate, so there is no
+      // button, no aria-expanded and no chevron to rotate.
+      expect(screen.queryByRole("button", { name: townSquare })).toBeNull();
+      expect(screen.getByRole("heading", { name: townSquare })).toBeTruthy();
+      expect(screen.getByTestId("body-1")).toBeTruthy();
+      expect(screen.getByTestId("body-2")).toBeTruthy();
+    });
+
+    it("still labels each body with its heading", async () => {
+      const { container } = await renderStaticAccordion();
+
+      const region = container.querySelector("#\\31 -panel") as HTMLElement;
+      expect(region.getAttribute("role")).toBe("region");
+      expect(region.getAttribute("aria-labelledby")).toBe("1-header");
+    });
+
+    it("leaves the body unpinned, so it cannot go stale", async () => {
+      const { container } = await renderStaticAccordion();
+
+      // The measured pixel height exists only to give the open/close
+      // transition something to animate between. Nothing animates here.
+      const region = container.querySelector("#\\31 -panel") as HTMLElement;
+      expect(region.className).not.toContain("var(--panel-height)");
+    });
+  });
+
+  describe("description", () => {
+    it("sits under the heading in a static panel", async () => {
+      await renderStaticAccordion("Where the cart goes on a Saturday.");
+
+      expect(screen.getByText("Where the cart goes on a Saturday.")).toBeTruthy();
+    });
+
+    it("sits inside the header button when the panel is a disclosure", async () => {
+      render(defineComponent({
+        components: { Accordion, AccordionPanel },
+        setup: () => ({ expanded: ref(undefined) }),
+        template: `
+          <Accordion v-model="expanded">
+            <AccordionPanel :unique-id="1" description="Where the cart goes on a Saturday.">
+              <template #title>Town Square</template>
+              <p data-testid="body-1">Town Square shifts</p>
+            </AccordionPanel>
+          </Accordion>
+        `,
+      }));
+      await nextTick();
+
+      const header = screen.getByRole("button", { name: townSquare });
+      expect(header.textContent).toContain("Where the cart goes on a Saturday.");
     });
   });
 });

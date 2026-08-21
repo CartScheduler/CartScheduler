@@ -6,10 +6,17 @@ import type { WatchHandle } from "vue";
 type ModelValueArray = Array<AllowedModelValues>;
 type ModelValue = ModelValueArray | AllowedModelValues | undefined;
 
-const { multiple = false, hasInitialised = undefined } = defineProps<{
+const { multiple = false, staticPanels = false, hasInitialised = undefined } = defineProps<{
   multiple?: boolean;
+  /**
+   * Lays the panels out as fixed panels instead of disclosures: all open, no
+   * headers to click, no height to animate. The model is ignored while set.
+   */
+  staticPanels?: boolean;
   hasInitialised?: boolean;
 }>();
+
+const isStatic = computed(() => staticPanels);
 
 const expandedPanelIndex = defineModel<ModelValue>({ default: [], required: false });
 
@@ -31,9 +38,15 @@ const openedPanels = computed<ReadonlySet<AllowedModelValues>>(() => {
   return new Set(expandedPanelIndex.value as ModelValueArray);
 });
 
-const isPanelOpen = (key: AllowedModelValues) => openedPanels.value.has(key);
+const isPanelOpen = (key: AllowedModelValues) => staticPanels || openedPanels.value.has(key);
 
 const toggle = (key: AllowedModelValues) => {
+  // Unreachable while static — there is no header to click — but the model
+  // must not drift out from under a layout that is ignoring it either way.
+  if (staticPanels) {
+    return;
+  }
+
   if (!multiple) {
     (expandedPanelIndex.value as Partial<ModelValue>) = isPanelOpen(key) ? undefined : key;
     return;
@@ -111,6 +124,7 @@ const setHeight = async (el: Element) => {
 // Provide context for AccordionPanel
 provide<AccordionContext<AllowedModelValues>>(AccordionContext, {
   isInitialised,
+  isStatic,
   registerPanel,
   isPanelOpen,
   toggle,
