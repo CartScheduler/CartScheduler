@@ -82,6 +82,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
         $user->availability->touch();
     })->name('set.viewed-availability');
 
+    // Device-level display settings, kept apart from the account-level profile
+    // page because nothing here is saved to the account.
+    Route::get('/user/preferences', static fn () => Inertia::render('Profile/Preferences'))->name('user.preferences');
+
     Route::get('/user/availability', ShowUserAvailabilityController::class)->name('user.availability');
     Route::put('/user/availability', UpdateUserRegularAvailabilityController::class)->name('update.user.availability');
     Route::put('/user/vacations', UpdateUserVacationsController::class)->name('update.user.vacations');
@@ -100,8 +104,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::get('/users/import', [UsersImportController::class, 'show'])->name('admin.users.import.show');
             Route::post('/users/import', [UsersImportController::class, 'import'])->name('admin.users.import.import');
 
-            //TODO This is for the new reporting part of the system
-//            Route::get('/users/get/{user}', UserDataController::class)->name('admin.users.get');
+            // TODO This is for the new reporting part of the system
+            //            Route::get('/users/get/{user}', UserDataController::class)->name('admin.users.get');
 
             Route::group(['middleware' => HandlePrecognitiveRequests::class], static function () {
                 Route::resource('/users', UsersController::class)->names([
@@ -152,7 +156,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
                 '/assigned-shifts/{shiftDate}',
                 AdminAvailableShiftsController::class
             )->where(['shiftDate' => '\d\d\d\d-\d\d-\d\d'])
-            ->name('admin.assigned-shifts');
+                ->name('admin.assigned-shifts');
 
             Route::delete('/shifts/{shift}', DeleteShiftsController::class)->name('admin.shifts.destroy');
 

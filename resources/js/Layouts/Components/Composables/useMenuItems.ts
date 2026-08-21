@@ -1,4 +1,5 @@
 import { router, usePage } from "@inertiajs/vue3";
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { computed, onBeforeMount } from "vue";
 import type { MenuItem } from "@/Layouts/Components/Composables/useNavEvents";
 
@@ -10,6 +11,9 @@ export default () => {
   };
 
   const page = usePage();
+
+  const breakpoints = useBreakpoints(breakpointsTailwind);
+  const isNotMobile = breakpoints.greaterOrEqual("sm");
 
   const hasAdminMenu = computed(() => page.props.pagePermissions.canAdmin);
   const hasUpdate = computed(() => page.props.hasUpdate as boolean); // For update indicators
@@ -81,9 +85,19 @@ export default () => {
   const userNavMenuItems = computed(() => {
     if (!page.props.auth || !page.props.auth.user) return [];
     const items: MenuItem[] = [
-      // Route name stays `profile.show`; only what the user sees is renamed.
-      { label: "Preferences", icon: "iconify mdi--user", routeName: "profile.show", href: route("profile.show") },
+      { label: "Profile", icon: "iconify mdi--user", routeName: "profile.show", href: route("profile.show") },
     ];
+
+    // Everything on the preferences page changes how the dashboard behaves on a
+    // phone, so there is nothing to go there for on a wider screen.
+    if (!isNotMobile.value) {
+      items.push({
+        label: "Preferences",
+        icon: "iconify mdi--settings-outline",
+        routeName: "user.preferences",
+        href: route("user.preferences"),
+      });
+    }
     if (page.props.enableUserAvailability) {
       items.push({
         label: "Availability",

@@ -1,8 +1,27 @@
 <script setup lang="ts">
+import useToast from "@/Composables/useToast";
 import useViewSwitchButton from "@/Composables/useViewSwitchButton";
 import JetFormSection from "@/Jetstream/FormSection.vue";
 
 const { isSwitchButtonShown, setSwitchButtonShown } = useViewSwitchButton();
+
+const toast = useToast();
+
+/**
+ * There is no Save button on this page, and every other section around it has
+ * one — so without a word from the app, flicking the switch looks like an edit
+ * left unsaved. The toast is the confirmation the missing button would give.
+ */
+const onSwitchButtonToggled = (shown: boolean) => {
+  setSwitchButtonShown(shown);
+
+  toast.success(
+    shown
+      ? "The calendar/timeline switch button is back on your dashboard."
+      : "The calendar/timeline switch button is hidden. Swipe, or tap the dots, to change views.",
+    "Saved",
+  );
+};
 </script>
 
 <template>
@@ -20,10 +39,10 @@ const { isSwitchButtonShown, setSwitchButtonShown } = useViewSwitchButton();
         <label class="flex cursor-pointer items-start gap-3">
           <PToggleSwitch :model-value="isSwitchButtonShown"
                          class="mt-0.5 shrink-0"
-                         @update:model-value="setSwitchButtonShown($event)" />
+                         @update:model-value="onSwitchButtonToggled($event)" />
           <span>
             <span class="block text-neutral-900 dark:text-neutral-100">
-              Show the view switch button
+              Show the calendar/timeline switch button
             </span>
             <span class="block text-sm text-neutral-600 dark:text-neutral-300">
               This is a button that moves between the calendar and the timeline. With it hidden you can
