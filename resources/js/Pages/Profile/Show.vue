@@ -58,7 +58,7 @@ watch(isNotMobile, () => {
                class="gap-0 sm:gap-6 md:grid-cols-2">
       <AccordionPanel v-if="$page.props.jetstream.canUpdateProfileInformation"
                       unique-id="profile"
-                      description="Your name and the address we contact you on.">
+                      description="Your name and the email address we contact you on.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Profile Information</div>
         </template>
