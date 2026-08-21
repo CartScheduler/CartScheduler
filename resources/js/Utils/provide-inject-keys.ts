@@ -1,10 +1,10 @@
 import type { Editor } from "@tiptap/vue-3";
-import type { ComputedRef, InjectionKey, Ref, ShallowRef } from "vue";
+import type { InjectionKey, Ref, ShallowRef } from "vue";
 
 export type AccordionContext<AllowedModelValues> = {
   isInitialised: Ref<Readonly<boolean>>;
   registerPanel: (key: AllowedModelValues, el: HTMLElement) => void;
-  openedPanel: ComputedRef<AllowedModelValues>;
+  isPanelOpen: (key: AllowedModelValues) => boolean;
   toggle: (key: AllowedModelValues) => void;
   onHeaderKeydown: (e: KeyboardEvent, key: AllowedModelValues) => void;
 };

@@ -1,4 +1,5 @@
 <script setup lang="ts" generic="AllowedModelValues, ContentTrigger extends string | number">
+import { useResizeObserver } from "@vueuse/core";
 import { computed, inject, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import { AccordionContext } from "@/Utils/provide-inject-keys";
 
@@ -15,7 +16,7 @@ if (!ctx) {
   throw new Error("AccordionPanel must be used within Accordion");
 }
 
-const open = computed(() => ctx.openedPanel.value === uniqueId);
+const open = computed(() => ctx.isPanelOpen(uniqueId));
 const isInitialised = computed(() => ctx.isInitialised);
 
 /**
@@ -68,6 +69,12 @@ watch(isInitialised, async (val) => {
   await nextTick();
   if (val && open.value) {
     setHeight(true);
+    // A panel that starts open runs no enter transition, so no `after-enter`
+    // fires to lift the clip `setHeight` applies. In practice Vue's next class
+    // patch wipes it anyway — `classList` edits do not survive a re-render of
+    // the `:class` binding — but that is a coincidence of timing to rely on,
+    // not a guarantee.
+    panel.value?.classList.remove("overflow-hidden");
   }
   setTimeout(() => {
     isMounted.value = true;
@@ -75,6 +82,22 @@ watch(isInitialised, async (val) => {
 }, {
   once: true,
   immediate: true,
+});
+
+/**
+ * Keeps an open panel's height matched to its content.
+ *
+ * The height has to be a pixel value for the transition to have something to
+ * animate between, which means it is a measurement, and measurements go stale:
+ * a validation error appearing, a QR code arriving, an avatar loading. Panels
+ * that open by click disguised this by overflowing their own box; panels that
+ * start open cannot, so this observes instead of assuming.
+ *
+ * Only open panels are watched — a closed one is pinned to 0 on purpose, and
+ * accordions like the dashboard's carry a panel per location.
+ */
+useResizeObserver(computed(() => open.value ? panelContent.value : null), () => {
+  panelHeight.value = `${panelContent.value?.scrollHeight}px`;
 });
 
 watch(() => contentTrigger, async (val) => {
@@ -88,12 +111,11 @@ watch(() => contentTrigger, async (val) => {
 </script>
 
 <template>
-  <div class="border-b std-border-bottom bg-white dark:bg-sub-panel-dark"
+  <div class="std-border-bottom dark:bg-sub-panel-dark std-border border border-b-0 bg-white first:rounded-t last:rounded-b last:border-b sm:rounded sm:border-b"
        :style="`--panel-height: ${panelHeight}`">
     <div role="heading" aria-level="1">
       <button ref="trigger"
-              class="hhh flex rounded items-center justify-between w-full bg-transparent border-0 text-left px-2 py-1 cursor-pointer
-              outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              class="hhh focus-visible:outline-primary flex w-full cursor-pointer items-center justify-between rounded border-0 bg-transparent px-2 py-1 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
               type="button"
               :id="headerId"
               :aria-expanded="open ? 'true' : 'false'"
@@ -102,7 +124,7 @@ watch(() => contentTrigger, async (val) => {
               @click="onClick"
               @keydown="onKeydown">
         <slot name="title" />
-        <span class="iconify mdi--chevron-down text-2xl ml-auto transition-rotate duration-500 delay-100 ease-in-out"
+        <span class="iconify mdi--chevron-down ml-auto text-2xl transition-rotate delay-100 duration-500 ease-in-out"
               :class="open ? 'rotate-180' : ''" />
       </button>
     </div>

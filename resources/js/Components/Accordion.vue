@@ -16,26 +16,36 @@ const expandedPanelIndex = defineModel<ModelValue>({ default: [], required: fals
 const headerRefs = reactive<Map<AllowedModelValues, HTMLElement>>(new Map());
 const isInitialised = ref(false);
 
-const openedPanel = computed<AllowedModelValues>(() => {
+/**
+ * Every panel currently open, as a set so a panel can ask about itself without
+ * caring which mode the accordion is in.
+ *
+ * Single mode holds one value or nothing; `multiple` holds a list.
+ */
+const openedPanels = computed<ReadonlySet<AllowedModelValues>>(() => {
   if (!multiple) {
-    return expandedPanelIndex.value as AllowedModelValues;
+    const single = expandedPanelIndex.value as AllowedModelValues | undefined;
+    return new Set(single === undefined ? [] : [single]);
   }
 
-  return (expandedPanelIndex.value as ModelValueArray)[0];
+  return new Set(expandedPanelIndex.value as ModelValueArray);
 });
+
+const isPanelOpen = (key: AllowedModelValues) => openedPanels.value.has(key);
 
 const toggle = (key: AllowedModelValues) => {
   if (!multiple) {
-    (expandedPanelIndex.value as Partial<ModelValue>) = openedPanel.value === key ? undefined : key;
+    (expandedPanelIndex.value as Partial<ModelValue>) = isPanelOpen(key) ? undefined : key;
     return;
   }
 
-  const i = (expandedPanelIndex.value as ModelValueArray).indexOf(key);
-  if (i === -1) {
-    (expandedPanelIndex.value as ModelValueArray).push(key);
-  } else {
-    (expandedPanelIndex.value as ModelValueArray).splice(i, 1);
-  }
+  // Replaced rather than spliced in place: `defineModel` emits on assignment,
+  // so mutating the array would leave a parent holding a plain (non-reactive)
+  // array with no idea anything had changed.
+  const open = expandedPanelIndex.value as ModelValueArray;
+  expandedPanelIndex.value = isPanelOpen(key)
+    ? open.filter((candidate) => candidate !== key)
+    : [...open, key];
 };
 
 const registerPanel = (key: AllowedModelValues, el: HTMLElement) => {
@@ -102,7 +112,7 @@ const setHeight = async (el: Element) => {
 provide<AccordionContext<AllowedModelValues>>(AccordionContext, {
   isInitialised,
   registerPanel,
-  openedPanel,
+  isPanelOpen,
   toggle,
   onHeaderKeydown,
 });
@@ -137,7 +147,7 @@ const classes = computed(() => isReadyForTransition.value ? "height 0.5s cubic-b
 </script>
 
 <template>
-  <div class="accordion">
+  <div class="accordion grid grid-cols-1">
     <TransitionGroup v-if="isReadyForTransition"
                      name="accordion"
                      @enter="(el) => setHeight(el)"
