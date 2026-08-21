@@ -68,13 +68,17 @@ onMounted(() => {
 /**
  * Pane order, left to right. The index doubles as the carousel's scroll page,
  * so this is the single source of truth for where each view sits.
+ *
+ * The calendar leads because it is also the default in `store.ts`: landing on
+ * the first pane means a first visit opens with no scroll offset to apply, and
+ * the one direction available to swipe is the one that goes somewhere.
  */
-const VIEWS = ["list", "calendar"] as const;
+const VIEWS = ["calendar", "list"] as const;
 
 /** Names the page indicator's dots for screen readers. */
 const VIEW_LABELS: Record<typeof VIEWS[number], string> = {
-  list: "timeline view",
   calendar: "calendar view",
+  list: "timeline view",
 };
 
 const track = useTemplateRef<HTMLElement>("track");
@@ -125,7 +129,7 @@ const onHintChoice = (keep: boolean) => {
 
 <template>
   <!-- Collapses on desktop so the track is the page's direct child, as before. -->
-  <div class="sm:contents max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col max-sm:gap-2">
+  <div class="max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col max-sm:gap-2 sm:contents">
     <!--
       Mobile: a snap carousel, so the two views can be swiped between. The browser
       owns the gesture, the axis locking and the momentum; all this component does
@@ -144,29 +148,8 @@ const onHintChoice = (keep: boolean) => {
     -->
     <div ref="track"
          data-scroll-align-boundary
-         class="no-scrollbar flex-1 min-h-0 sm:min-h-full sm:grid sm:grid-cols-1 sm:grid-rows-1
-                max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto
-                max-sm:overflow-y-hidden max-sm:overscroll-x-contain max-sm:gap-8">
-      <div class="sm:contents max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0
-                  max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1">
-        <ShiftTimelineView v-if="isViewRendered('list')"
-                           v-model="selectedShift"
-                           :is-active="shiftView === 'list'"
-                           :show-switch-button="showSwitchButton"
-                           :locations="locations"
-                           :marker-dates="serverDates"
-                           :is-restricted="isRestricted"
-                           :is-not-mobile="isNotMobile"
-                           :is-shift-data-resolved="isShiftDataResolved"
-                           :date="date"
-                           :user="user"
-                           :user-shift-locations="userShiftLocations"
-                           @switch-view="shiftView = 'calendar'"
-                           @toggle-reservation="toggleReservation" />
-      </div>
-
-      <div class="sm:contents max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0
-                  max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1">
+         class="no-scrollbar min-h-0 flex-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:gap-8 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain sm:grid sm:min-h-full sm:grid-cols-1 sm:grid-rows-1">
+      <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
         <ShiftCalendarView v-if="isViewRendered('calendar')"
                            v-model:date="date"
                            v-model:expanded-panel="expandedAccordionPanelIndex"
@@ -181,6 +164,23 @@ const onHintChoice = (keep: boolean) => {
                            :user="user"
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'list'"
+                           @toggle-reservation="toggleReservation" />
+      </div>
+
+      <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
+        <ShiftTimelineView v-if="isViewRendered('list')"
+                           v-model="selectedShift"
+                           :is-active="shiftView === 'list'"
+                           :show-switch-button="showSwitchButton"
+                           :locations="locations"
+                           :marker-dates="serverDates"
+                           :is-restricted="isRestricted"
+                           :is-not-mobile="isNotMobile"
+                           :is-shift-data-resolved="isShiftDataResolved"
+                           :date="date"
+                           :user="user"
+                           :user-shift-locations="userShiftLocations"
+                           @switch-view="shiftView = 'calendar'"
                            @toggle-reservation="toggleReservation" />
       </div>
     </div>
@@ -201,7 +201,7 @@ const onHintChoice = (keep: boolean) => {
               type="button"
               class="flex size-6 cursor-pointer items-center justify-center"
               :aria-label="`Show the ${VIEW_LABELS[view]}`"
-              :aria-current="view === shiftView ? 'true' : undefined"
+              :aria-current="view === shiftView ? 'true' : 'false'"
               @click="shiftView = view">
         <!-- The inactive dot still has to read as a place you can go, so it is
           only a step down in weight from the active one, not a hint of one. -->

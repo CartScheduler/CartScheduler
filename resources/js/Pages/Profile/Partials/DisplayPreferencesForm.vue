@@ -26,7 +26,7 @@ const { isSwitchButtonShown, setSwitchButtonShown } = useViewSwitchButton();
               Show the view switch button
             </span>
             <span class="block text-sm text-neutral-600 dark:text-neutral-300">
-              The button that moves between the timeline and the calendar. With it hidden you can
+              This is a button that moves between the calendar and the timeline. With it hidden you can
               still swipe between the two, or tap the dots beneath them.
             </span>
           </span>

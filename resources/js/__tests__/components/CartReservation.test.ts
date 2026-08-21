@@ -82,7 +82,8 @@ const dotLabel = /Show the/;
 const getTrack = (container: Element) => container.querySelector("[data-scroll-align-boundary]") as HTMLElement;
 
 beforeEach(() => {
-  store.shiftView = "list";
+  // The store's own default, so these render as a first-time visitor sees it.
+  store.shiftView = "calendar";
   // Answered, so the first-run hint stays out of the way of these tests.
   store.viewSwitchButton = { u1: "shown" };
   setViewport(false);
@@ -112,8 +113,11 @@ describe("CartReservation", () => {
     // margin down its own side rather than the two panels butting together.
     expect(track.classList.contains("max-sm:gap-8")).toBe(true);
 
-    // A pane each, both full width so a page is exactly one view.
+    // A pane each, both full width so a page is exactly one view. The calendar
+    // leads, so the default view is the pane you land on without scrolling.
     expect(track.children).toHaveLength(2);
+    expect(track.children[0]?.querySelector("[data-testid='calendar']")).not.toBeNull();
+    expect(track.children[1]?.querySelector("[data-testid='timeline']")).not.toBeNull();
     for (const pane of track.children) {
       expect(pane.className).toContain("max-sm:w-full");
       expect(pane.className).toContain("max-sm:snap-center");
@@ -135,19 +139,22 @@ describe("CartReservation", () => {
 
     const dots = getAllByRole("button", { name: dotLabel });
     expect(dots.map((dot) => dot.getAttribute("aria-label"))).toEqual([
-      "Show the timeline view",
       "Show the calendar view",
+      "Show the timeline view",
     ]);
+    // Spelled out rather than omitted: "false" says the dot is a place you can
+    // go and are not, where an absent attribute says nothing at all.
     expect(dots[0]?.getAttribute("aria-current")).toBe("true");
-    expect(dots[1]?.getAttribute("aria-current")).toBeNull();
+    expect(dots[1]?.getAttribute("aria-current")).toBe("false");
 
     // The dots are the affordance once the switch button can be turned off.
     dots[1]?.click();
     await vi.waitFor(() => expect(dots[1]?.getAttribute("aria-current")).toBe("true"));
-    expect(dots[0]?.getAttribute("aria-current")).toBeNull();
+    expect(dots[0]?.getAttribute("aria-current")).toBe("false");
   });
 
   it("tells the timeline whether it is the pane on screen", async () => {
+    store.shiftView = "list";
     const onTimeline = renderCartReservation();
     expect((await onTimeline.findByTestId("timeline")).dataset["active"]).toBe("true");
     onTimeline.unmount();
@@ -201,7 +208,7 @@ describe("CartReservation", () => {
     const { findByTestId } = renderCartReservation();
 
     // Desktop has no carousel to swipe, so the button is the only way across.
-    expect((await findByTestId("timeline")).dataset["switchButton"]).toBe("true");
+    expect((await findByTestId("calendar")).dataset["switchButton"]).toBe("true");
   });
 
   it("renders only the active view on desktop, in the single-cell grid", async () => {
@@ -215,8 +222,8 @@ describe("CartReservation", () => {
     expect(track.classList.contains("sm:overflow-x-auto")).toBe(false);
     expect(track.classList.contains("sm:snap-x")).toBe(false);
 
-    await findByTestId("timeline");
+    await findByTestId("calendar");
     // No carousel on desktop, so the inactive view is never built.
-    await vi.waitFor(() => expect(queryByTestId("calendar")).toBeNull());
+    await vi.waitFor(() => expect(queryByTestId("timeline")).toBeNull());
   });
 });

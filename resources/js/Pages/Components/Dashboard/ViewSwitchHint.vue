@@ -39,7 +39,7 @@ onKeyStroke("Escape", dismiss);
                 w-[min(20rem,calc(100dvw-2rem))] -translate-x-1/2 rounded-lg border bg-white
                 p-4 text-left shadow-lg">
       <p id="view-switch-hint-heading" class="text-sm text-neutral-700 dark:text-neutral-200">
-        Swipe left and right to move between the timeline and the calendar, or tap the dots below.
+        Swipe left and right to move between the calendar and the timeline, or tap the dots below.
       </p>
       <p class="mt-1.5 text-sm text-neutral-500 dark:text-neutral-400">
         Hide the switch button to free up some room? You can bring it back any time in your user
