@@ -20,7 +20,7 @@ vi.mock("@inertiajs/vue3", () => ({
 vi.stubGlobal("route", () => ({ current: () => "dashboard" }));
 
 const stubs = {
-  Nav: { template: "<nav />" },
+  NavBar: { template: "<nav />" },
   PToast: { template: "<div />" },
   ObtrusiveNotification: { template: "<div />" },
   AvailabilityReminder: { template: "<div />" },
