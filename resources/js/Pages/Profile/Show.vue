@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { provide, ref } from "vue";
+import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { provide, ref, watch } from "vue";
 import DeleteUserForm from "@/Pages/Profile/Partials/DeleteUserForm.vue";
 import DisplayPreferencesForm from "@/Pages/Profile/Partials/DisplayPreferencesForm.vue";
 import LogoutOtherBrowserSessionsForm from "@/Pages/Profile/Partials/LogoutOtherBrowserSessionsForm.vue";
@@ -21,24 +22,44 @@ defineProps<{
  */
 provide(SectionTitleProvidedByParent, true);
 
+/** Every section, in the order they appear. */
+const PANEL_IDS = ["display", "profile", "password", "two-factor", "sessions", "delete"];
+
+const breakpoints = useBreakpoints(breakpointsTailwind);
+const isNotMobile = breakpoints.greaterOrEqual("sm");
+
 /**
- * Nothing expanded to start with, so every section is in view at once rather
- * than the page opening part-way down one of them.
+ * Either a list of open sections or the single open one, depending on how much
+ * room there is.
  */
-const expandedPanel = ref<string>();
+const expandedPanels = ref<string[] | string>();
+
+/**
+ * With room on screen, everything starts open: the sections are short, and
+ * reading them beats hunting through six headers for the one you want.
+ *
+ * On a phone that same content is a very long page, so the headers stay
+ * collapsed and act as the contents list instead — which also means only one
+ * section can be open at a time there, hence `multiple` moving in step.
+ */
+watch(isNotMobile, (hasRoom) => {
+  expandedPanels.value = hasRoom ? [...PANEL_IDS] : undefined;
+}, { immediate: true });
 </script>
 
 <template>
   <PageHeader title="Preferences">
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+    <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">
       Preferences
     </h2>
   </PageHeader>
-  <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-    <Accordion v-model="expandedPanel" class="border std-border rounded border-b-0">
+  <div class="mx-auto max-w-7xl py-10 sm:px-6 lg:px-8">
+    <Accordion v-model="expandedPanels"
+               :multiple="isNotMobile"
+               class="gap-0 sm:gap-6">
       <AccordionPanel unique-id="display">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Display</div>
+          <div class="flex items-center p-2 text-base font-bold">Display</div>
         </template>
 
         <DisplayPreferencesForm />
@@ -46,7 +67,7 @@ const expandedPanel = ref<string>();
 
       <AccordionPanel v-if="$page.props.jetstream.canUpdateProfileInformation" unique-id="profile">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Profile Information</div>
+          <div class="flex items-center p-2 text-base font-bold">Profile Information</div>
         </template>
 
         <UpdateProfileInformationForm :user="$page.props.auth.user" />
@@ -54,7 +75,7 @@ const expandedPanel = ref<string>();
 
       <AccordionPanel v-if="$page.props.jetstream.canUpdatePassword" unique-id="password">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Password</div>
+          <div class="flex items-center p-2 text-base font-bold">Password</div>
         </template>
 
         <UpdatePasswordForm />
@@ -63,7 +84,7 @@ const expandedPanel = ref<string>();
       <AccordionPanel v-if="$page.props.jetstream.canManageTwoFactorAuthentication"
                       unique-id="two-factor">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Two Factor Authentication</div>
+          <div class="flex items-center p-2 text-base font-bold">Two Factor Authentication</div>
         </template>
 
         <TwoFactorAuthenticationForm :requires-confirmation="confirmsTwoFactorAuthentication" />
@@ -71,7 +92,7 @@ const expandedPanel = ref<string>();
 
       <AccordionPanel unique-id="sessions">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Browser Sessions</div>
+          <div class="flex items-center p-2 text-base font-bold">Browser Sessions</div>
         </template>
 
         <LogoutOtherBrowserSessionsForm :sessions="sessions" />
@@ -79,7 +100,7 @@ const expandedPanel = ref<string>();
 
       <AccordionPanel v-if="$page.props.jetstream.hasAccountDeletionFeatures" unique-id="delete">
         <template #title>
-          <div class="flex items-center text-base font-bold p-2">Delete Account</div>
+          <div class="flex items-center p-2 text-base font-bold">Delete Account</div>
         </template>
 
         <DeleteUserForm />
