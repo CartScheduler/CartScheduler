@@ -2,7 +2,6 @@
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
 import { provide, ref, watch } from "vue";
 import DeleteUserForm from "@/Pages/Profile/Partials/DeleteUserForm.vue";
-import DisplayPreferencesForm from "@/Pages/Profile/Partials/DisplayPreferencesForm.vue";
 import LogoutOtherBrowserSessionsForm from "@/Pages/Profile/Partials/LogoutOtherBrowserSessionsForm.vue";
 import TwoFactorAuthenticationForm from "@/Pages/Profile/Partials/TwoFactorAuthenticationForm.vue";
 import UpdatePasswordForm from "@/Pages/Profile/Partials/UpdatePasswordForm.vue";
@@ -22,50 +21,44 @@ defineProps<{
  */
 provide(SectionTitleProvidedByParent, true);
 
-/** Every section, in the order they appear. */
-const PANEL_IDS = ["display", "profile", "password", "two-factor", "sessions", "delete"];
-
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
 /**
- * Either a list of open sections or the single open one, depending on how much
- * room there is.
- */
-const expandedPanels = ref<string[] | string>();
-
-/**
- * With room on screen, everything starts open: the sections are short, and
- * reading them beats hunting through six headers for the one you want.
+ * Which section is open, on a phone.
  *
- * On a phone that same content is a very long page, so the headers stay
- * collapsed and act as the contents list instead — which also means only one
- * section can be open at a time there, hence `multiple` moving in step.
+ * Only consulted below `sm`: above it the sections stop being disclosures
+ * altogether and become a fixed panel layout, where nothing opens or closes.
  */
-watch(isNotMobile, (hasRoom) => {
-  expandedPanels.value = hasRoom ? [...PANEL_IDS] : undefined;
-}, { immediate: true });
+const expandedPanel = ref<string>();
+
+// Collapse on the way down to a phone, so the layout does not arrive with a
+// section already open from a width where openness meant nothing.
+watch(isNotMobile, () => {
+  expandedPanel.value = undefined;
+});
 </script>
 
 <template>
-  <PageHeader title="Preferences">
+  <PageHeader title="Profile">
     <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">
-      Preferences
+      Profile
     </h2>
   </PageHeader>
   <div class="mx-auto max-w-7xl py-10 sm:px-6 lg:px-8">
-    <Accordion v-model="expandedPanels"
-               :multiple="isNotMobile"
-               class="gap-0 sm:gap-6">
-      <AccordionPanel unique-id="display">
-        <template #title>
-          <div class="flex items-center p-2 text-base font-bold">Display</div>
-        </template>
-
-        <DisplayPreferencesForm />
-      </AccordionPanel>
-
-      <AccordionPanel v-if="$page.props.jetstream.canUpdateProfileInformation" unique-id="profile">
+    <!--
+      A phone gets an accordion, because all of this at once is a very long
+      page and the headers work better as a contents list. Anything wider gets
+      the sections laid out as panels; `md` has the room for two columns, where
+      the two short account sections pair up and the session list — a table,
+      and the widest thing here — takes a row of its own.
+    -->
+    <Accordion v-model="expandedPanel"
+               :static-panels="isNotMobile"
+               class="gap-0 sm:gap-6 md:grid-cols-2">
+      <AccordionPanel v-if="$page.props.jetstream.canUpdateProfileInformation"
+                      unique-id="profile"
+                      description="Your name and the address we contact you on.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Profile Information</div>
         </template>
@@ -73,7 +66,9 @@ watch(isNotMobile, (hasRoom) => {
         <UpdateProfileInformationForm :user="$page.props.auth.user" />
       </AccordionPanel>
 
-      <AccordionPanel v-if="$page.props.jetstream.canUpdatePassword" unique-id="password">
+      <AccordionPanel v-if="$page.props.jetstream.canUpdatePassword"
+                      unique-id="password"
+                      description="Change the password you sign in with.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Password</div>
         </template>
@@ -82,7 +77,8 @@ watch(isNotMobile, (hasRoom) => {
       </AccordionPanel>
 
       <AccordionPanel v-if="$page.props.jetstream.canManageTwoFactorAuthentication"
-                      unique-id="two-factor">
+                      unique-id="two-factor"
+                      description="Ask for a second step when signing in, so a password alone is not enough.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Two Factor Authentication</div>
         </template>
@@ -90,7 +86,10 @@ watch(isNotMobile, (hasRoom) => {
         <TwoFactorAuthenticationForm :requires-confirmation="confirmsTwoFactorAuthentication" />
       </AccordionPanel>
 
-      <AccordionPanel unique-id="sessions">
+      <!-- A table, and the widest section here, so it takes the row to itself. -->
+      <AccordionPanel unique-id="sessions"
+                      class="md:col-span-2"
+                      description="Where else you are signed in, and how to sign those devices out.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Browser Sessions</div>
         </template>
@@ -98,7 +97,10 @@ watch(isNotMobile, (hasRoom) => {
         <LogoutOtherBrowserSessionsForm :sessions="sessions" />
       </AccordionPanel>
 
-      <AccordionPanel v-if="$page.props.jetstream.hasAccountDeletionFeatures" unique-id="delete">
+      <AccordionPanel v-if="$page.props.jetstream.hasAccountDeletionFeatures"
+                      unique-id="delete"
+                      class="md:col-span-2"
+                      description="Permanently remove your account and everything stored against it.">
         <template #title>
           <div class="flex items-center p-2 text-base font-bold">Delete Account</div>
         </template>
