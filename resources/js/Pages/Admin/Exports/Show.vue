@@ -5,50 +5,61 @@ import JetInput from "@/Jetstream/Input.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import JetSecondaryButton from "@/Jetstream/SecondaryButton.vue";
 
-type ExportRouteName =
-  | "admin.exports.reports"
-  | "admin.exports.shift-assignments"
-  | "admin.exports.shift-counts"
-  | "admin.exports.user-availabilities";
+type Export = {
+  routeName:
+    | "admin.exports.reports"
+    | "admin.exports.shift-assignments"
+    | "admin.exports.shift-counts"
+    | "admin.exports.user-availabilities";
+  title: string;
+  description: string;
+  /** Availabilities are a snapshot of what people have set, not a period. */
+  needsDateRange: boolean;
+};
+
+const EXPORTS: Export[] = [
+  {
+    routeName: "admin.exports.reports",
+    title: "Reports",
+    description: "Shift reports for the selected date range.",
+    needsDateRange: true,
+  },
+  {
+    routeName: "admin.exports.shift-assignments",
+    title: "Shift assignments",
+    description: "Volunteer shift assignments for the selected date range.",
+    needsDateRange: true,
+  },
+  {
+    routeName: "admin.exports.shift-counts",
+    title: "Shift counts",
+    description: "Number of shifts per volunteer for the selected date range.",
+    needsDateRange: true,
+  },
+  {
+    routeName: "admin.exports.user-availabilities",
+    title: "User availabilities",
+    description: "Volunteer availability preferences.",
+    needsDateRange: false,
+  },
+];
 
 const startDate = ref("");
 const endDate = ref("");
 
-const canDownloadDateRangeExports = computed(() => startDate.value && endDate.value);
+const hasDateRange = computed(() => Boolean(startDate.value && endDate.value));
 
-const download = (routeName: ExportRouteName, params: Record<string, string> = {}) => {
-  const url = new URL(route(routeName), window.location.origin);
+const isAvailable = (exportItem: Export) => !exportItem.needsDateRange || hasDateRange.value;
 
-  Object.entries(params).forEach(([key, value]) => {
-    url.searchParams.set(key, value);
-  });
+const download = (exportItem: Export) => {
+  const url = new URL(route(exportItem.routeName), window.location.origin);
+
+  if (exportItem.needsDateRange) {
+    url.searchParams.set("start_date", startDate.value);
+    url.searchParams.set("end_date", endDate.value);
+  }
 
   window.location.href = url.toString();
-};
-
-const downloadReports = () => {
-  download("admin.exports.reports", {
-    start_date: startDate.value,
-    end_date: endDate.value,
-  });
-};
-
-const downloadShiftAssignments = () => {
-  download("admin.exports.shift-assignments", {
-    start_date: startDate.value,
-    end_date: endDate.value,
-  });
-};
-
-const downloadShiftCounts = () => {
-  download("admin.exports.shift-counts", {
-    start_date: startDate.value,
-    end_date: endDate.value,
-  });
-};
-
-const downloadUserAvailabilities = () => {
-  download("admin.exports.user-availabilities");
 };
 </script>
 
@@ -83,45 +94,15 @@ const downloadUserAvailabilities = () => {
       </div>
 
       <div class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
+        <div v-for="exportItem in EXPORTS"
+             :key="exportItem.routeName"
+             class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
           <div>
-            <h3 class="font-medium text-gray-900 dark:text-gray-200">Reports</h3>
-            <JetHelpText>Shift reports for the selected date range.</JetHelpText>
+            <h3 class="font-medium text-gray-900 dark:text-gray-200">{{ exportItem.title }}</h3>
+            <JetHelpText>{{ exportItem.description }}</JetHelpText>
           </div>
-          <JetSecondaryButton :disabled="!canDownloadDateRangeExports"
-                              @click="downloadReports">
-            Download CSV
-          </JetSecondaryButton>
-        </div>
-
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-          <div>
-            <h3 class="font-medium text-gray-900 dark:text-gray-200">Shift assignments</h3>
-            <JetHelpText>Volunteer shift assignments for the selected date range.</JetHelpText>
-          </div>
-          <JetSecondaryButton :disabled="!canDownloadDateRangeExports"
-                              @click="downloadShiftAssignments">
-            Download CSV
-          </JetSecondaryButton>
-        </div>
-
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-          <div>
-            <h3 class="font-medium text-gray-900 dark:text-gray-200">Shift counts</h3>
-            <JetHelpText>Number of shifts per volunteer for the selected date range.</JetHelpText>
-          </div>
-          <JetSecondaryButton :disabled="!canDownloadDateRangeExports"
-                              @click="downloadShiftCounts">
-            Download CSV
-          </JetSecondaryButton>
-        </div>
-
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-200 dark:border-gray-700 pt-6">
-          <div>
-            <h3 class="font-medium text-gray-900 dark:text-gray-200">User availabilities</h3>
-            <JetHelpText>Volunteer availability preferences.</JetHelpText>
-          </div>
-          <JetSecondaryButton @click="downloadUserAvailabilities">
+          <JetSecondaryButton :disabled="!isAvailable(exportItem)"
+                              @click="download(exportItem)">
             Download CSV
           </JetSecondaryButton>
         </div>
