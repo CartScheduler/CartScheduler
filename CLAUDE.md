@@ -117,6 +117,17 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
     - Execute Node commands: `vendor/bin/sail npm run dev`
     - Execute PHP scripts: `vendor/bin/sail php [script]`
 - View all available Sail commands by running `vendor/bin/sail` without arguments.
+- Inside the Claude sandbox devcontainer, Sail drives the *host's* Docker daemon
+  through a filtered socket proxy. Anything that acts on a container that is already
+  running works normally: `sail artisan`, `sail composer`, `sail npm`, `sail test`,
+  `sail mysql`, `sail shell`.
+- `sail up`, `sail down`, `sail build`, `sail restart`, and any `docker run` or
+  `docker pull` will fail with `Error response from daemon: Forbidden`. That is the
+  proxy refusing, not a broken setup — do not try to work around it. Those commands
+  belong on the host: the daemon runs there, so the compose file's relative bind
+  mounts resolve against the host filesystem, where `/workspaces/cart-scheduler`
+  does not exist, and bringing the stack up from in here would mount empty
+  directories over the application. Ask the user to run them.
 
 === tests rules ===
 
