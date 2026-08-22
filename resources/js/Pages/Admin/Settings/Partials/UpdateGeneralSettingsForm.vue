@@ -18,6 +18,8 @@ const form = useForm({
   systemShiftEndHour: settings.systemShiftEndHour,
   enableUserAvailability: settings.enableUserAvailability,
   enableUserLocationChoices: settings.enableUserLocationChoices,
+  enableShiftRemoveConfirm: settings.enableShiftRemoveConfirm,
+  shiftRemoveConfirmMessage: settings.shiftRemoveConfirmMessage,
 });
 
 const toast = useToast();
@@ -145,6 +147,35 @@ const endHour = useTemplateRef<{ $el: HTMLElement }>("systemShiftEndHour");
             niche setting, you probably will <strong>not</strong> need to enable this feature.
           </em>
         </div>
+      </div>
+
+      <div class="col-span-6 flex items-center flex-wrap">
+        <PCheckbox binary
+                   input-id="enable-shift-remove-confirm"
+                   v-model="form.enableShiftRemoveConfirm"
+                   value="true"
+                   class="mr-3" />
+        <JetLabel for="enable-shift-remove-confirm" value="Show confirmation when removing a reservation" />
+        <JetInputError :message="form.errors.enableShiftRemoveConfirm" class="mt-2" />
+        <div class="col-span-2 ml-1 text-sm text-gray-600 dark:text-gray-300 w-full">
+          When enabled, volunteers will see a confirmation before they remove a reservation.
+        </div>
+      </div>
+
+      <div class="col-span-6 sm:col-span-4">
+        <JetLabel for="shift-remove-confirm-message"
+                  value="Remove reservation confirmation message"
+                  :form
+                  error-key="shiftRemoveConfirmMessage" />
+        <PTextarea id="shift-remove-confirm-message"
+                   v-model="form.shiftRemoveConfirmMessage"
+                   rows="3"
+                   maxlength="200"
+                   class="mt-1 block w-full" />
+        <div class="mt-1 ml-1 max-w-xl text-sm text-gray-600 dark:text-gray-300">
+          This message is shown to volunteers when they remove a reservation. Required when the confirmation is enabled. Maximum 200 characters.
+        </div>
+        <JetInputError :message="form.errors.shiftRemoveConfirmMessage" class="mt-2" />
       </div>
     </template>
 

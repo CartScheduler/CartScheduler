@@ -74,7 +74,7 @@ onMounted(() => {
                         type="button"
                         class="is-reserved block"
                         @click="$emit('toggleReservation', location.id, shift.id, false)">
-                  <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
+                  <User status="reserved" v-tooltip="`${volunteer.name}: Tap to remove your reservation from this shift`" />
                 </button>
                 <User v-else status="reserved" />
               </template>

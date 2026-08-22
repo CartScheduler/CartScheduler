@@ -232,5 +232,7 @@ declare namespace App.Settings {
     systemShiftEndHour: number;
     enableUserAvailability: boolean;
     enableUserLocationChoices: boolean;
+    enableShiftRemoveConfirm: boolean;
+    shiftRemoveConfirmMessage: string;
   };
 }
