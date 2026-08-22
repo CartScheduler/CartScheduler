@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { templateRef } from "@vueuse/core";
-import { computed } from "vue";
-import { useGlobalState } from "@/store";
+import { computed, inject } from "vue";
+import { useGlobalState, columnFilterOrder } from "@/store";
+import { EnableUserAvailability } from "@/Utils/provide-inject-keys";
 import type { LocalStore } from "@/store";
 
 const state = useGlobalState();
+const enableUserAvailability = inject(EnableUserAvailability);
 
-const options = computed(() => Object.entries(state.value.columnFilters).map(([key, value]) => ({
-  key,
-  name: value.label,
-  value: value.value,
-})));
+const options = computed(() => columnFilterOrder
+  .filter((key) => enableUserAvailability || key !== "weeksPerMonth")
+  .map((key) => ({
+    key,
+    name: state.value.columnFilters[key].label,
+    value: state.value.columnFilters[key].value,
+  })));
 
 const model = computed({
   get: () => options.value.filter((value) => value.value).map((value) => ({ ...value })),
