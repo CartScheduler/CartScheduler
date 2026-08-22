@@ -40,20 +40,6 @@ export type LocalStore = {
   viewSwitchButton: Record<string, "shown" | "hidden">;
 };
 
-/** Matches optional column order in UserTable.vue */
-export const columnFilterOrder = [
-  "responsibleBrother",
-  "gender",
-  "appointment",
-  "servingAs",
-  "maritalStatus",
-  "birthYear",
-  "mobilePhone",
-  "lastLocation",
-  "comments",
-  "weeksPerMonth",
-] as const satisfies readonly (keyof LocalStore["columnFilters"])[];
-
 const defaults: LocalStore = {
   dismissedAvailabilityOn: undefined,
   // used to filter admin volunteer rostering table
@@ -72,6 +58,15 @@ const defaults: LocalStore = {
   shiftView: "calendar",
   viewSwitchButton: {},
 };
+
+/**
+ * The order the optional columns are offered in.
+ *
+ * Read off `defaults` rather than restated: a hand-kept list is a third place
+ * to remember a new column, and one left out of it goes missing from the
+ * picker without anything failing.
+ */
+export const columnFilterOrder = Object.keys(defaults.columnFilters) as (keyof LocalStore["columnFilters"])[];
 
 export const useGlobalState = createGlobalState(
   () => {
