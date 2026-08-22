@@ -110,6 +110,12 @@
         transition: background var(--p-datepicker-transition-duration);
     }
 
+    .p-toast {
+        /* Default PrimeVue toast width is a fixed 25rem, which overflows narrow viewports. */
+        width: min(25rem, calc(100vw - 2rem));
+        max-width: calc(100vw - 2rem);
+    }
+
     .subtle-zoom {
         @apply hover:scale-[102%];
     }
