@@ -11,6 +11,10 @@ use App\Http\Controllers\AvailableShiftsController;
 use App\Http\Controllers\DeleteShiftsController;
 use App\Http\Controllers\DownloadUserImportSpreadsheetController;
 use App\Http\Controllers\DownloadUsersAsSpreadsheetController;
+use App\Http\Controllers\ExportReportsController;
+use App\Http\Controllers\ExportShiftAssignmentsController;
+use App\Http\Controllers\ExportUserAvailabilitiesController;
+use App\Http\Controllers\ExportUserShiftCountsController;
 use App\Http\Controllers\GetAdminUsersController;
 use App\Http\Controllers\GetAvailableUsersForShiftController;
 use App\Http\Controllers\GetReportTagsController;
@@ -24,6 +28,7 @@ use App\Http\Controllers\ReportTagsSortOrderController;
 use App\Http\Controllers\ResendWelcomeEmailController;
 use App\Http\Controllers\SaveShiftReportController;
 use App\Http\Controllers\SetUserPasswordController;
+use App\Http\Controllers\ShowExportsController;
 use App\Http\Controllers\ShowGeneralSettingsController;
 use App\Http\Controllers\ShowUserAvailabilityController;
 use App\Http\Controllers\ToggleShiftReservationController;
@@ -186,6 +191,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
                 '/users-import-template',
                 DownloadUserImportSpreadsheetController::class
             )->name('admin.user-import-template');
+
+            Route::get('/exports', ShowExportsController::class)->name('admin.exports');
+            Route::get('/exports/reports', ExportReportsController::class)->name('admin.exports.reports');
+            Route::get('/exports/shift-assignments', ExportShiftAssignmentsController::class)->name('admin.exports.shift-assignments');
+            Route::get('/exports/shift-counts', ExportUserShiftCountsController::class)->name('admin.exports.shift-counts');
+            Route::get('/exports/user-availabilities', ExportUserAvailabilitiesController::class)->name('admin.exports.user-availabilities');
 
             // Route::get('/', static fn() => Inertia::render('Admin/Dashboard'))->name('admin.dashboard');
 
