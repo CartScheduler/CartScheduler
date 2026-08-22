@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "editor-bridge": ".devcontainer/host-editor-bridge.js --container-root=/workspaces/cart-scheduler --host-root=\"$PWD\"",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest watch",
