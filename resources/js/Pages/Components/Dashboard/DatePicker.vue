@@ -13,7 +13,7 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, useTemplateRef } from "vue";
 import type { DatePickerDateSlotOptions, DatePickerMonthChangeEvent } from "primevue";
 import type { DateMark } from "@/types/types";
 
@@ -107,7 +107,7 @@ const restrictedDates = computed(() => {
 
 // Template ref to the PrimeVue DatePicker so we can keep its displayed month/year
 // in sync after we programmatically change the selected date (see syncView).
-const datePicker = ref<{ currentMonth: number; currentYear: number } | null>(null);
+const datePicker = useTemplateRef<{ currentMonth: number; currentYear: number }>("datePicker");
 
 /**
  * PrimeVue re-derives its displayed month/year from a stale internal value whenever the
