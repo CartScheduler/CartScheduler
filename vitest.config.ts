@@ -2,11 +2,6 @@ import * as path from "node:path";
 import vue from "@vitejs/plugin-vue";
 import { defineConfig } from "vitest/config";
 
-// Pin the timezone so date-based snapshots are deterministic regardless of the
-// host/CI/container timezone (e.g. Docker defaults to UTC). This matches the
-// timezone the date snapshots were generated in.
-process.env.TZ = "Australia/Melbourne";
-
 export default defineConfig({
   plugins: [vue()],
   test: {
