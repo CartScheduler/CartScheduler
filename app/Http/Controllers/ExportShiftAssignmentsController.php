@@ -6,13 +6,11 @@ use App\Data\ExportShiftAssignmentData;
 use App\Http\Requests\ExportDateRangeRequest;
 use App\Http\Responses\ExportResponseFormatter;
 use App\Models\ShiftUser;
-use App\Settings\GeneralSettings;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class ExportShiftAssignmentsController extends Controller
 {
-    public function __construct(private readonly GeneralSettings $settings) {}
+    public function __construct(private readonly ExportResponseFormatter $formatter) {}
 
     public function __invoke(ExportDateRangeRequest $request): Response
     {
@@ -30,17 +28,6 @@ class ExportShiftAssignmentsController extends Controller
                 ->get()
         );
 
-        return ExportResponseFormatter::download(
-            $rows,
-            $this->filename('shift-assignments'),
-        );
-    }
-
-    private function filename(string $type): string
-    {
-        $dateTime = now()->format('Y-m-d_His');
-        $siteName = Str::snake($this->settings->siteName);
-
-        return "{$siteName}-{$type}_{$dateTime}.csv";
+        return $this->formatter->download($rows, 'shift-assignments');
     }
 }
