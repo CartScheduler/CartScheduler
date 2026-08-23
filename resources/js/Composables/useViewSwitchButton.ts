@@ -1,6 +1,9 @@
 import { usePage } from "@inertiajs/vue3";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useGlobalState } from "@/store";
+
+/** Development only. See `isPretendingFirstVisit` below. */
+const HINT_QUERY_FLAG = "view-switch-hint";
 
 /**
  * The user's choice about the dashboard's view switch button.
@@ -20,9 +23,37 @@ export default function useViewSwitchButton() {
 
   const userUuid = computed(() => page.props.auth.user?.uuid);
 
+  /** Set once the user answers, which lifts the override. See below. */
+  const hasAnsweredSinceLoad = ref(false);
+
+  /**
+   * Development only: `?view-switch-hint` in the URL makes this read as a first
+   * visit, so the hint can be looked at again after it has been answered —
+   * otherwise the only way back to it is to clear localStorage by hand.
+   *
+   * It overrides the whole preference rather than just `hasChosen`, because a
+   * user who chose to hide the button would have nothing left for the hint to
+   * hang off. And it lifts as soon as the user answers, so the flag does not
+   * swallow the very behaviour it was turned on to look at.
+   *
+   * `import.meta.env.DEV` is substituted at build time, so this and the query
+   * lookup with it are dropped from a production bundle.
+   */
+  const isPretendingFirstVisit = computed(() => {
+    if (!import.meta.env.DEV || hasAnsweredSinceLoad.value) {
+      return false;
+    }
+
+    return new URL(page.url ?? "", window.location.origin).searchParams.has(HINT_QUERY_FLAG);
+  });
+
   // Optional throughout: `useStorage` merges in new defaults, but a blob written
   // before this key existed should degrade to "not asked yet", not throw.
   const preference = computed(() => {
+    if (isPretendingFirstVisit.value) {
+      return undefined;
+    }
+
     const uuid = userUuid.value;
     return uuid ? state.value.viewSwitchButton?.[uuid] : undefined;
   });
@@ -35,6 +66,8 @@ export default function useViewSwitchButton() {
     hasChosen: computed(() => preference.value !== undefined),
 
     setSwitchButtonShown: (shown: boolean) => {
+      hasAnsweredSinceLoad.value = true;
+
       const uuid = userUuid.value;
       if (!uuid) {
         return;

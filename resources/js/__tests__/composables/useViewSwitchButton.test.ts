@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, ref } from "vue";
 import useViewSwitchButton from "@/Composables/useViewSwitchButton";
 
@@ -8,8 +8,14 @@ const store = vi.hoisted(() => ({
 
 const auth = vi.hoisted(() => ({ uuid: undefined as string | undefined }));
 
+/** The dev override reads the query string off the Inertia page url. */
+const location = vi.hoisted(() => ({ url: "/dashboard" }));
+
 vi.mock("@inertiajs/vue3", () => ({
-  usePage: () => ({ props: { auth: { user: auth.uuid ? { uuid: auth.uuid } : undefined } } }),
+  usePage: () => ({
+    url: location.url,
+    props: { auth: { user: auth.uuid ? { uuid: auth.uuid } : undefined } },
+  }),
 }));
 
 vi.mock("@/store", () => ({ useGlobalState: () => ref(store) }));
@@ -23,6 +29,11 @@ const use = () => {
 beforeEach(() => {
   store.viewSwitchButton = {};
   auth.uuid = "user-a";
+  location.url = "/dashboard";
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("useViewSwitchButton", () => {
@@ -80,6 +91,56 @@ describe("useViewSwitchButton", () => {
 
     setSwitchButtonShown(false);
     expect(store.viewSwitchButton).toEqual({ "user-a": "hidden" });
+  });
+
+  describe("the dev-only override", () => {
+    it("reads a stored answer as a first visit, so the hint comes back", () => {
+      store.viewSwitchButton = { "user-a": "hidden" };
+      location.url = "/dashboard?view-switch-hint";
+
+      const { isSwitchButtonShown, hasChosen } = use();
+
+      // The button returns with it: hidden, there would be nothing for the hint
+      // to hang off, and the offer to hide it would make no sense either.
+      expect(isSwitchButtonShown.value).toBe(true);
+      expect(hasChosen.value).toBe(false);
+    });
+
+    it("steps aside once that visit is answered", () => {
+      store.viewSwitchButton = { "user-a": "shown" };
+      location.url = "/dashboard?view-switch-hint";
+
+      const { isSwitchButtonShown, hasChosen, setSwitchButtonShown } = use();
+      setSwitchButtonShown(false);
+
+      // Otherwise the flag would swallow the behaviour it was turned on to
+      // show: the button would stay put and the hint would never settle.
+      expect(isSwitchButtonShown.value).toBe(false);
+      expect(hasChosen.value).toBe(true);
+      expect(store.viewSwitchButton["user-a"]).toBe("hidden");
+    });
+
+    it("leaves the stored answer alone without the flag", () => {
+      store.viewSwitchButton = { "user-a": "hidden" };
+      location.url = "/dashboard?something-else=1";
+
+      const { isSwitchButtonShown, hasChosen } = use();
+
+      expect(isSwitchButtonShown.value).toBe(false);
+      expect(hasChosen.value).toBe(true);
+    });
+
+    it("is not reachable from a production build", () => {
+      vi.stubEnv("DEV", false);
+      store.viewSwitchButton = { "user-a": "hidden" };
+      location.url = "/dashboard?view-switch-hint";
+
+      const { isSwitchButtonShown, hasChosen } = use();
+
+      // A query string anyone can type must not reopen a setting they answered.
+      expect(isSwitchButtonShown.value).toBe(false);
+      expect(hasChosen.value).toBe(true);
+    });
   });
 
   it("does nothing without a signed-in user", () => {
