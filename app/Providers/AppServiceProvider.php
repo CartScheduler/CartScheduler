@@ -51,7 +51,7 @@ class AppServiceProvider extends ServiceProvider
 
         Model::preventLazyLoading(!app()->isProduction());
         Model::preventSilentlyDiscardingAttributes(!app()->isProduction());
-        DB::prohibitDestructiveCommands(!app()->isProduction());
+        DB::prohibitDestructiveCommands(app()->isProduction());
 
         Schema::defaultStringLength(191);
         if (config('app.is_https')) {
