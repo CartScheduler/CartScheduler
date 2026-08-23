@@ -216,4 +216,45 @@ describe("Accordion", () => {
       expect(header.textContent).toContain("Where the cart goes on a Saturday.");
     });
   });
+
+  describe("borders", () => {
+    /**
+     * Reached through the headings rather than as children of `.accordion`,
+     * because the test setup stubs the transition group the panels sit in.
+     */
+    const panelsIn = (container: Element) =>
+      Array.from(container.querySelectorAll("[role='heading']"), (heading) => heading.parentElement as HTMLElement);
+
+    it("shares edges down a stack, so no line is drawn twice", async () => {
+      const { container } = await renderAccordion();
+
+      // Every panel gives up its bottom border and leans on the next panel's
+      // top border as the divider. Drawing both would put 2px between each
+      // pair and 2px around a stack that sits inside another bordered box.
+      const [first, second] = panelsIn(container);
+      expect(panelsIn(container)).toHaveLength(2);
+      expect(first.className).toContain("border-b-0");
+      expect(first.className).toContain("first:rounded-t");
+      // The last panel closes the stack off again.
+      expect(second.className).toContain("last:border-b");
+      expect(second.className).toContain("last:rounded-b");
+      // Not at any breakpoint: a wider screen does not put gaps in this stack,
+      // so handing every panel its own closed box only doubles the dividers.
+      expect(second.className).not.toContain("sm:border-b");
+      expect(second.className).not.toContain("sm:rounded");
+    });
+
+    it("gives a static panel a box of its own", async () => {
+      const { container } = await renderStaticAccordion();
+
+      // A static layout spaces the panels apart, so each closes its own outline
+      // rather than borrowing the next one's.
+      expect(panelsIn(container)).toHaveLength(2);
+      for (const panel of panelsIn(container)) {
+        expect(panel.className).toContain("rounded");
+        expect(panel.className).not.toContain("border-b-0");
+        expect(panel.className).not.toContain("first:rounded-t");
+      }
+    });
+  });
 });

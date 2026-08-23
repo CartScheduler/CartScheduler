@@ -129,7 +129,15 @@ watch(() => contentTrigger, async (val) => {
 </script>
 
 <template>
-  <div class="std-border-bottom dark:bg-sub-panel-dark std-border border border-b-0 bg-white first:rounded-t last:rounded-b last:border-b sm:rounded sm:border-b"
+  <!--
+    Two shapes, and the difference is whether the panels are spaced apart.
+    A static layout gaps them, so each is its own rounded box. An accordion
+    stacks them flush, so they share edges: every panel drops its bottom border
+    and the next panel's top border serves as the divider, leaving one crisp
+    1px outline around the stack rather than a doubled line between each pair.
+  -->
+  <div class="std-border-bottom dark:bg-sub-panel-dark std-border border bg-white"
+       :class="isStatic ? 'rounded' : 'border-b-0 first:rounded-t last:rounded-b last:border-b'"
        :style="`--panel-height: ${panelHeight}`">
     <!-- Static: a heading over its content, with nothing to open or close. -->
     <div v-if="isStatic" :id="headerId" role="heading" aria-level="1" class="px-2 py-1">

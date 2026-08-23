@@ -271,7 +271,8 @@ onMounted(() => {
       </ComponentSpinner>
     </div>
     <ComponentSpinner :show="isLoading" class="min-h-[200px] sm:min-h-full">
-      <Accordion v-if="!isLoading" v-model="accordionExpandIndex" class="border std-border rounded border-b-0">
+      <!-- No border here: the panels draw the outline of the stack themselves. -->
+      <Accordion v-if="!isLoading" v-model="accordionExpandIndex">
         <AccordionPanel v-for="location in locations" :key="location.id" :uniqueId="location.id">
           <template #title>
             <div class="flex items-center text-base font-bold p-2">
