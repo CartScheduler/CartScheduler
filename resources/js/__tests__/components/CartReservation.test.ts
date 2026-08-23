@@ -109,9 +109,15 @@ describe("CartReservation", () => {
     await findByTestId("calendar");
     await findByTestId("timeline");
 
-    // Twice the shell's px-4 page margin, so mid-swipe each pane keeps the
-    // margin down its own side rather than the two panels butting together.
-    expect(track.classList.contains("max-sm:gap-8")).toBe(true);
+    // The track reaches across the shell's page margin so the panes span the
+    // full width and carry that margin themselves. This has to happen here, on
+    // the scroll container's own box: a pane reaching out from the inside would
+    // land past the scrollport, taking its scrollbar out of sight with it.
+    expect(track.classList.contains("max-sm:-mx-4")).toBe(true);
+
+    // The gutter mid-swipe is now the two panes' own margins meeting, so a gap
+    // on top of them would draw twice the space there used to be.
+    expect(track.classList.contains("max-sm:gap-8")).toBe(false);
 
     // A pane each, both full width so a page is exactly one view. The calendar
     // leads, so the default view is the pane you land on without scrolling.

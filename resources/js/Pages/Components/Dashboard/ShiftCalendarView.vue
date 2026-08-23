@@ -49,7 +49,7 @@ debouncedWatch(() => locations, () => {
     on mobile, so hiding it collapses the unprefixed row track and leaves the
     desktop one alone.
   -->
-  <div class="grid gap-x-3 gap-y-2 grid-cols-1 min-h-0
+  <div class="grid gap-x-3 gap-y-2 grid-cols-1 min-h-0 max-sm:px-4
               sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full"
        :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'max-sm:grid-rows-1'">
     <PButton v-if="showSwitchButton"
@@ -66,8 +66,14 @@ debouncedWatch(() => locations, () => {
       Mobile: the picker and the locations share one scroll region beneath the
       pinned switch button. Desktop: this wrapper collapses to `contents` so
       both children sit directly in the two-column grid.
+
+      The pane carries the page margin, so `-mx-4 px-4` lets the scroller reach
+      back across it and lay it out again inside. The scrollbar then rides the
+      window edge rather than sitting between the accordion and the margin,
+      while the content keeps the width it had — the pair cancels out whether
+      the scrollbar takes layout space or overlays it.
     -->
-    <div class="max-sm:flex max-sm:min-h-0 max-sm:flex-col max-sm:gap-3 max-sm:overflow-y-auto sm:contents">
+    <div class="max-sm:-mx-4 max-sm:flex max-sm:min-h-0 max-sm:flex-col max-sm:gap-3 max-sm:overflow-y-auto max-sm:px-4 sm:contents">
       <DatePicker v-model:date="date"
                   :shiftMarkers
                   :isLoading="hasInitialised"

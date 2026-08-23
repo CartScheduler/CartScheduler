@@ -47,7 +47,7 @@ const cardKey = computed(() => {
 <template>
   <!-- Without the button there is no header row left to size, so the scroller
     takes the whole grid rather than being pushed down by an empty track. -->
-  <div class="grid grid-cols-1 gap-2 min-h-0 sm:h-0 sm:min-h-full"
+  <div class="grid grid-cols-1 gap-2 min-h-0 max-sm:px-4 sm:h-0 sm:min-h-full"
        :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'grid-rows-1'">
     <PButton v-if="showSwitchButton"
              size="small"
@@ -66,7 +66,14 @@ const cardKey = computed(() => {
       pinned to the top and bottom edges while the list moves underneath.
     -->
     <div class="scroll-edge-scope-y scroll-gradient-y relative grid min-h-0 grid-rows-1">
-      <div class="scroll-edge-source-y grid min-h-0 grid-cols-1 grid-rows-[auto_1fr] gap-2 max-sm:overflow-y-auto">
+      <!--
+        `-mx-4 px-4` matches the calendar view: the scroller reaches back across
+        the page margin the pane now carries, so its scrollbar rides the window
+        edge, and lays that margin out again inside so the list keeps the width
+        it had. The fades stay on the wrapper above, which does not reach, so
+        they stop at the list rather than washing over the bar.
+      -->
+      <div class="scroll-edge-source-y grid min-h-0 grid-cols-1 grid-rows-[auto_1fr] gap-2 max-sm:-mx-4 max-sm:overflow-y-auto max-sm:px-4">
         <ShiftList v-model="selectedShift"
                    :marker-dates="markerDates"
                    :locations="locations"

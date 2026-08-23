@@ -137,9 +137,12 @@ const onHintChoice = (keep: boolean) => {
       one axis to `auto` makes the other compute to `auto` too, which would hand
       the vertical scrolling back to the shell.
 
-      The `gap-8` gutter is twice the shell's `px-4` page margin, so that mid-swipe
-      each pane keeps the same margin down its own side that it has when centred,
-      rather than the two panels butting together.
+      `-mx-4` hands the shell's page margin to the panes: the track spans the full
+      width, so each pane does too, and each lays that margin back inside itself.
+      Mid-swipe the two margins meet and read as the same gutter a `gap` used to
+      draw, and — the point of the exercise — a pane's own scroller can now reach
+      the window edge, where its scrollbar belongs. Reaching from inside a pane
+      instead would put the bar past the scrollport, which simply hides it.
 
       Desktop: the panes collapse to `contents` and the track is the same
       single-cell grid as before, where `grid-rows-1` is minmax(0, 1fr) so the
@@ -148,7 +151,7 @@ const onHintChoice = (keep: boolean) => {
     -->
     <div ref="track"
          data-scroll-align-boundary
-         class="no-scrollbar min-h-0 flex-1 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:gap-8 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain sm:grid sm:min-h-full sm:grid-cols-1 sm:grid-rows-1">
+         class="no-scrollbar min-h-0 flex-1 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain sm:grid sm:min-h-full sm:grid-cols-1 sm:grid-rows-1">
       <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
         <ShiftCalendarView v-if="isViewRendered('calendar')"
                            v-model:date="date"
