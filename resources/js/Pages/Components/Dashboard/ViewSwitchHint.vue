@@ -35,7 +35,7 @@ onKeyStroke("Escape", dismiss);
          role="dialog"
          aria-modal="false"
          aria-labelledby="view-switch-hint-heading"
-         class="std-border dark:bg-sub-panel-dark absolute bottom-full left-1/2 z-40 mb-2
+         class="std-border dark:bg-sub-panel-dark absolute top-full left-1/2 z-40 mt-2
                 w-[min(20rem,calc(100dvw-2rem))] -translate-x-1/2 rounded-lg border bg-white
                 p-4 text-left shadow-lg">
       <p id="view-switch-hint-heading" class="text-sm text-neutral-700 dark:text-neutral-200">
@@ -62,9 +62,10 @@ onKeyStroke("Escape", dismiss);
         </button>
       </div>
 
+      <!-- Rotated 45°, the left and top borders are the two edges facing up. -->
       <span aria-hidden="true"
-            class="std-border dark:bg-sub-panel-dark absolute top-full left-1/2 size-3 -translate-x-1/2
-                   -translate-y-1/2 rotate-45 border-r border-b bg-white" />
+            class="std-border dark:bg-sub-panel-dark absolute bottom-full left-1/2 size-3 -translate-x-1/2
+                   translate-y-1/2 rotate-45 border-l border-t bg-white" />
     </div>
   </Transition>
 </template>
@@ -78,8 +79,8 @@ onKeyStroke("Escape", dismiss);
 .hint-enter-from,
 .hint-leave-to {
     opacity: 0;
-    /* Composes with the -translate-x-1/2 that centres it on the dots. */
-    transform: translate(-50%, 0.5rem);
+    /* Composes with the -translate-x-1/2 that centres it on the button. */
+    transform: translate(-50%, -0.5rem);
 }
 
 @media (prefers-reduced-motion: reduce) {

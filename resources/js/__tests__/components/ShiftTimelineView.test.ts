@@ -24,7 +24,11 @@ const stubs = {
   FadeTransition: { template: "<div><slot /></div>" },
 };
 
-const renderView = (props: Record<string, unknown> = {}) => render(ShiftTimelineView, {
+const renderView = (
+  props: Record<string, unknown> = {},
+  slots: Record<string, string> = {},
+) => render(ShiftTimelineView, {
+  slots,
   props: {
     modelValue: selectedShift,
     locations,
@@ -80,6 +84,44 @@ describe("ShiftTimelineView", () => {
     expect(scroller).not.toBeNull();
     expect(scroller?.className).toContain("max-sm:overflow-y-auto");
     expect(scroller?.querySelector("[data-testid='shift-list']")).not.toBeNull();
+  });
+
+  it("hangs the switch hint off the button rather than loose in the view", () => {
+    const { container } = renderView({}, { "switch-hint": "<i data-testid='hint' />" });
+
+    const root = container.firstElementChild as HTMLElement;
+    const buttonAnchor = root.firstElementChild as HTMLElement;
+    expect(buttonAnchor.className).toContain("relative");
+    expect(buttonAnchor.textContent).toContain("Switch to Calendar view");
+    expect(buttonAnchor.querySelector("[data-testid='hint']")).not.toBeNull();
+  });
+
+  it("drops the hint along with the button it points at", () => {
+    const { queryByTestId } = renderView(
+      { showSwitchButton: false },
+      { "switch-hint": "<i data-testid='hint' />" },
+    );
+
+    expect(queryByTestId("hint")).toBeNull();
+  });
+
+  it("puts the scrollbar out in the page margin, clear of the edge fades", () => {
+    const { container } = renderView();
+
+    const root = container.firstElementChild as HTMLElement;
+    const gradientHost = container.querySelector(".scroll-gradient-y") as HTMLElement;
+    const scroller = gradientHost.querySelector(".scroll-edge-source-y") as HTMLElement;
+
+    // Same pairing as the calendar view: the view holds the page margin, and
+    // the scroller reaches back across it to put the bar on the window edge,
+    // laying it out again inside so the list holds still.
+    expect(root.className).toContain("max-sm:px-4");
+    expect(scroller.className).toContain("max-sm:-mx-4");
+    expect(scroller.className).toContain("max-sm:px-4");
+
+    // The fades are drawn on the host, which does not reach — so they stop at
+    // the list's edge instead of washing over the scrollbar and the margin.
+    expect(gradientHost.className).not.toContain("-mx-4");
   });
 
   it("shows the loading spinner while the shift data is unresolved", () => {

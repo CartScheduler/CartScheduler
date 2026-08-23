@@ -26,7 +26,11 @@ const stubs = {
   },
 };
 
-const renderView = (props: Record<string, unknown> = {}) => render(ShiftCalendarView, {
+const renderView = (
+  props: Record<string, unknown> = {},
+  slots: Record<string, string> = {},
+) => render(ShiftCalendarView, {
+  slots,
   props: {
     date: new Date("2025-09-15T12:00:00"),
     shiftMarkers: [],
@@ -97,6 +101,54 @@ describe("ShiftCalendarView", () => {
 
     // On sm+ the wrapper collapses so its children join the two-column grid.
     expect(scrollRegion.className).toContain("sm:contents");
+  });
+
+  it("puts the scrollbar out in the page margin rather than beside the accordion", () => {
+    const { container } = renderView();
+
+    const root = container.firstElementChild as HTMLElement;
+    const scrollRegion = root.children[1] as HTMLElement;
+
+    // The view holds the page margin now that the pane spans the full width,
+    // which is what leaves the scroller something to reach back across.
+    expect(root.className).toContain("max-sm:px-4");
+
+    // Reaching across that margin is what moves the bar to the window edge;
+    // laying it out again inside is what stops the content moving with it.
+    // Either class alone is a bug, so both are asserted.
+    expect(scrollRegion.className).toContain("max-sm:-mx-4");
+    expect(scrollRegion.className).toContain("max-sm:px-4");
+
+    // The pinned button stays inside the margin — reaching out here would push
+    // it past the panel edge.
+    const switchButton = root.firstElementChild as HTMLElement;
+    expect(switchButton.className).not.toContain("-mx-4");
+
+    // Desktop scrolls the window, where the bar is already at the edge.
+    // Matched as a class rather than a substring: `max-sm:-mx-4` contains it.
+    expect(scrollRegion.classList.contains("sm:-mx-4")).toBe(false);
+    expect(root.classList.contains("sm:px-4")).toBe(false);
+  });
+
+  it("hangs the switch hint off the button rather than loose in the view", () => {
+    const { container } = renderView({}, { "switch-hint": "<i data-testid='hint' />" });
+
+    // The hint is about the button, so the button's own wrapper positions it.
+    const root = container.firstElementChild as HTMLElement;
+    const buttonAnchor = root.firstElementChild as HTMLElement;
+    expect(buttonAnchor.className).toContain("relative");
+    expect(buttonAnchor.textContent).toContain("Switch to Timeline view");
+    expect(buttonAnchor.querySelector("[data-testid='hint']")).not.toBeNull();
+  });
+
+  it("drops the hint along with the button it points at", () => {
+    const { queryByTestId } = renderView(
+      { showSwitchButton: false },
+      { "switch-hint": "<i data-testid='hint' />" },
+    );
+
+    // Nothing left to point at, so an offer to hide it would be nonsense.
+    expect(queryByTestId("hint")).toBeNull();
   });
 
   it("sits the switch button evenly between the panel edge and the content", () => {

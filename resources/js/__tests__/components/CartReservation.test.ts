@@ -49,15 +49,18 @@ vi.mock("@/Pages/Components/Dashboard/composables/useReservation", () => ({
   default: () => ({ toggleReservation: vi.fn() }),
 }));
 
+// Both render the `switch-hint` slot, because where the hint is handed to is
+// what these tests are checking — a stub that dropped it would pass silently.
 const stubs = {
   ShiftTimelineView: {
     props: ["isActive", "showSwitchButton"],
     template: "<div data-testid='timeline' :data-active='String(isActive)'"
-      + " :data-switch-button='String(showSwitchButton)' />",
+      + " :data-switch-button='String(showSwitchButton)'><slot name='switch-hint' /></div>",
   },
   ShiftCalendarView: {
     props: ["showSwitchButton"],
-    template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)' />",
+    template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)'>"
+      + "<slot name='switch-hint' /></div>",
   },
 };
 
@@ -182,6 +185,26 @@ describe("CartReservation", () => {
     const hint = await findByRole("dialog", {}, { timeout: 2000 });
     expect(hint.textContent).toContain("Swipe left and right");
     expect(hint.textContent).toContain("user preferences");
+  });
+
+  it("hangs the offer off the switch button on the view you are looking at", async () => {
+    store.viewSwitchButton = {};
+    store.shiftView = "list";
+    const { findByRole, findByTestId, container } = renderCartReservation();
+
+    const hint = await findByRole("dialog", {}, { timeout: 2000 });
+
+    // It belongs to the button's view, not to the page indicator at the foot.
+    expect((await findByTestId("timeline")).contains(hint)).toBe(true);
+    expect(container.querySelector("nav")?.contains(hint)).toBe(false);
+    // Hanging below the button rather than above the dots.
+    expect(hint.className).toContain("top-full");
+    expect(hint.className).not.toContain("bottom-full");
+
+    // Both panes are built on mobile, but only the one on screen is handed the
+    // hint — two would mean two dialogs, and two copies of its heading id.
+    expect(container.querySelectorAll("[role='dialog']")).toHaveLength(1);
+    expect((await findByTestId("calendar")).querySelector("[role='dialog']")).toBeNull();
   });
 
   it("does not offer again once the user has answered", async () => {

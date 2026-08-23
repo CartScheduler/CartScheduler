@@ -49,15 +49,18 @@ const cardKey = computed(() => {
     takes the whole grid rather than being pushed down by an empty track. -->
   <div class="grid grid-cols-1 gap-2 min-h-0 max-sm:px-4 sm:h-0 sm:min-h-full"
        :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'grid-rows-1'">
-    <PButton v-if="showSwitchButton"
-             size="small"
-             class="w-full shadow-sm"
-             variant="outlined"
-             severity="info"
-             @click="emit('switchView')">
-      <span class="iconify mdi--calendar-month-outline" />
-      Switch to Calendar view
-    </PButton>
+    <!-- Wrapped so the first-run hint has the button to hang off. -->
+    <div v-if="showSwitchButton" class="relative">
+      <PButton size="small"
+               class="w-full shadow-sm"
+               variant="outlined"
+               severity="info"
+               @click="emit('switchView')">
+        <span class="iconify mdi--calendar-month-outline" />
+        Switch to Calendar view
+      </PButton>
+      <slot name="switch-hint" />
+    </div>
 
     <!--
       The switch button sits outside the scroller so it stays put without

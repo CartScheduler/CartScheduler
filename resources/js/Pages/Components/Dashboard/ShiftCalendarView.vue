@@ -52,15 +52,22 @@ debouncedWatch(() => locations, () => {
   <div class="grid gap-x-3 gap-y-2 grid-cols-1 min-h-0 max-sm:px-4
               sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full"
        :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'max-sm:grid-rows-1'">
-    <PButton v-if="showSwitchButton"
-             size="small"
-             class="shadow-sm sm:col-start-1 sm:row-start-1"
-             variant="outlined"
-             severity="info"
-             @click="emit('switchView')">
-      <span class="iconify mdi--timeline-text-outline" />
-      Switch to Timeline view
-    </PButton>
+    <!--
+      The wrapper exists to anchor the first-run hint, which is about this
+      button and so has to hang off it. It takes the button's grid placement
+      with it, so the row still disappears when the button is hidden.
+    -->
+    <div v-if="showSwitchButton" class="relative sm:col-start-1 sm:row-start-1">
+      <PButton size="small"
+               class="w-full shadow-sm"
+               variant="outlined"
+               severity="info"
+               @click="emit('switchView')">
+        <span class="iconify mdi--timeline-text-outline" />
+        Switch to Timeline view
+      </PButton>
+      <slot name="switch-hint" />
+    </div>
 
     <!--
       Mobile: the picker and the locations share one scroll region beneath the

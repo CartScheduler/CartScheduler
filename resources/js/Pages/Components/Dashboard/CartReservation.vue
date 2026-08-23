@@ -167,7 +167,15 @@ const onHintChoice = (keep: boolean) => {
                            :user="user"
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'list'"
-                           @toggle-reservation="toggleReservation" />
+                           @toggle-reservation="toggleReservation">
+          <!--
+            Handed to the pane on screen rather than to both, so there is one
+            hint and one dialog in the document however many views are built.
+          -->
+          <template v-if="shiftView === 'calendar'" #switch-hint>
+            <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
+          </template>
+        </ShiftCalendarView>
       </div>
 
       <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
@@ -184,7 +192,11 @@ const onHintChoice = (keep: boolean) => {
                            :user="user"
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'calendar'"
-                           @toggle-reservation="toggleReservation" />
+                           @toggle-reservation="toggleReservation">
+          <template v-if="shiftView === 'list'" #switch-hint>
+            <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
+          </template>
+        </ShiftTimelineView>
       </div>
     </div>
 
@@ -195,10 +207,8 @@ const onHintChoice = (keep: boolean) => {
       The safe-area padding matters here: the shell is pinned to `h-dvh`, so
       without it these sit under the home indicator on a notched phone.
     -->
-    <nav class="relative flex shrink-0 items-center justify-center pb-[env(safe-area-inset-bottom)] sm:hidden"
+    <nav class="flex shrink-0 items-center justify-center pb-[env(safe-area-inset-bottom)] sm:hidden"
          aria-label="Dashboard views">
-      <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
-
       <button v-for="view in VIEWS"
               :key="view"
               type="button"
