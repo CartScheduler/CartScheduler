@@ -151,7 +151,7 @@ describe("Accordion", () => {
     });
 
     it("adds to the open set rather than replacing it", async () => {
-      await renderMultiAccordion([1]);
+      await renderMultiAccordion([1]!);
 
       await toggle(marketStreet);
 
@@ -231,8 +231,8 @@ describe("Accordion", () => {
       // Every panel gives up its bottom border and leans on the next panel's
       // top border as the divider. Drawing both would put 2px between each
       // pair and 2px around a stack that sits inside another bordered box.
-      const [first, second] = panelsIn(container);
       expect(panelsIn(container)).toHaveLength(2);
+      const [first, second] = panelsIn(container) as [HTMLElement, HTMLElement];
       expect(first.className).toContain("border-b-0");
       expect(first.className).toContain("first:rounded-t");
       // The last panel closes the stack off again.

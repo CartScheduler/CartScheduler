@@ -100,24 +100,24 @@ describe("ShiftList", () => {
     const buttons = screen.getAllByRole("button");
 
     expect(buttons).toHaveLength(3);
-    expect(buttons[0].textContent).toContain("9:00 AM");
-    expect(buttons[0].textContent).toContain("Station St");
-    expect(buttons[1].textContent).toContain("3:00 PM");
-    expect(buttons[1].textContent).toContain("Town Square");
-    expect(buttons[2].textContent).toContain("12:00 PM");
-    expect(buttons[2].textContent).toContain("Mall Entrance");
+    expect(buttons[0]!.textContent).toContain("9:00 AM");
+    expect(buttons[0]!.textContent).toContain("Station St");
+    expect(buttons[1]!.textContent).toContain("3:00 PM");
+    expect(buttons[1]!.textContent).toContain("Town Square");
+    expect(buttons[2]!.textContent).toContain("12:00 PM");
+    expect(buttons[2]!.textContent).toContain("Mall Entrance");
   });
 
   it("updates the model and marks the shift selected when clicked", async () => {
     const { emitted } = renderShiftList();
 
-    await fireEvent.click(screen.getAllByRole("button")[1]);
+    await fireEvent.click(screen.getAllByRole("button")[1]!);
 
     // The first emit is the mount-time auto-select; the click is the last one.
     const modelValueUpdates = emitted("update:modelValue");
     expect(modelValueUpdates).toHaveLength(2);
-    expect((modelValueUpdates.at(-1) as ShiftItem[])[0]).toMatchObject({ location: "Town Square", locationId: 2 });
-    expect(screen.getAllByRole("button")[1].classList.contains("selected")).toBe(true);
+    expect((modelValueUpdates.at(-1) as ShiftItem[])[0]!).toMatchObject({ location: "Town Square", locationId: 2 });
+    expect(screen.getAllByRole("button")[1]!.classList.contains("selected")).toBe(true);
   });
 
   it("auto-selects the first shift when shifts load", async () => {
@@ -130,7 +130,7 @@ describe("ShiftList", () => {
 
     const updates = emitted("update:modelValue");
     expect(updates).toBeTruthy();
-    expect((updates.at(-1) as ShiftItem[])[0]).toMatchObject({ location: "Station St", locationId: 3 });
+    expect((updates.at(-1) as ShiftItem[])[0]!).toMatchObject({ location: "Station St", locationId: 3 });
   });
 
   it("marks the selected shift and its date marker", async () => {
@@ -144,13 +144,13 @@ describe("ShiftList", () => {
     const { container } = renderShiftList({ modelValue: selected });
 
     expect(selected).toMatchObject({ location: "Station St", locationId: 3 });
-    expect(container.querySelectorAll("button")[0].classList.contains("selected")).toBe(true);
+    expect(container.querySelectorAll("button")[0]!.classList.contains("selected")).toBe(true);
     expect(container.querySelector("dt .selected")).not.toBeNull();
 
     const buttons = container.querySelectorAll("button");
-    expect(buttons[0].classList.contains("sm:before:w-0.5")).toBe(true);
-    expect(buttons[0].classList.contains("sm:before:w-px")).toBe(false);
-    expect(buttons[1].classList.contains("sm:before:w-px")).toBe(true);
+    expect(buttons[0]!.classList.contains("sm:before:w-0.5")).toBe(true);
+    expect(buttons[0]!.classList.contains("sm:before:w-px")).toBe(false);
+    expect(buttons[1]!.classList.contains("sm:before:w-px")).toBe(true);
   });
 
   it("marks the selected date's marker as the sole initial scroll target", async () => {
@@ -165,8 +165,8 @@ describe("ShiftList", () => {
     // and it is the date column (<dt>) that owns the selected shift.
     const targets = container.querySelectorAll(".scroll-target");
     expect(targets).toHaveLength(1);
-    expect(targets[0].tagName).toBe("DT");
-    expect(targets[0].querySelector(".selected")).not.toBeNull();
+    expect(targets[0]!.tagName).toBe("DT");
+    expect(targets[0]!.querySelector(".selected")).not.toBeNull();
   });
 
   it("aligns the selected date inside the timeline's scrollers when it mounts", async () => {

@@ -58,14 +58,14 @@ describe("useLocationFilter", () => {
     expect(shifts).toMatchSnapshot(); // Update snapshot `vitest -u` or `npm run test:snapshots`
 
     expect(shifts).length(6);
-    expect(shifts[0].location).toBe("Hansenstad");
-    expect(shifts[0].currentVolunteers).length(4);
-    expect(shifts[0].days).toMatchObject([true, true, true, true, true, true, false]);
-    expect(shifts[1].location).toBe("Hansenstad");
-    expect(shifts[2].location).toBe("East Kadenshire");
-    expect(shifts[3].location).toBe("South Hesterhaven");
-    expect(shifts[4].location).toBe("South Hesterhaven");
-    expect(shifts[5].location).toBe("South Hesterhaven");
+    expect(shifts[0]!.location).toBe("Hansenstad");
+    expect(shifts[0]!.currentVolunteers).length(4);
+    expect(shifts[0]!.days).toMatchObject([true, true, true, true, true, true, false]);
+    expect(shifts[1]!.location).toBe("Hansenstad");
+    expect(shifts[2]!.location).toBe("East Kadenshire");
+    expect(shifts[3]!.location).toBe("South Hesterhaven");
+    expect(shifts[4]!.location).toBe("South Hesterhaven");
+    expect(shifts[5]!.location).toBe("South Hesterhaven");
   });
 
   it("should have correct locations", async () => {
@@ -74,17 +74,17 @@ describe("useLocationFilter", () => {
 
     await getShifts();
     const locations = _locations.value;
-    const loc1Shift = (locations[0].filterShifts as Shift[])[0];
+    const loc1Shift = (locations[0]!.filterShifts as Shift[])[0]!;
     expect(locations).toMatchSnapshot(); // Update snapshot `vitest -u` or `npm run test:snapshots`
 
     expect(locations).length(5);
-    expect(locations[0].name).toBe("Hansenstad");
-    expect(locations[0]).toHaveProperty("description");
-    expect(locations[0].min_volunteers).toBe(4);
-    expect(locations[0].max_volunteers).toBe(5);
-    expect(locations[0].requires_brother).toBe(true);
-    expect(locations[0].freeShifts).toBe(2);
-    expect(locations[0].filterShifts).length(2);
+    expect(locations[0]!.name).toBe("Hansenstad");
+    expect(locations[0]!).toHaveProperty("description");
+    expect(locations[0]!.min_volunteers).toBe(4);
+    expect(locations[0]!.max_volunteers).toBe(5);
+    expect(locations[0]!.requires_brother).toBe(true);
+    expect(locations[0]!.freeShifts).toBe(2);
+    expect(locations[0]!.filterShifts).length(2);
 
     expect(loc1Shift.start_time).toBe("12:00:00");
     expect(loc1Shift.end_time).toBe("15:00:00");
@@ -93,12 +93,12 @@ describe("useLocationFilter", () => {
     expect(loc1Shift.volunteers[0]?.uuid).toBe("8e54cf96-c3d5-30fa-a389-e9be7fb1d1ca");
     expect(loc1Shift.volunteers[0]?.gender).toBe("male");
     expect(loc1Shift.volunteers[0]?.mobile_phone).toBe("19725534499");
-    expect(loc1Shift.volunteers[4]).toBeNull();
+    expect(loc1Shift.volunteers[4]!).toBeNull();
 
-    expect(locations[1].name).toBe("East Murraybury");
-    expect(locations[2].name).toBe("East Kadenshire");
-    expect(locations[3].name).toBe("Port Carolineton");
-    expect(locations[4].name).toBe("South Hesterhaven");
+    expect(locations[1]!.name).toBe("East Murraybury");
+    expect(locations[2]!.name).toBe("East Kadenshire");
+    expect(locations[3]!.name).toBe("Port Carolineton");
+    expect(locations[4]!.name).toBe("South Hesterhaven");
   });
 
   it("should toggle a loader when network is slow", async () => {
@@ -134,8 +134,8 @@ describe("useLocationFilter", () => {
 
     await getShifts();
 
-    const rawVolunteers = shifts.locations[2].shifts[0].volunteers;
-    const transformedVolunteers = locations.value[2].filterShifts?.[0].volunteers as Array<App.Data.UserData | null>;
+    const rawVolunteers = shifts.locations[2]!.shifts[0]!.volunteers;
+    const transformedVolunteers = locations.value[2]!.filterShifts?.[0]!.volunteers as Array<App.Data.UserData | null>;
 
     expect(rawVolunteers).length(4);
     expect(transformedVolunteers).length(5);
@@ -177,8 +177,8 @@ describe("useLocationFilter", () => {
 
     await getShifts();
 
-    const rawVolunteers = shifts.locations[0].shifts[1].volunteers;
-    const transformedVolunteers = locations.value[0].filterShifts?.[0].volunteers as Array<App.Data.UserData | null>;
+    const rawVolunteers = shifts.locations[0]!.shifts[1]!.volunteers;
+    const transformedVolunteers = locations.value[0]!.filterShifts?.[0]!.volunteers as Array<App.Data.UserData | null>;
 
     // First, confirm the "original" data from the server contains a mix of genders
     expect(rawVolunteers.map((volunteer) => volunteer.gender)).toMatchObject([

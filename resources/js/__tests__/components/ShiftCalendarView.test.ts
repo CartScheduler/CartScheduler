@@ -91,7 +91,7 @@ describe("ShiftCalendarView", () => {
   it("re-emits toggleReservation from a location's details", async () => {
     const { emitted } = renderView();
 
-    await fireEvent.click(screen.getAllByTestId("reserve")[0]);
+    await fireEvent.click(screen.getAllByTestId("reserve")[0]!);
 
     expect(emitted("toggleReservation")).toEqual([[7, 5, true]]);
   });
