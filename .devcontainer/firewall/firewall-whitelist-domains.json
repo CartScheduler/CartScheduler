@@ -1,0 +1,28 @@
+{
+  "$comment": "Domains and CIDRs allowed through the outbound firewall. Edit, then run `.devcontainer/firewall-ctl.sh reload` from the host.",
+  "domains": [
+    "registry.npmjs.org",
+    "bun.com",
+    "api.anthropic.com",
+    "console.anthropic.com",
+    "claude.ai",
+    "statsig.com",
+    "sentry.io",
+    "marketplace.visualstudio.com",
+    "vscode.blob.core.windows.net",
+    "update.code.visualstudio.com",
+    "packagist.org",
+    "repo.packagist.org",
+    "codeload.github.com",
+    "codepen.io"
+  ],
+  "cidrs": [],
+  "github_meta": {
+    "enabled": true,
+    "sections": [
+      "web",
+      "api",
+      "git"
+    ]
+  }
+}

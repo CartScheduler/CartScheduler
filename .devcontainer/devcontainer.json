@@ -1,0 +1,214 @@
+// Claude Sandbox — see ./README.md in the repo root of this template for details.
+// The outbound firewall is default-deny; edit ./firewall/firewall-whitelist-domains.json
+// to allow more hosts, then run `./.devcontainer/firewall-ctl.sh reload` from the host.
+{
+  "name": "Claude Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:Australia/Melbourne}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.19.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.1"
+    }
+  },
+
+  // PHP and Composer. The feature compiles PHP from source at image build time —
+  // slow on a cold build, but it runs before the firewall exists, so php.net and
+  // getcomposer.org do not need to be on the allow-list. Composer at *runtime*
+  // does: packagist.org and repo.packagist.org are in the whitelist, and dist
+  // downloads from GitHub ride on the github_meta ranges.
+  "features": {
+    "ghcr.io/devcontainers/features/php:1": {
+      "version": "8.4"
+    },
+
+    // The Docker CLI, pointed at the host's daemon. What it can actually reach is
+    // decided by the socket mount further down, not here: with no usable socket
+    // the CLI is inert. Buildx is left out because building from in here is broken
+    // by construction — the daemon is on the host, so every relative path in a
+    // Dockerfile or compose file resolves against the host filesystem, not
+    // /workspaces. Run builds and `up`/`down` from the host; from in here, use the
+    // commands that operate on containers that are already running.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": true,
+      "dockerDashComposeVersion": "v2",
+      "installDockerBuildx": false
+    }
+  },
+
+  // Chrome Remote Debugging
+  "forwardPorts": [9222],
+  "portsAttributes": {
+    "9222": {
+      "label": "Chrome Remote Debugging",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // NET_ADMIN/NET_RAW are what let configure-firewall.sh install the iptables
+  // rules and ipset. Without them the container starts but has no sandboxing.
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+
+  // Two different users, deliberately.
+  //
+  // Everything you or Claude runs is `node` — remoteUser governs shells,
+  // `devcontainer exec` and the lifecycle commands below, so the narrow sudoers
+  // rule still bounds what the agent can do as root.
+  //
+  // containerUser is only PID 1, and it has to be root because the
+  // docker-outside-of-docker feature's entrypoint runs as it. That entrypoint
+  // socat-proxies the mounted socket to one `node` can open — the host socket
+  // arrives root-owned and mode 0660, so without it `node` gets EACCES — and it
+  // runs `set -e` over calls that need root. As `node` it would hit the sudoers
+  // rule, fail, and take container start down with it, whether or not a socket
+  // is actually mounted.
+  "containerUser": "root",
+  "remoteUser": "node",
+
+  "mounts": [
+    // Shell history survives rebuilds, per workspace.
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+
+    // Claude's own config (including your login) is shared by every container
+    // built from this template, so you authenticate once rather than per project.
+    "source=claude-code-devcontainer-config,target=/home/node/.claude,type=volume",
+
+    // Everything else that follows the XDG convention — gh's login, git-credential
+    // caches, tool state — lands in ~/.config, which is otherwise thrown away on
+    // rebuild. Shared across every container from this template for the same reason
+    // the volume above is: authenticate once, not once per project. See the security
+    // note in README.md before putting a token in here.
+    "source=claude-code-devcontainer-user-config,target=/home/node/.config,type=volume",
+
+    // Your host slash-commands and subagents, read-only. Set CLAUDE_HOST_CONFIG_DIR
+    // on the host to point somewhere other than ~/.claude (the value is relative to
+    // $HOME). initializeCommand below creates these so a missing dir can't fail the
+    // container start.
+    "type=bind,source=${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/commands,target=/home/node/.claude/commands,readonly",
+    "type=bind,source=${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/agents,target=/home/node/.claude/agents,readonly",
+
+    // Bind-mounted rather than baked in, so editing the JSON on the host and
+    // running `firewall-ctl.sh reload` takes effect without a rebuild.
+    "source=${localWorkspaceFolder}/.devcontainer/firewall,target=/etc/firewall,type=bind,readonly",
+
+    // Where ./clip-drop.sh (host-side) leaves clipboard images. Claude cannot
+    // reach the macOS pasteboard from in here, but it will read an image you
+    // give it a path to — so the clipboard crosses the boundary as a file.
+    // Read-only: Claude needs to read these, never to write into a host
+    // directory outside the workspace. Set CLAUDE_CLIPDROP_DIR (relative to
+    // $HOME, like CLAUDE_HOST_CONFIG_DIR) to put the directory elsewhere.
+    "type=bind,source=${localEnv:HOME}/${localEnv:CLAUDE_CLIPDROP_DIR:.clipdrop},target=/clipdrop,readonly",
+
+    // The host's Docker socket — the one switch that decides whether Claude can
+    // drive your existing containers. The docker-outside-of-docker feature above
+    // declares this same mount with source=/var/run/docker.sock; a mount here for
+    // the same target replaces the feature's, which is the only way to have the
+    // feature without unconditionally handing over the socket.
+    //
+    // Default /dev/null: the path exists, so the container starts and the CLI is
+    // installed, but there is no daemon behind it and `docker` fails. Set the
+    // dockerSocket template option to /var/run/docker.sock to turn it on.
+    //
+    // Understand what turning it on costs. The socket is the Docker daemon's
+    // full API, the daemon runs as root on the host, and `docker run -v /:/host`
+    // is a two-second escape from this container to your whole machine. Nothing
+    // in here — not the firewall, not the narrow sudoers rule — constrains that,
+    // and a container Claude starts gets unfiltered egress of its own. Turning
+    // this on trades the sandbox for the convenience; it is worth doing knowingly
+    // and not by default.
+    "type=bind,source=/dev/null,target=/var/run/docker-host.sock",
+
+    // Where socket-proxy.yml puts its filtered socket. Always mounted and normally
+    // an empty directory — the volume only has anything in it while that compose
+    // stack is up, and nothing points at it unless dockerHost says so.
+    //
+    // A volume rather than a host directory on purpose: the proxy chmods the
+    // socket it creates, and Docker Desktop's virtiofs rejects chmod on a
+    // bind-mounted socket, so the proxy dies on start-up. A volume is a real
+    // filesystem inside the VM.
+    "source=claude-sandbox-docker-proxy,target=/var/run/docker-proxy,type=volume"
+  ],
+
+  "containerEnv": {
+    // Compose takes its project name from the working directory's basename, which
+    // in here is `cart-scheduler` (see workspaceMount below) while the host runs
+    // this stack as `cartapp`. Without this, `sail artisan` looks for a
+    // `cart-scheduler` project, finds nothing, and reports the containers as not
+    // running while they are sitting there on the host.
+    "COMPOSE_PROJECT_NAME": "cartapp",
+
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "FIREWALL_WHITELIST_FILE": "/etc/firewall/firewall-whitelist-domains.json",
+
+    // Which Docker endpoint the CLI talks to. The default is the CLI's own
+    // default — the socket the feature's entrypoint builds from the mount above,
+    // which is /dev/null unless dockerSocket says otherwise. Point it at
+    // /var/run/docker-proxy/docker.sock to go through socket-proxy.yml instead,
+    // which is the option worth taking: it leaves dockerSocket at /dev/null, so
+    // the container never holds the real socket and cannot create containers.
+    "DOCKER_HOST": "unix:///var/run/docker-proxy/docker.sock",
+
+    // The php feature ships an xdebug.ini with step debugging on for every
+    // request, so each `php` invocation writes "Could not connect to debugging
+    // client" to stderr when nothing is listening on 9003 — which, in a container
+    // whose main user is an agent reading command output, is noise on every call.
+    // Off by default and overridable per command: `XDEBUG_MODE=debug php ...`,
+    // or `XDEBUG_MODE=coverage` for phpunit.
+    "XDEBUG_MODE": "off"
+  },
+
+  // TERM only advertises 256 colours, so 24-bit support is detected through
+  // COLORTERM — and nothing forwards it into a container by default, which is why
+  // output that is true-colour on the host comes out quantised inside.
+  //
+  // Passed through rather than hardcoded to "truecolor": on a terminal that cannot
+  // do 24-bit, claiming otherwise turns readable output into approximated mush.
+  // Empty when the host does not set it, which every sane consumer treats as absent.
+  // In remoteEnv rather than containerEnv so it follows the client you connect
+  // with, instead of being frozen at whatever created the container.
+  "remoteEnv": {
+    "COLORTERM": "${localEnv:COLORTERM}"
+  },
+
+  // Mounted under a per-project folder rather than a bare /workspace. Claude keys
+  // its session history by the path it is run from, and the config volume below is
+  // shared by every container from this template — an identical path in each one
+  // would pool every project's history together.
+  //
+  // If you turn the Docker socket on, note that this name is also what
+  // `docker compose` derives its project name from. Where the workspaceFolder
+  // option is not the host directory's name, compose in here looks for a project
+  // that does not exist and finds none of your running containers. Pin
+  // COMPOSE_PROJECT_NAME in containerEnv above to the name the host uses.
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cart-scheduler,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspaces/cart-scheduler",
+
+  "initializeCommand": "mkdir -p \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/commands\" \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/agents\" \"${localEnv:HOME}/${localEnv:CLAUDE_CLIPDROP_DIR:.clipdrop}\"",
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+
+  // iptables rules live in the container's network namespace, not the image, so
+  // they have to be rebuilt on every start rather than once at create time.
+  "postStartCommand": "sudo /usr/local/bin/configure-firewall.sh --init",
+  "waitFor": "postStartCommand"
+}
