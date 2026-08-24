@@ -1,25 +1,31 @@
 import { createGlobalState, useStorage } from "@vueuse/core";
 
-enum Labels {
-  Gender = "Gender",
-  Appointment = "Appointment",
-  ServingAs = "Serving As",
-  MaritalStatus = "Marital Status",
-  BirthYear = "Birth Year",
-  ResponsibleBrother = "Is Responsible Bro?",
-  MobilePhone = "Phone",
-}
+/**
+ * A frozen object rather than an `enum`: enums emit runtime code, which
+ * `erasableSyntaxOnly` forbids. `as const` gives the same literal types.
+ */
+const Labels = {
+  Gender: "Gender",
+  Appointment: "Appointment",
+  ServingAs: "Serving As",
+  MaritalStatus: "Marital Status",
+  BirthYear: "Birth Year",
+  ResponsibleBrother: "Is Responsible Bro?",
+  MobilePhone: "Phone",
+} as const;
 
 export type LocalStore = {
-  dismissedAvailabilityOn?: Date;
+  /** Explicitly `undefined` in the defaults, which `exactOptionalPropertyTypes`
+   *  only allows when the type says so. */
+  dismissedAvailabilityOn?: Date | undefined;
   columnFilters: {
-    gender: { label: Labels.Gender; value: boolean };
-    appointment: { label: Labels.Appointment; value: boolean };
-    servingAs: { label: Labels.ServingAs; value: boolean };
-    maritalStatus: { label: Labels.MaritalStatus; value: boolean };
-    birthYear: { label: Labels.BirthYear; value: boolean };
-    responsibleBrother: { label: Labels.ResponsibleBrother; value: boolean };
-    mobilePhone: { label: Labels.MobilePhone; value: boolean };
+    gender: { label: typeof Labels.Gender; value: boolean };
+    appointment: { label: typeof Labels.Appointment; value: boolean };
+    servingAs: { label: typeof Labels.ServingAs; value: boolean };
+    maritalStatus: { label: typeof Labels.MaritalStatus; value: boolean };
+    birthYear: { label: typeof Labels.BirthYear; value: boolean };
+    responsibleBrother: { label: typeof Labels.ResponsibleBrother; value: boolean };
+    mobilePhone: { label: typeof Labels.MobilePhone; value: boolean };
   };
   shiftView: "list" | "calendar";
   /**

@@ -13,6 +13,15 @@ import type { route as routeFn } from "ziggy-js";
 import type { AppPageProps } from "./laravel-request-helpers";
 
 declare global {
+  /**
+   * Declaring the variables Vite exposes keeps `import.meta.env.VITE_…`
+   * readable as a property. Without it they come from an index signature,
+   * which `noPropertyAccessFromIndexSignature` requires be reached by key.
+   */
+  interface ImportMetaEnv {
+    readonly VITE_BUGSNAG_FRONT_END_API_KEY?: string;
+  }
+
   const route: typeof routeFn;
   const axios: Axios;
 

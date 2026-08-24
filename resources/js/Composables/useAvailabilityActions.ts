@@ -77,12 +77,27 @@ export default function useAvailabilityActions(
     return computed({
       get: () => {
         const dayArray = form[`day_${day}`] as App.Enums.AvailabilityHours[];
-        return [dayArray[0], dayArray.at(-1)];
+        const first = dayArray[0];
+        const last = dayArray.at(-1);
+
+        // A day with no hours has no range. This used to read
+        // `[dayArray[0], dayArray.at(-1)]` and hand back `[undefined, undefined]`
+        // for an empty day, under a type that promised it could not.
+        if (first === undefined || last === undefined) {
+          return [];
+        }
+        return [first, last];
       },
       set: (value: App.Enums.AvailabilityHours[]) => {
-        form[`day_${day}`] = (form[`num_${day}s`]) > 0
-          ? buildRange(value[0], value[1])
-          : buildRange(ranges.value.start, ranges.value.end);
+        if (form[`num_${day}s`] > 0) {
+          const [start, end] = value;
+          // Matches what the loop in `buildRange` did when handed nothing.
+          form[`day_${day}`] = start === undefined || end === undefined
+            ? []
+            : buildRange(start, end);
+          return;
+        }
+        form[`day_${day}`] = buildRange(ranges.value.start, ranges.value.end);
       },
     });
   }

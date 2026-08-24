@@ -13,7 +13,13 @@ export default function(shift: Ref<App.Data.ShiftAdminData>, dateKey: DateKey): 
       return parse(shift.value[dateKey], "yyyy-MM-dd", new Date());
     },
     set: (value: Date | undefined) => {
-      shift.value[dateKey] = (value ? format(value, "yyyy-MM-dd") : undefined);
+      if (!value) {
+        // The key is optional, so clearing it means removing it. Assigning
+        // `undefined` is a different thing, and one the type does not allow.
+        delete shift.value[dateKey];
+        return;
+      }
+      shift.value[dateKey] = format(value, "yyyy-MM-dd");
     },
   });
 }
