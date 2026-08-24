@@ -90,7 +90,7 @@ const transitionDelayStyle = (index: number) => `animation-delay: -${(index * 0.
 <template>
   <PageHeader title="Locations">
     <div class="flex justify-between">
-      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Locations</h2>
+      <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">Locations</h2>
       <div class="flex">
         <PButton outline
                  :severity="isSortingMode ? 'danger' : 'secondary'"
@@ -106,21 +106,21 @@ const transitionDelayStyle = (index: number) => `animation-delay: -${(index * 0.
     </div>
   </PageHeader>
   <div ref="locationsRef"
-       class="max-w-7xl mx-auto py-10 sm:px-6 grid grid-cols-1 content-start sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+       class="mx-auto grid max-w-7xl grid-cols-1 content-start gap-4 py-10 sm:grid-cols-2 sm:px-6 md:grid-cols-3 lg:grid-cols-4"
        :class="{ '!gap-4': isSortingMode }">
     <div v-for="(location, idx) in locations"
-         :key="location.id"
-         class="shadow-sm card subtle-zoom action cursor-pointer duration-500 scale-[.98] transition-all"
+         :key="location.id || location.name"
+         class="card subtle-zoom action scale-[.98] cursor-pointer shadow-sm transition-all duration-500"
          :class="{ 'is-sorting-mode !scale-100': isSortingMode }"
          :style="transitionDelayStyle(idx)"
          @click="locationClicked(location)">
-      <div class="flex items-start gap-8 h-full dark:text-gray-100">
+      <div class="flex h-full items-start gap-8 dark:text-gray-100">
         <div>
           <h4 class="font-semibold">{{ location.name }}</h4>
           <div class="line-clamp-3">{{ location.clean_description }}</div>
         </div>
         <div>
-          <h5 class="font-semibold text-center">Shifts</h5>
+          <h5 class="text-center font-semibold">Shifts</h5>
           <div class="text-center text-6xl">{{ location.shifts?.length }}</div>
         </div>
       </div>
