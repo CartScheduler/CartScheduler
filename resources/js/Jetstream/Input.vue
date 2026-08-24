@@ -2,16 +2,16 @@
 import { onMounted, useTemplateRef } from "vue";
 
 const props = defineProps({
-    autofocus: {
-        type: Boolean,
-        required: false,
-        default: false,
-    },
-    autocomplete: {
-        type: String,
-        required: false,
-        default: "off",
-    },
+  autofocus: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  autocomplete: {
+    type: String,
+    required: false,
+    default: "off",
+  },
 });
 
 const model = defineModel({ type: [String, Number] });
@@ -21,9 +21,9 @@ defineEmits(["update:model"]);
 const input = useTemplateRef("input");
 
 onMounted(() => {
-    if (props.autofocus) {
-        input.value.focus();
-    }
+  if (props.autofocus) {
+    input.value.focus();
+  }
 });
 
 defineExpose({ focus: () => input.value.focus() });
@@ -32,5 +32,5 @@ defineExpose({ focus: () => input.value.focus() });
 </script>
 
 <template>
-<PInputText ref="input" v-model="model" :autocomplete/>
+  <PInputText ref="input" v-model="model" :autocomplete/>
 </template>

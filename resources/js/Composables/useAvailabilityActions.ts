@@ -77,7 +77,7 @@ export default function useAvailabilityActions(
     return computed({
       get: () => {
         const dayArray = form[`day_${day}`] as App.Enums.AvailabilityHours[];
-        return [dayArray[0], dayArray[dayArray.length - 1]];
+        return [dayArray[0], dayArray.at(-1)];
       },
       set: (value: App.Enums.AvailabilityHours[]) => {
         form[`day_${day}`] = (form[`num_${day}s`]) > 0

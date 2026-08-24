@@ -184,7 +184,7 @@ const calcShiftPercentage = (daysRostered, daysAvailable) => {
   let sumOfDaysRostered = 0;
   let sumOfDaysAvailable = 0;
   for (const day in daysAvailable) {
-    if (!daysAvailable.hasOwnProperty(day) || !daysAvailable[day]) {
+    if (!Object.hasOwn(daysAvailable, day) || !daysAvailable[day]) {
       continue;
     }
     // Not using Array.reduce because we're only calculating based on the days a volunteer is available

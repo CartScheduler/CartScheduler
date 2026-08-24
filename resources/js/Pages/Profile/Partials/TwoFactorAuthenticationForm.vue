@@ -157,16 +157,15 @@ const disableTwoFactorAuthentication = () => {
           <div v-if="confirming" class="mt-4">
             <JetLabel for="code" value="Code"/>
 
-            <JetInput
-                id="code"
-                v-model="confirmationForm.code"
-                type="text"
-                name="code"
-                class="block mt-1 w-1/2"
-                inputmode="numeric"
-                autofocus
-                autocomplete="one-time-code"
-                @keyup.enter="confirmTwoFactorAuthentication"/>
+            <JetInput id="code"
+                      v-model="confirmationForm.code"
+                      type="text"
+                      name="code"
+                      class="block mt-1 w-1/2"
+                      inputmode="numeric"
+                      autofocus
+                      autocomplete="one-time-code"
+                      @keyup.enter="confirmTwoFactorAuthentication"/>
 
             <JetInputError :message="confirmationForm.errors.code" class="mt-2"/>
           </div>
@@ -199,12 +198,11 @@ const disableTwoFactorAuthentication = () => {
 
         <div v-else>
           <JetConfirmsPassword @confirmed="confirmTwoFactorAuthentication">
-            <PButton
-                v-if="confirming"
-                type="button"
-                class="mr-3"
-                :class="{ 'opacity-25': enabling }"
-                :disabled="enabling">
+            <PButton v-if="confirming"
+                     type="button"
+                     class="mr-3"
+                     :class="{ 'opacity-25': enabling }"
+                     :disabled="enabling">
               Confirm
             </PButton>
           </JetConfirmsPassword>
@@ -222,10 +220,9 @@ const disableTwoFactorAuthentication = () => {
           </JetConfirmsPassword>
 
           <JetConfirmsPassword @confirmed="disableTwoFactorAuthentication">
-            <JetSecondaryButton
-                v-if="confirming"
-                :class="{ 'opacity-25': disabling }"
-                :disabled="disabling">
+            <JetSecondaryButton v-if="confirming"
+                                :class="{ 'opacity-25': disabling }"
+                                :disabled="disabling">
               Cancel
             </JetSecondaryButton>
           </JetConfirmsPassword>
