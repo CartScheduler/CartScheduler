@@ -28,11 +28,12 @@ export default function useViewSwitchButton() {
 
   /**
    * Development only: `?view-switch-hint` in the URL makes this read as a first
-   * visit, so the hint can be looked at again after it has been answered —
-   * otherwise the only way back to it is to clear localStorage by hand.
+   * visit, so the notice under the switch button comes back after it has been
+   * answered — otherwise the only way to see it again is to clear localStorage
+   * by hand.
    *
    * It overrides the whole preference rather than just `hasChosen`, because a
-   * user who chose to hide the button would have nothing left for the hint to
+   * user who chose to hide the button would have nothing left for the notice to
    * hang off. And it lifts as soon as the user answers, so the flag does not
    * swallow the very behaviour it was turned on to look at.
    *

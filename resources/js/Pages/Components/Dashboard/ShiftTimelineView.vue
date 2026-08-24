@@ -21,6 +21,8 @@ const { locations, isActive = true, showSwitchButton = true } = defineProps<{
   isActive?: boolean;
   /** False once the user has hidden the switch button and swipes instead. */
   showSwitchButton?: boolean;
+  /** True while the notice below the button is open, over a blurred page. */
+  isHintOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -49,8 +51,14 @@ const cardKey = computed(() => {
     takes the whole grid rather than being pushed down by an empty track. -->
   <div class="grid grid-cols-1 gap-2 min-h-0 max-sm:px-4 sm:h-0 sm:min-h-full"
        :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'grid-rows-1'">
-    <!-- Wrapped so the first-run hint has the button to hang off. -->
-    <div v-if="showSwitchButton" class="relative">
+    <!--
+      Wrapped so the link under the button, and the panel it opens, have
+      something to sit under and be positioned against. See ShiftCalendarView
+      for why the open panel lifts this clear of its own backdrop.
+    -->
+    <div v-if="showSwitchButton"
+         class="relative"
+         :class="isHintOpen ? 'pointer-events-none z-40' : ''">
       <PButton size="small"
                class="w-full shadow-sm"
                variant="outlined"

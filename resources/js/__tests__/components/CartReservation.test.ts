@@ -1,4 +1,4 @@
-import { render } from "@testing-library/vue";
+import { fireEvent, render } from "@testing-library/vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
@@ -51,16 +51,20 @@ vi.mock("@/Pages/Components/Dashboard/composables/useReservation", () => ({
 
 // Both render the `switch-hint` slot, because where the hint is handed to is
 // what these tests are checking — a stub that dropped it would pass silently.
+// It is gated on `showSwitchButton` as the real wrapper's `v-if` is, so a
+// hidden button takes the link with it here too.
 const stubs = {
   ShiftTimelineView: {
-    props: ["isActive", "showSwitchButton"],
+    props: ["isActive", "showSwitchButton", "isHintOpen"],
     template: "<div data-testid='timeline' :data-active='String(isActive)'"
-      + " :data-switch-button='String(showSwitchButton)'><slot name='switch-hint' /></div>",
+      + " :data-switch-button='String(showSwitchButton)' :data-hint-open='String(isHintOpen)'>"
+      + "<slot v-if='showSwitchButton' name='switch-hint' /></div>",
   },
   ShiftCalendarView: {
-    props: ["showSwitchButton"],
-    template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)'>"
-      + "<slot name='switch-hint' /></div>",
+    props: ["showSwitchButton", "isHintOpen"],
+    template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)'"
+      + " :data-hint-open='String(isHintOpen)'>"
+      + "<slot v-if='showSwitchButton' name='switch-hint' /></div>",
   },
 };
 
@@ -81,14 +85,15 @@ const setViewport = (isDesktop: boolean) => {
 const renderCartReservation = () => render(CartReservation, { global: { stubs } });
 
 const dotLabel = /Show the/;
+const hideLinkText = /Hide this button and swipe/;
 
 const getTrack = (container: Element) => container.querySelector("[data-scroll-align-boundary]") as HTMLElement;
 
 beforeEach(() => {
   // The store's own default, so these render as a first-time visitor sees it.
   store.shiftView = "calendar";
-  // Answered, so the first-run hint stays out of the way of these tests.
-  store.viewSwitchButton = { u1: "shown" };
+  // Unanswered, so the notice under the switch button is still being offered.
+  store.viewSwitchButton = {};
   setViewport(false);
 });
 
@@ -175,59 +180,102 @@ describe("CartReservation", () => {
     expect((await onCalendar.findByTestId("timeline")).dataset["active"]).toBe("false");
   });
 
-  it("offers to remove the switch button on a first visit", async () => {
-    store.viewSwitchButton = {};
-    const { findByRole, queryByRole } = renderCartReservation();
+  it("offers to hide the switch button, but waits to be asked", async () => {
+    const { findByTestId, getByRole, queryByRole } = renderCartReservation();
+    await findByTestId("calendar");
 
-    // Held back briefly so it reads as an offer rather than as part of loading.
+    // A link under the button, and nothing on a timer: the panel is opened by
+    // the user rather than arriving unbidden a moment after the dashboard.
+    expect(getByRole("button", { name: hideLinkText })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
     expect(queryByRole("dialog")).toBeNull();
-
-    const hint = await findByRole("dialog", {}, { timeout: 2000 });
-    expect(hint.textContent).toContain("Swipe left and right");
-    expect(hint.textContent).toContain("user preferences");
   });
 
-  it("hangs the offer off the switch button on the view you are looking at", async () => {
-    store.viewSwitchButton = {};
+  it("puts the link, and the panel it opens, on the view you are looking at", async () => {
     store.shiftView = "list";
-    const { findByRole, findByTestId, container } = renderCartReservation();
+    const { findByTestId, getByRole, container } = renderCartReservation();
+    const timeline = await findByTestId("timeline");
 
-    const hint = await findByRole("dialog", {}, { timeout: 2000 });
-
+    const link = getByRole("button", { name: hideLinkText });
+    expect(timeline.contains(link)).toBe(true);
     // It belongs to the button's view, not to the page indicator at the foot.
-    expect((await findByTestId("timeline")).contains(hint)).toBe(true);
-    expect(container.querySelector("nav")?.contains(hint)).toBe(false);
-    // Hanging below the button rather than above the dots.
-    expect(hint.className).toContain("top-full");
-    expect(hint.className).not.toContain("bottom-full");
+    expect(container.querySelector("nav")?.contains(link)).toBe(false);
 
-    // Both panes are built on mobile, but only the one on screen is handed the
-    // hint — two would mean two dialogs, and two copies of its heading id.
+    await fireEvent.click(link);
+    const panel = getByRole("dialog");
+    // Hanging below the link rather than above the dots, and edged in the
+    // switch button's own blue. The arrow shares that class, so it can never
+    // drift away from the edge it continues.
+    expect(panel.className).toContain("top-full");
+    expect(panel.className).not.toContain("bottom-full");
+    expect(panel.className).toContain("hint-edge");
+    expect(panel.querySelector(".hint-edge[aria-hidden='true']")).not.toBeNull();
+
+    // Both panes are built on mobile, but only the one on screen carries the
+    // link — two would mean two dialogs, and two copies of its heading id.
     expect(container.querySelectorAll("[role='dialog']")).toHaveLength(1);
     expect((await findByTestId("calendar")).querySelector("[role='dialog']")).toBeNull();
   });
 
-  it("does not offer again once the user has answered", async () => {
-    store.viewSwitchButton = { u1: "shown" };
-    const { queryByRole, findByTestId } = renderCartReservation();
+  it("drops the offer once the button is gone", async () => {
+    store.viewSwitchButton = { u1: "hidden" };
+    const { findByTestId, queryByRole } = renderCartReservation();
 
     await findByTestId("calendar");
-    await new Promise((resolve) => setTimeout(resolve, 1200));
 
-    expect(queryByRole("dialog")).toBeNull();
+    // The link lives with the button, so there is nothing left to offer.
+    expect(queryByRole("button", { name: hideLinkText })).toBeNull();
+  });
+
+  it("drops the offer once the user has said to keep the button", async () => {
+    store.viewSwitchButton = { u1: "shown" };
+    const { findByTestId, queryByRole } = renderCartReservation();
+
+    const calendar = await findByTestId("calendar");
+
+    // Answered, so the notice goes — but the button it was about stays.
+    expect(calendar.dataset["switchButton"]).toBe("true");
+    expect(queryByRole("button", { name: hideLinkText })).toBeNull();
   });
 
   it("takes the button away when the offer is accepted, and remembers it", async () => {
-    store.viewSwitchButton = {};
-    const { findByRole, getByRole, findByTestId } = renderCartReservation();
+    const { getByRole, findByTestId } = renderCartReservation();
     const timeline = await findByTestId("timeline");
     expect(timeline.dataset["switchButton"]).toBe("true");
 
-    await findByRole("dialog", {}, { timeout: 2000 });
-    getByRole("button", { name: "Hide it" }).click();
+    await fireEvent.click(getByRole("button", { name: hideLinkText }));
+    await fireEvent.click(getByRole("button", { name: "Hide button" }));
 
     await vi.waitFor(() => expect(timeline.dataset["switchButton"]).toBe("false"));
     expect(store.viewSwitchButton["u1"]).toBe("hidden");
+  });
+
+  it("keeps the button but retires the notice when asked to", async () => {
+    const { getByRole, queryByRole, findByTestId } = renderCartReservation();
+    const calendar = await findByTestId("calendar");
+
+    await fireEvent.click(getByRole("button", { name: hideLinkText }));
+    await fireEvent.click(getByRole("button", { name: "Keep the button" }));
+
+    await vi.waitFor(() => expect(queryByRole("button", { name: hideLinkText })).toBeNull());
+    expect(store.viewSwitchButton["u1"]).toBe("shown");
+    expect(calendar.dataset["switchButton"]).toBe("true");
+  });
+
+  it("lifts the button clear of the blur while the notice is open", async () => {
+    const { getByRole, findByTestId } = renderCartReservation();
+    const calendar = await findByTestId("calendar");
+
+    // Closed, the view is told to leave the button where it is.
+    expect(calendar.dataset["hintOpen"]).toBe("false");
+
+    await fireEvent.click(getByRole("button", { name: hideLinkText }));
+    expect(calendar.dataset["hintOpen"]).toBe("true");
+
+    // And released again on the way out, or the button would stay lifted and
+    // untappable for the rest of the session.
+    await fireEvent.click(getByRole("button", { name: "Keep the button" }));
+    await vi.waitFor(() => expect(calendar.dataset["hintOpen"]).toBe("false"));
   });
 
   it("keeps the button on desktop whatever the user chose", async () => {

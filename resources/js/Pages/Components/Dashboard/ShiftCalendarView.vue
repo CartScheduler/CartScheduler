@@ -21,6 +21,8 @@ const { locations, showSwitchButton = true } = defineProps<{
   userShiftLocations: Set<number>;
   /** False once the user has hidden the switch button and swipes instead. */
   showSwitchButton?: boolean;
+  /** True while the notice below the button is open, over a blurred page. */
+  isHintOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -56,8 +58,23 @@ debouncedWatch(() => locations, () => {
       The wrapper exists to anchor the first-run hint, which is about this
       button and so has to hang off it. It takes the button's grid placement
       with it, so the row still disappears when the button is hidden.
+
+      It also holds the link that offers to take the button away, directly under
+      it, and the panel that link opens is positioned against this same wrapper.
+
+      While the panel is open the wrapper lifts clear of its backdrop, so the
+      button and the link stay sharp inside the blur — they are the subject of
+      the notice, and a notice pointing at something you cannot read explains
+      nothing. Driven by a prop rather than by `:has()` on the panel, so what
+      the lift depends on is visible in the markup and can be tested.
+
+      Lifted, the button would still be clickable through a modal, so the
+      wrapper stops taking pointers and the panel opts back in. A tap on the
+      button then reaches the backdrop and closes the panel.
     -->
-    <div v-if="showSwitchButton" class="relative sm:col-start-1 sm:row-start-1">
+    <div v-if="showSwitchButton"
+         class="relative sm:col-start-1 sm:row-start-1"
+         :class="isHintOpen ? 'pointer-events-none z-40' : ''">
       <PButton size="small"
                class="w-full shadow-sm"
                variant="outlined"
@@ -83,7 +100,7 @@ debouncedWatch(() => locations, () => {
     <div class="max-sm:-mx-4 max-sm:flex max-sm:min-h-0 max-sm:flex-col max-sm:gap-3 max-sm:overflow-y-auto max-sm:px-4 sm:contents">
       <DatePicker v-model:date="date"
                   :shiftMarkers
-                  :isLoading="hasInitialised"
+                  :is-ready="hasInitialised"
                   :max-date="maxReservationDate"
                   :free-shifts="freeShifts"
                   :marker-dates="markerDates"

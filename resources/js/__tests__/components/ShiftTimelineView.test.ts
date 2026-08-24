@@ -96,6 +96,31 @@ describe("ShiftTimelineView", () => {
     expect(buttonAnchor.querySelector("[data-testid='hint']")).not.toBeNull();
   });
 
+  it("lifts the button clear of the notice's blur while it is open", () => {
+    const { container } = renderView(
+      { isHintOpen: true },
+      { "switch-hint": "<i data-testid='hint' />" },
+    );
+
+    const buttonAnchor = (container.firstElementChild as HTMLElement).firstElementChild as HTMLElement;
+    // Above the backdrop's z-30, so the button and its link stay readable —
+    // they are the subject of the notice.
+    expect(buttonAnchor.className).toContain("z-40");
+    // Lifted, they would still be clickable through a modal, so the wrapper
+    // stops taking pointers and the panel opts back in.
+    expect(buttonAnchor.className).toContain("pointer-events-none");
+  });
+
+  it("leaves the button alone when the notice is closed", () => {
+    const { container } = renderView({}, { "switch-hint": "<i data-testid='hint' />" });
+
+    const buttonAnchor = (container.firstElementChild as HTMLElement).firstElementChild as HTMLElement;
+    // A permanent lift would leave the button floating over the page, and a
+    // permanent `pointer-events-none` would make it useless.
+    expect(buttonAnchor.className).not.toContain("z-40");
+    expect(buttonAnchor.className).not.toContain("pointer-events-none");
+  });
+
   it("drops the hint along with the button it points at", () => {
     const { queryByTestId } = renderView(
       { showSwitchButton: false },

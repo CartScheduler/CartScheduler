@@ -101,29 +101,21 @@ const { isSwitchButtonShown, hasChosen, setSwitchButtonShown } = useViewSwitchBu
 // and the stored preference must not be allowed to take it away.
 const showSwitchButton = computed(() => isNotMobile.value || isSwitchButtonShown.value);
 
+/** The offer stands until it is answered, and only where swiping is possible. */
+const isNoticeOffered = computed(() => isCarousel.value && !hasChosen.value);
+
+/** True while the notice is open, so the view can lift the button out of the
+  blur behind it. */
+const isHintOpen = ref(false);
+
 /**
- * Long enough for the dashboard to have settled and the user to have looked at
- * it, so the hint reads as an offer rather than as part of loading.
+ * Either answer settles the question, which is what takes the notice away.
+ * The reset matters: answering unmounts the notice along with its link, and a
+ * flag left true would leave the button lifted and inert for the session.
  */
-const HINT_DELAY = 900;
-
-const isHintVisible = ref(false);
-
-onMounted(() => {
-  if (!isCarousel.value || hasChosen.value) {
-    return;
-  }
-
-  setTimeout(() => {
-    // Re-checked on the way in: the user may have crossed to desktop, or
-    // answered from their preferences, while the timer was running.
-    isHintVisible.value = isCarousel.value && !hasChosen.value;
-  }, HINT_DELAY);
-});
-
 const onHintChoice = (keep: boolean) => {
   setSwitchButtonShown(keep);
-  isHintVisible.value = false;
+  isHintOpen.value = false;
 };
 </script>
 
@@ -157,6 +149,7 @@ const onHintChoice = (keep: boolean) => {
                            v-model:date="date"
                            v-model:expanded-panel="expandedAccordionPanelIndex"
                            :show-switch-button="showSwitchButton"
+                           :is-hint-open="isHintOpen"
                            :shift-markers="shiftMarkers"
                            :locations="locations"
                            :is-loading="isLoading"
@@ -170,10 +163,13 @@ const onHintChoice = (keep: boolean) => {
                            @toggle-reservation="toggleReservation">
           <!--
             Handed to the pane on screen rather than to both, so there is one
-            hint and one dialog in the document however many views are built.
+            link and one dialog in the document however many views are built.
+            Only where there is a carousel: on desktop the button is the only
+            way across, so there is nothing to offer to swipe instead. And only
+            until the user answers — the notice is an offer, not a fixture.
           -->
-          <template v-if="shiftView === 'calendar'" #switch-hint>
-            <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
+          <template v-if="isNoticeOffered && shiftView === 'calendar'" #switch-hint>
+            <ViewSwitchHint v-model:open="isHintOpen" @choose="onHintChoice" />
           </template>
         </ShiftCalendarView>
       </div>
@@ -183,6 +179,7 @@ const onHintChoice = (keep: boolean) => {
                            v-model="selectedShift"
                            :is-active="shiftView === 'list'"
                            :show-switch-button="showSwitchButton"
+                           :is-hint-open="isHintOpen"
                            :locations="locations"
                            :marker-dates="serverDates"
                            :is-restricted="isRestricted"
@@ -193,8 +190,8 @@ const onHintChoice = (keep: boolean) => {
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'calendar'"
                            @toggle-reservation="toggleReservation">
-          <template v-if="shiftView === 'list'" #switch-hint>
-            <ViewSwitchHint v-model="isHintVisible" @choose="onHintChoice" />
+          <template v-if="isNoticeOffered && shiftView === 'list'" #switch-hint>
+            <ViewSwitchHint v-model:open="isHintOpen" @choose="onHintChoice" />
           </template>
         </ShiftTimelineView>
       </div>
