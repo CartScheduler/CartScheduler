@@ -29,6 +29,7 @@ const {
   shiftMarkers = [],
   freeShifts,
   canViewHistorical = false,
+  isReady = true,
 } = defineProps<{
   date: Date;
   maxDate?: Date | undefined;
@@ -36,7 +37,15 @@ const {
   markerDates?: App.Data.AvailableShiftsData["shifts"] | undefined;
   freeShifts?: App.Data.AvailableShiftsData["freeShifts"] | undefined;
   canViewHistorical?: boolean;
-  isLoading?: boolean;
+  /**
+   * Covers the picker until the data behind it has arrived, so the markers do
+   * not appear a beat after the dates they belong to.
+   *
+   * Defaults to ready. A caller that says nothing gets a calendar it can use;
+   * the alternative is a spinner that never lifts, which is what an omitted
+   * prop used to buy on the admin dashboard.
+   */
+  isReady?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -185,10 +194,20 @@ const canGoForward = computed(() => {
 </script>
 
 <template>
-  <div>
-    <ComponentSpinner ref="transitionContainer"
-                      :show="!isLoading"
-                      class="transition-container flex flex-col sm:h-0 sm:min-h-full">
+  <!--
+    No height policy of its own: the picker fills whatever box the caller hands
+    it. The dashboard's calendar column is a `1fr` track that has to be allowed
+    to be shorter than a month, so it passes `sm:h-0 sm:min-h-full` to keep the
+    calendar from setting the track's height. The admin dashboard's row is
+    content-sized, so it passes nothing and the calendar sizes the row.
+
+    Collapsing here instead would apply the first case to both: the admin
+    calendar would contribute no height, the row would be sized by the shorter
+    accordion beside it, and the calendar would spill over the panel below.
+  -->
+  <div class="flex flex-col">
+    <ComponentSpinner :show="!isReady"
+                      class="flex flex-1 flex-col min-h-0">
       <PDatePicker v-model="selectedDate"
                    inline
                    selectOtherMonths

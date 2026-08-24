@@ -87,7 +87,7 @@ debouncedWatch(() => locations, () => {
                   :max-date="maxReservationDate"
                   :free-shifts="freeShifts"
                   :marker-dates="markerDates"
-                  class="sm:col-start-1 sm:row-start-2" />
+                  class="sm:col-start-1 sm:row-start-2 sm:h-0 sm:min-h-full" />
       <ComponentSpinner :show="isLoading"
                         class="min-h-56 sm:h-auto sm:min-h-full sm:col-start-2 sm:row-start-1 sm:row-span-2">
         <!-- No border here: the panels draw the outline of the stack themselves. -->

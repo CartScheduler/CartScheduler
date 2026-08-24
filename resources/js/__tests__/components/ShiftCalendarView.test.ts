@@ -71,6 +71,17 @@ describe("ShiftCalendarView", () => {
     expect(screen.getByTestId("date-picker").getAttribute("data-loaded")).toBe("true");
   });
 
+  it("keeps the picker from setting the height of its column", () => {
+    renderView();
+
+    // This column is a `1fr` track that has to be free to be shorter than a
+    // month of dates, so the collapse is asked for here rather than lived in
+    // the picker — the admin dashboard sizes its row off the same component.
+    const classes = [...screen.getByTestId("date-picker").classList];
+    expect(classes).toContain("sm:h-0");
+    expect(classes).toContain("sm:min-h-full");
+  });
+
   it("tells the date picker it is still loading while there are no locations", () => {
     renderView({ locations: [] });
 
