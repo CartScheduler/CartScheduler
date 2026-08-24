@@ -1,6 +1,6 @@
 <script setup>
 import { useForm } from "@inertiajs/vue3";
-import { ref } from "vue";
+import { useTemplateRef } from "vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import JetValidationErrors from "@/Jetstream/ValidationErrors.vue";
@@ -11,7 +11,7 @@ const form = useForm({
   password: "",
 });
 
-const passwordInput = ref(null);
+const passwordInput = useTemplateRef("passwordInput");
 
 const submit = () => {
   form.post(route("password.confirm"), {

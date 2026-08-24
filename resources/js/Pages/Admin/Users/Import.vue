@@ -34,7 +34,7 @@ const uploadFile = () => {
   });
 };
 
-watch(() => page.props.jetstream, (value) => {
+watch(() => page.props.jetstream, () => {
 
   flash(
     page.props.jetstream,

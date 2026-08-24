@@ -1,6 +1,6 @@
 <script setup>
 import { useForm } from "@inertiajs/vue3";
-import { nextTick, ref } from "vue";
+import { nextTick, ref, useTemplateRef } from "vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import JetValidationErrors from "@/Jetstream/ValidationErrors.vue";
@@ -12,8 +12,8 @@ const form = useForm({
   recovery_code: "",
 });
 
-const recoveryCodeInput = ref(null);
-const codeInput = ref(null);
+const recoveryCodeInput = useTemplateRef("recoveryCodeInput");
+const codeInput = useTemplateRef("codeInput");
 
 const toggleRecovery = async () => {
   recovery.value ^= true;

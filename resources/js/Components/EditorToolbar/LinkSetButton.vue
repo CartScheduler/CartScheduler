@@ -65,7 +65,7 @@ onKeyStroke("Enter", (e) => {
   if (!doShowPopup.value) return;
 
   e.preventDefault();
-  setLink();
+  void setLink();
 }, { target: domElement });
 
 onKeyStroke("Escape", async () => {

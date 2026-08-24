@@ -31,7 +31,7 @@ const form = reactive({
 });
 
 const startConfirmingPassword = () => {
-  axios.get(route("password.confirmation")).then((response) => {
+  void axios.get(route("password.confirmation")).then((response) => {
     if (response.data.confirmed) {
       emit("confirmed");
     } else {
@@ -49,7 +49,7 @@ const confirmPassword = () => {
     form.processing = false;
 
     closeModal();
-    nextTick().then(() => emit("confirmed"));
+    void nextTick().then(() => emit("confirmed"));
 
   }).catch((error) => {
     form.processing = false;
