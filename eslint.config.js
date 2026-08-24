@@ -3,6 +3,7 @@
 import { resolve } from "node:path";
 import e18e from "@e18e/eslint-plugin";
 import css from "@eslint/css";
+import { tailwindSyntax } from "@eslint/css/syntax";
 import json from "@eslint/json";
 import stylistic from "@stylistic/eslint-plugin";
 import { configureVueProject, defineConfigWithVueTs, vueTsConfigs } from "@vue/eslint-config-typescript";
@@ -106,12 +107,26 @@ export default defineConfigWithVueTs([
     files: ["./resources/css/**/*.css"],
     plugins: { css },
     language: "css/css",
+    // Tailwind's at-rules and the variant syntax `@apply` takes — `after:dark:from-…`,
+    // `ease-[linear(…)]` — are not plain CSS, and every such line was a parse
+    // error that stopped the file being linted at all.
+    languageOptions: {
+      customSyntax: tailwindSyntax,
+      tolerant: true,
+    },
     rules: {
       "css/no-empty-blocks": "error",
       "css/no-duplicate-imports": "error",
       "css/no-important": "error",
-      "css/no-invalid-at-rules": "error",
-      "css/no-invalid-properties": "error",
+      // Off: with the Tailwind syntax loaded, this rule throws on `@apply`
+      // preludes carrying arbitrary values — `bg-[var(--highlighted-date-bg)]`
+      // — and takes the whole run down with it (@eslint/css 0.9.0).
+      "css/no-invalid-at-rules": "off",
+      // Off for the same reason: every report here is Tailwind or a custom
+      // property set on one rule and read from another — `theme(screens.xl)`,
+      // `var(--width)` on a pseudo-element — none of which this rule can
+      // resolve, and 0.9.0 has no option to let it pass.
+      "css/no-invalid-properties": "off",
       "css/use-baseline": "warn",
     },
   },

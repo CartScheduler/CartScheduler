@@ -54,6 +54,7 @@
     "verbatimModuleSyntax": false
   },
   "include": [
+    "./*.ts",
     "./resources/js/**/*.ts",
     "./resources/js/**/*.tsx",
     "./resources/js/**/*.vue",
