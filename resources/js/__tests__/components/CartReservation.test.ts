@@ -9,12 +9,20 @@ const store = vi.hoisted(() => ({
   viewSwitchButton: {} as Record<string, "shown" | "hidden">,
 }));
 
+/** Shared per-test state for the two mocks below, for the same hoisting reason. */
+const settings = vi.hoisted(() => ({
+  shiftRemoveConfirmMessage: undefined as string | undefined,
+}));
+
+const reservation = vi.hoisted(() => ({ toggleReservation: vi.fn() }));
+
 vi.mock("@inertiajs/vue3", () => ({
   usePage: () => ({
     props: {
       auth: { user: { uuid: "u1" } },
       shiftAvailability: { timezone: "Australia/Melbourne" },
       isUnrestricted: true,
+      shiftRemoveConfirmMessage: settings.shiftRemoveConfirmMessage,
     },
   }),
 }));
@@ -46,25 +54,44 @@ vi.mock("@/Pages/Components/Dashboard/composables/useRosteredLocations", () => (
 }));
 
 vi.mock("@/Pages/Components/Dashboard/composables/useReservation", () => ({
-  default: () => ({ toggleReservation: vi.fn() }),
+  default: () => reservation,
 }));
 
-// Both render the `switch-hint` slot, because where the hint is handed to is
-// what these tests are checking — a stub that dropped it would pass silently.
-// It is gated on `showSwitchButton` as the real wrapper's `v-if` is, so a
-// hidden button takes the link with it here too.
+// Both views render the `switch-hint` slot, because where the hint is handed to
+// is what half of these tests are checking — a stub that dropped it would pass
+// silently. It is gated on `showSwitchButton` as the real wrapper's `v-if` is,
+// so a hidden button takes the link with it here too.
+//
+// They carry a button each as well, so a test can raise the same
+// `toggle-reservation` the real views emit, from either pane.
 const stubs = {
   ShiftTimelineView: {
     props: ["isActive", "showSwitchButton", "isHintOpen"],
+    emits: ["toggleReservation"],
     template: "<div data-testid='timeline' :data-active='String(isActive)'"
       + " :data-switch-button='String(showSwitchButton)' :data-hint-open='String(isHintOpen)'>"
-      + "<slot v-if='showSwitchButton' name='switch-hint' /></div>",
+      + "<slot v-if='showSwitchButton' name='switch-hint' />"
+      + "<button data-testid='timeline-unreserve'"
+      + " @click=\"$emit('toggleReservation', 7, 42, false)\" /></div>",
   },
   ShiftCalendarView: {
     props: ["showSwitchButton", "isHintOpen"],
+    emits: ["toggleReservation"],
     template: "<div data-testid='calendar' :data-switch-button='String(showSwitchButton)'"
       + " :data-hint-open='String(isHintOpen)'>"
-      + "<slot v-if='showSwitchButton' name='switch-hint' /></div>",
+      + "<slot v-if='showSwitchButton' name='switch-hint' />"
+      + "<button data-testid='calendar-unreserve'"
+      + " @click=\"$emit('toggleReservation', 1, 2, false)\" />"
+      + "<button data-testid='calendar-reserve'"
+      + " @click=\"$emit('toggleReservation', 1, 2, true)\" /></div>",
+  },
+  PDialog: {
+    props: ["visible"],
+    template: "<div v-if='visible' role='dialog'><slot /><slot name='footer' /></div>",
+  },
+  PButton: {
+    props: ["label"],
+    template: "<button @click=\"$emit('click')\">{{ label }}</button>",
   },
 };
 
@@ -93,7 +120,11 @@ beforeEach(() => {
   // The store's own default, so these render as a first-time visitor sees it.
   store.shiftView = "calendar";
   // Unanswered, so the notice under the switch button is still being offered.
+  // The removal tests set this aside for themselves further down.
   store.viewSwitchButton = {};
+  // Off by default: an admin has to set a message to turn the prompt on.
+  settings.shiftRemoveConfirmMessage = undefined;
+  reservation.toggleReservation.mockClear();
   setViewport(false);
 });
 
@@ -302,5 +333,82 @@ describe("CartReservation", () => {
     await findByTestId("calendar");
     // No carousel on desktop, so the inactive view is never built.
     await vi.waitFor(() => expect(queryByTestId("timeline")).toBeNull());
+  });
+  describe("confirming a removal", () => {
+    const MESSAGE = "Have you contacted the others on your shift?";
+
+    // Answered, so the first-run notice stays out of the way of these tests.
+    beforeEach(() => {
+      store.viewSwitchButton = { u1: "shown" };
+    });
+
+    it("goes straight through when no message is set", async () => {
+      const { findByTestId } = renderCartReservation();
+
+      (await findByTestId("calendar-unreserve")).click();
+
+      // The setting is off, so there is nothing to ask and nothing to show.
+      expect(reservation.toggleReservation).toHaveBeenCalledWith(1, 2, false);
+    });
+
+    it("asks before removing when a message is set", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      const { findByTestId, findByRole } = renderCartReservation();
+
+      (await findByTestId("calendar-unreserve")).click();
+
+      const dialog = await findByRole("dialog");
+      expect(dialog.textContent).toContain(MESSAGE);
+      expect(reservation.toggleReservation).not.toHaveBeenCalled();
+    });
+
+    it("never asks on the way in", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      const { findByTestId, queryByRole } = renderCartReservation();
+
+      (await findByTestId("calendar-reserve")).click();
+
+      // Reserving is not the thing an admin wants a second thought about.
+      expect(reservation.toggleReservation).toHaveBeenCalledWith(1, 2, true);
+      expect(queryByRole("dialog")).toBeNull();
+    });
+
+    it("removes the shift it was asked about, once confirmed", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      const { findByTestId, findByRole, getByRole, queryByRole } = renderCartReservation();
+
+      (await findByTestId("calendar-unreserve")).click();
+      await findByRole("dialog");
+      getByRole("button", { name: "Remove Reservation" }).click();
+
+      expect(reservation.toggleReservation).toHaveBeenCalledWith(1, 2, false);
+      await vi.waitFor(() => expect(queryByRole("dialog")).toBeNull());
+    });
+
+    it("leaves the shift alone when the prompt is dismissed", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      const { findByTestId, findByRole, getByRole, queryByRole } = renderCartReservation();
+
+      (await findByTestId("calendar-unreserve")).click();
+      await findByRole("dialog");
+      getByRole("button", { name: "Cancel" }).click();
+
+      expect(reservation.toggleReservation).not.toHaveBeenCalled();
+      await vi.waitFor(() => expect(queryByRole("dialog")).toBeNull());
+    });
+
+    it("asks from the timeline too", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      store.shiftView = "list";
+      const { findByTestId, findByRole, getByRole } = renderCartReservation();
+
+      // The PR only reached the calendar's button. The setting is a promise
+      // about un-reserving, not about the pane it happens on.
+      (await findByTestId("timeline-unreserve")).click();
+      await findByRole("dialog");
+      getByRole("button", { name: "Remove Reservation" }).click();
+
+      expect(reservation.toggleReservation).toHaveBeenCalledWith(7, 42, false);
+    });
   });
 });

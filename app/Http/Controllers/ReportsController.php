@@ -18,6 +18,7 @@ class ReportsController extends Controller
             'reports'   => ReportsData::collect(
                 Report::query()
                     ->with(['tags'])
+                    ->where('shift_date', '>=', now()->subMonths(2)->toDateString())
                     ->orderBy('id', 'desc')
                     ->get()
             ),

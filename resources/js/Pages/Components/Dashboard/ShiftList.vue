@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { usePage } from "@inertiajs/vue3";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
-import { format } from "date-fns";
-import { utcToZonedTime } from "date-fns-tz";
+import { format, parseISO } from "date-fns";
 import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import getShiftItem from "@/Pages/Components/Dashboard/lib/getShiftItem";
 import ShiftDetailOverlay from "@/Pages/Components/Dashboard/ShiftDetailOverlay.vue";
@@ -25,12 +23,8 @@ defineEmits<{
   toggleReservation: [locationId: number, shiftId: number, toggleOn: boolean];
 }>();
 
-const page = usePage();
-
 const root = useTemplateRef<HTMLElement>("root");
 const isDetailOpen = ref(false);
-
-const shiftAvailability = computed(() => page.props.shiftAvailability);
 
 const parseShiftsOnDate = (shiftGroup: App.Data.AvailableShiftsData["shifts"][string], currentDate: Date): ShiftItem[] => {
   return Object.values(shiftGroup)
@@ -46,7 +40,9 @@ const shifts = computed<Map<string, Array<ShiftItem>>>(() => {
   const now = new Date();
   const mappedShifts = Object.keys(markerDates)
     .map((date) => ({
-      date: utcToZonedTime(date, shiftAvailability.value.timezone),
+      // keys are plain calendar dates (Y-m-d) in the app timezone; parse as a local date
+      // so the timeline shows the correct day rather than shifting to the previous one.
+      date: parseISO(date),
       shiftGroup: markerDates[date],
     }))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -54,7 +50,7 @@ const shifts = computed<Map<string, Array<ShiftItem>>>(() => {
   for (const date of mappedShifts) {
     if (!date.shiftGroup) continue;
 
-    const shiftDate = utcToZonedTime(date.date, shiftAvailability.value.timezone);
+    const shiftDate = date.date;
 
     map.set(
       [

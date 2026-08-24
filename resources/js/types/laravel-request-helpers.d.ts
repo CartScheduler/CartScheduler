@@ -27,6 +27,7 @@ export type InertiaProps = {
   enableUserAvailability?: boolean;
   needsToUpdateAvailability?: boolean;
   enableUserLocationChoices?: boolean;
+  shiftRemoveConfirmMessage?: string;
   isUnrestricted?: true;
   auth: {
     user: AuthUser;

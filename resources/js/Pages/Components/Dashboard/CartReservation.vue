@@ -16,6 +16,8 @@ import { useGlobalState } from "@/store";
 
 const page = usePage();
 
+const shiftRemoveConfirmMessage = computed(() => page.props.shiftRemoveConfirmMessage);
+
 const user = computed(() => page.props.auth.user);
 const timezone = computed(() => page.props.shiftAvailability.timezone);
 
@@ -48,6 +50,39 @@ const {
 } = useRosteredLocations({ locations, date, serverDates, shiftMarkers, shiftView });
 
 const { toggleReservation } = useReservation({ date, isLoading, getShifts, reservationWatch });
+
+const showRemoveReservationModal = ref(false);
+const pendingRemoval = ref<{ locationId: number; shiftId: number } | null>(null);
+
+/**
+ * Reserving is immediate; un-reserving asks first, when an admin has set a
+ * confirmation message.
+ *
+ * Both views emit through here rather than each owning a prompt of its own —
+ * the timeline reached the same action by a different route, and the setting
+ * has to hold on whichever one the volunteer happens to be looking at.
+ */
+const requestToggleReservation = (locationId: number, shiftId: number, toggleOn: boolean) => {
+  if (toggleOn || !shiftRemoveConfirmMessage.value) {
+    void toggleReservation(locationId, shiftId, toggleOn);
+    return;
+  }
+
+  pendingRemoval.value = { locationId, shiftId };
+  showRemoveReservationModal.value = true;
+};
+
+const cancelRemoveReservation = () => {
+  showRemoveReservationModal.value = false;
+  pendingRemoval.value = null;
+};
+
+const confirmRemoveReservation = () => {
+  if (pendingRemoval.value) {
+    void toggleReservation(pendingRemoval.value.locationId, pendingRemoval.value.shiftId, false);
+  }
+  cancelRemoveReservation();
+};
 
 const isRestricted = computed(() => !page.props.isUnrestricted);
 
@@ -160,7 +195,7 @@ const onHintChoice = (keep: boolean) => {
                            :user="user"
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'list'"
-                           @toggle-reservation="toggleReservation">
+                           @toggle-reservation="requestToggleReservation">
           <!--
             Handed to the pane on screen rather than to both, so there is one
             link and one dialog in the document however many views are built.
@@ -189,7 +224,7 @@ const onHintChoice = (keep: boolean) => {
                            :user="user"
                            :user-shift-locations="userShiftLocations"
                            @switch-view="shiftView = 'calendar'"
-                           @toggle-reservation="toggleReservation">
+                           @toggle-reservation="requestToggleReservation">
           <template v-if="isNoticeOffered && shiftView === 'list'" #switch-hint>
             <ViewSwitchHint v-model:open="isHintOpen" @choose="onHintChoice" />
           </template>
@@ -222,4 +257,15 @@ const onHintChoice = (keep: boolean) => {
       </button>
     </nav>
   </div>
+  <PDialog v-model:visible="showRemoveReservationModal"
+           modal
+           header="Confirmation"
+           pt:root="w-[calc(100vw-2rem)] max-w-lg">
+    <p class="dark:text-gray-100">{{ shiftRemoveConfirmMessage }}</p>
+
+    <template #footer>
+      <PButton label="Cancel" severity="secondary" outlined @click="cancelRemoveReservation" />
+      <PButton label="Remove Reservation" @click="confirmRemoveReservation" />
+    </template>
+  </PDialog>
 </template>

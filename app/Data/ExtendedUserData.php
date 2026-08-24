@@ -30,6 +30,7 @@ class ExtendedUserData extends Data
         public string|Optional $shift_date,
         public string|Optional $last_shift_date,
         public string|Optional $last_shift_start_time,
+        public string|Optional $last_location_name,
         public int|Optional $num_sundays,
         public int|Optional $num_mondays,
         public int|Optional $num_tuesdays,

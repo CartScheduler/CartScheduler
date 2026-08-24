@@ -4,6 +4,7 @@ import { Menu as VMenu } from "floating-vue";
 import { computed, inject, ref, watchEffect } from "vue";
 import DataTable from "@/Components/DataTable.vue";
 import QuestionCircle from "@/Components/Icons/QuestionCircle.vue";
+import { numberOfWeeks } from "@/Composables/useAvailabilityActions";
 import useToast from "@/Composables/useToast";
 import FilledShiftsIndicator from "@/Pages/Admin/Dashboard/FilledShiftsIndicator.vue";
 import { useGlobalState } from "@/store";
@@ -51,6 +52,8 @@ const state = useGlobalState();
 const columnFilters = computed(() => state.value["columnFilters"]);
 const enableUserAvailability = inject(EnableUserAvailability);
 const volunteers = ref<App.Data.ExtendedUserData[]>([]);
+
+const shiftDayKey = computed(() => format(props.date, "EEEE").toLowerCase());
 
 const tableHeaders = computed(() => {
   const headers = [
@@ -120,6 +123,27 @@ const tableHeaders = computed(() => {
     value: "lastShift",
     sortable: true,
   });
+  if (columnFilters.value.lastLocation.value) {
+    headers.push({
+      text: "Last Location",
+      value: "lastLocation",
+      sortable: true,
+    });
+  }
+  if (columnFilters.value.comments.value) {
+    headers.push({
+      text: "Comments",
+      value: "comments",
+      sortable: true,
+    });
+  }
+  if (enableUserAvailability && columnFilters.value.weeksPerMonth.value) {
+    headers.push({
+      text: "Weeks/Month",
+      value: "weeksPerMonth",
+      sortable: true,
+    });
+  }
   if (enableUserAvailability) {
     headers.push({
       text: "Availability",
@@ -157,20 +181,25 @@ const tableRows = computed(() => {
       saturday: (volunteer.filled_saturdays < daysAvailable.saturday ? volunteer.filled_saturdays : daysAvailable.saturday) || 0,
     };
 
+    const numDaysKey = `num_${shiftDayKey.value}s` as keyof App.Data.ExtendedUserData;
+    const weeksPerMonth = (volunteer[numDaysKey] as number | undefined) ?? 0;
+
     return {
       id: volunteer.id,
       name: `${prefix} ${volunteer.name}`,
       gender: volunteer.gender,
-      comment: volunteer.availability_comments,
+      comments: volunteer.availability_comments,
       lastShift: volunteer.last_shift_date ? volunteer.last_shift_date : null,
       lastShiftTime: volunteer.last_shift_start_time ? volunteer.last_shift_start_time : null,
       filledShifts: calcShiftPercentage(daysAlreadyRostered, daysAvailable),
+      weeksPerMonth,
       responsibleBrother: volunteer.responsible_brother,
       appointment: volunteer.appointment,
       servingAs: volunteer.serving_as,
       maritalStatus: volunteer.marital_status,
       birthYear: volunteer.birth_year,
       mobilePhone: volunteer.mobile_phone,
+      lastLocation: volunteer.last_location_name ?? null,
       daysAlreadyRostered,
       daysAvailable,
     };
@@ -309,11 +338,16 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
         {{ header.text }}
       </template>
 
-      <template #item-name="{ name, comment }">
+      <template #item-name="{ name, comments }">
         {{ name }}
-        <div class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
-          <div>{{ comment }}</div>
+        <div v-if="!columnFilters.comments.value && comments"
+             class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
+          <div>{{ comments }}</div>
         </div>
+      </template>
+
+      <template #item-comments="{ comments }">
+        <span class="text-xs italic text-neutral-900 dark:text-neutral-200">{{ comments }}</span>
       </template>
 
       <template #item-responsibleBrother="{ responsibleBrother }">
@@ -337,6 +371,10 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
         {{ birthYear }}
       </template>
 
+      <template #item-lastLocation="{ lastLocation }">
+        {{ lastLocation ?? "Never" }}
+      </template>
+
       <template #item-mobilePhone="{ mobilePhone }">
         <div class="flex flex-wrap justify-center">
           <small class="text-xs w-full text-center">{{ mobilePhone }}</small>
@@ -355,6 +393,11 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
 
       <template #item-lastShift="{ lastShift, lastShiftTime }">
         {{ formatShiftDate(lastShift, lastShiftTime) }}
+      </template>
+
+      <template #item-weeksPerMonth="{ weeksPerMonth }">
+        <span v-if="weeksPerMonth > 0">{{ numberOfWeeks[weeksPerMonth as keyof typeof numberOfWeeks] }}</span>
+        <span v-else class="italic text-gray-500">Not set</span>
       </template>
 
       <template #item-filledShifts="{ daysAlreadyRostered, daysAvailable, filledShifts }">

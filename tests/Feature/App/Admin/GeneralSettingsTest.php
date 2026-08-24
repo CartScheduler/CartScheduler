@@ -31,6 +31,8 @@ class GeneralSettingsTest extends TestCase
         $generalSettings->systemShiftEndHour        = 13;
         $generalSettings->enableUserAvailability    = false;
         $generalSettings->enableUserLocationChoices = false;
+        $generalSettings->enableShiftRemoveConfirm  = false;
+        $generalSettings->shiftRemoveConfirmMessage = 'Have you contacted all others on your shift?';
         $generalSettings->save();
 
         $this->actingAs($admin)
@@ -40,6 +42,8 @@ class GeneralSettingsTest extends TestCase
                 'systemShiftEndHour'        => 15,
                 'enableUserAvailability'    => true,
                 'enableUserLocationChoices' => true,
+                'enableShiftRemoveConfirm'  => true,
+                'shiftRemoveConfirmMessage' => 'Custom confirmation message',
             ])
             ->assertRedirect(route('admin.settings'));
 
@@ -49,6 +53,43 @@ class GeneralSettingsTest extends TestCase
         $this->assertSame(15, $generalSettings->systemShiftEndHour);
         $this->assertTrue($generalSettings->enableUserAvailability);
         $this->assertTrue($generalSettings->enableUserLocationChoices);
+        $this->assertTrue($generalSettings->enableShiftRemoveConfirm);
+        $this->assertSame('Custom confirmation message', $generalSettings->shiftRemoveConfirmMessage);
+    }
+
+    public function test_remove_reservation_confirmation_message_is_not_required_when_confirmation_disabled(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create();
+
+        $this->actingAs($admin)
+            ->putJson('/admin/general-settings', [
+                'siteName'                  => 'Site Name',
+                'systemShiftStartHour'      => 8,
+                'systemShiftEndHour'        => 17,
+                'enableUserAvailability'    => false,
+                'enableUserLocationChoices' => false,
+                'enableShiftRemoveConfirm'  => false,
+                'shiftRemoveConfirmMessage' => '',
+            ])
+            ->assertRedirect(route('admin.settings'));
+    }
+
+    public function test_remove_reservation_confirmation_message_is_required_when_confirmation_enabled(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create();
+
+        $this->actingAs($admin)
+            ->putJson('/admin/general-settings', [
+                'siteName'                  => 'Site Name',
+                'systemShiftStartHour'      => 8,
+                'systemShiftEndHour'        => 17,
+                'enableUserAvailability'    => false,
+                'enableUserLocationChoices' => false,
+                'enableShiftRemoveConfirm'  => true,
+                'shiftRemoveConfirmMessage' => '',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['shiftRemoveConfirmMessage']);
     }
 
     public function test_admin_can_update_allowed_settings_users(): void
@@ -81,6 +122,8 @@ class GeneralSettingsTest extends TestCase
         $generalSettings->systemShiftEndHour        = 13;
         $generalSettings->enableUserAvailability    = false;
         $generalSettings->enableUserLocationChoices = false;
+        $generalSettings->enableShiftRemoveConfirm  = true;
+        $generalSettings->shiftRemoveConfirmMessage = 'Have you contacted all others on your shift?';
         $generalSettings->currentVersion            = '1.0.0';
         $generalSettings->availableVersion          = '1.0.1';
         $generalSettings->allowedSettingsUsers      = [$admin->getKey()];
@@ -96,6 +139,8 @@ class GeneralSettingsTest extends TestCase
                     ->where('systemShiftEndHour', 13)
                     ->where('enableUserAvailability', false)
                     ->where('enableUserLocationChoices', false)
+                    ->where('enableShiftRemoveConfirm', true)
+                    ->where('shiftRemoveConfirmMessage', 'Have you contacted all others on your shift?')
                     ->where('currentVersion', '1.0.0')
                     ->where('availableVersion', '1.0.1')
                     ->where('allowedSettingsUsers', [$admin->getKey()])

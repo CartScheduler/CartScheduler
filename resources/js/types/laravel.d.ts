@@ -46,6 +46,7 @@ declare namespace App.Data {
     shift_date?: string;
     last_shift_date?: string;
     last_shift_start_time?: string;
+    last_location_name?: string;
     num_sundays?: number;
     num_mondays?: number;
     num_tuesdays?: number;
@@ -231,5 +232,7 @@ declare namespace App.Settings {
     systemShiftEndHour: number;
     enableUserAvailability: boolean;
     enableUserLocationChoices: boolean;
+    enableShiftRemoveConfirm: boolean;
+    shiftRemoveConfirmMessage: string;
   };
 }

@@ -62,6 +62,12 @@ export default () => {
         routeName: "admin.reports.index",
         href: route("admin.reports.index"),
       },
+      {
+        label: "Exports",
+        icon: "iconify mdi--file-export-outline",
+        routeName: "admin.exports",
+        href: route("admin.exports"),
+      },
     ];
     if (permissions.canEditSettings) {
       adminSubmenu.push({
