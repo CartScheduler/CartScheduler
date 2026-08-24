@@ -25,6 +25,10 @@ services:
               source: ./
               target: /var/www/html
               consistency: cached
+            - type: bind
+              source: ./docker/host-launch-editor.sh
+              target: /usr/local/bin/hosteditor
+              consistency: cached
         networks:
             - sail
         depends_on:
