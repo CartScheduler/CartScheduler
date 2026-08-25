@@ -8,6 +8,7 @@ return [
     'release_new_shifts_at_time' => env('CA_SHIFT_RESERVATION_NEW_RELEASE_TIME', '00:00:00'),
     'do_release_shifts_daily' => env('CA_SHIFT_RESERVATION_DAILY_RELEASE_SCHEDULE', false),
     'max_volunteers_per_location' => (int) env('CA_MAX_VOLUNTEERS_PER_SHIFT', 4),
+    'shift_assignment_notifications_enabled' => env('CA_SHIFT_ASSIGNMENT_NOTIFICATIONS_ENABLED', false),
 
     // Formatted this way as a very primitive obfuscation
     'set_password_generic_error_message' => 'An unknown error occurred. Did you click on a link to set your password? If not, please do so to proceed.',
