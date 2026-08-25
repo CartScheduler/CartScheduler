@@ -149,9 +149,8 @@ php composer ziggy
 
 ### Email Testing
 
-For development, the system uses [MailHog](https://github.com/mailhog/MailHog) that can be accessed
-at http://localhost:8025. All emails sent from the system
-will be available in this interface.
+For development, `.env.example` points at [Mailpit](https://github.com/axllent/mailpit) (`MAIL_HOST=mailpit`, port `1025`).
+Open http://localhost:8025 to inspect captured mail. Production should override these (e.g. SES).
 
 ### Notes:
 
