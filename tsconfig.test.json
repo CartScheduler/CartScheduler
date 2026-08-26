@@ -10,12 +10,13 @@
       "types/vue"
     ]
   },
-    "include": [
-      "./vitest.config.ts",
-      "./resources/js/**/*.ts",
-      "./resources/js/**/*.tsx",
-      "./resources/js/**/*.vue",
-      "./resources/js/tests/**/*.ts",
-      "./resources/js/tests/**/*.tsx"
+  // The root config excludes the test directory; this config exists to check
+  // it, so the exclusion is lifted here.
+  "exclude": [],
+  "include": [
+    "./vitest.config.ts",
+    "./resources/js/**/*.ts",
+    "./resources/js/**/*.tsx",
+    "./resources/js/**/*.vue"
   ]
-},
+}
