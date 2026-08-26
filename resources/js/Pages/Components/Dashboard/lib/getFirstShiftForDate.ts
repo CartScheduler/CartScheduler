@@ -1,4 +1,4 @@
-import { isSameDay } from "date-fns";
+import { isSameDay, parseISO } from "date-fns";
 
 export type AvailableShifts = App.Data.AvailableShiftsData["shifts"];
 
@@ -15,7 +15,10 @@ export default function getFirstShiftForDate(
     return undefined;
   }
 
-  const selectedDateKey = Object.keys(serverDates).find((dateKey) => isSameDay(new Date(dateKey), date));
+  // `parseISO`, not `new Date`: the latter reads a bare "2025-09-15" as UTC
+  // midnight, which is the day before in any negative-offset timezone. The
+  // shift markers parse the same keys the same way for the same reason.
+  const selectedDateKey = Object.keys(serverDates).find((dateKey) => isSameDay(parseISO(dateKey), date));
   if (!selectedDateKey) {
     return undefined;
   }

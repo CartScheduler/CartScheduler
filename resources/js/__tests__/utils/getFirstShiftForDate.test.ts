@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import getFirstShiftForDate from "@/Pages/Components/Dashboard/lib/getFirstShiftForDate";
 import type { AvailableShifts } from "@/Pages/Components/Dashboard/lib/getFirstShiftForDate";
 
@@ -56,5 +56,36 @@ describe("getFirstShiftForDate", () => {
     };
 
     expect(getFirstShiftForDate(serverDates, new Date("2025-09-15T12:00:00"))).toBeUndefined();
+  });
+
+  describe("west of UTC", () => {
+    // The suite pins TZ to Australia/Melbourne, which is +10 — far enough east
+    // that a UTC-midnight parse still lands on the right day and hides the bug
+    // entirely. Node re-reads process.env.TZ, so the offset can be moved for
+    // the length of these tests.
+    const setTimezone = (tz: string) => {
+      process.env.TZ = tz;
+    };
+
+    afterEach(() => setTimezone("Australia/Melbourne"));
+
+    it("matches the date key the user is actually looking at", () => {
+      setTimezone("America/New_York");
+
+      const shift = makeShift();
+      const serverDates: AvailableShifts = { "2025-09-15": { 101: [shift] } };
+
+      // Midday on the 15th, local. `new Date("2025-09-15")` is 20:00 on the
+      // 14th here, so the old comparison missed its own date.
+      expect(getFirstShiftForDate(serverDates, new Date(2025, 8, 15, 12))).toBe(shift);
+    });
+
+    it("does not match the day before", () => {
+      setTimezone("America/New_York");
+
+      const serverDates: AvailableShifts = { "2025-09-15": { 101: [makeShift()] } };
+
+      expect(getFirstShiftForDate(serverDates, new Date(2025, 8, 14, 12))).toBeUndefined();
+    });
   });
 });
