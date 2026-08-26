@@ -9,9 +9,23 @@
 //   --port            -> default 3334
 //   --host-root       -> default: CWD
 //   --container-root  -> required, no default
+//   --bind            -> default 127.0.0.1
+//
+// The bridge runs commands on your machine on behalf of whoever can reach the
+// port, so it treats every request as hostile: arguments are passed as an argv
+// array rather than a shell string, the line/column are parsed as integers, the
+// file has to resolve inside --host-root, and requests carrying an Origin or
+// Referer (i.e. sent by a web page you happened to visit) are refused.
+//
+// --bind defaults to loopback. Docker Desktop reaches that through
+// host.docker.internal, but on a Linux host, host-gateway lands on the bridge
+// address instead, so there you need --bind=0.0.0.0 — which exposes the port to
+// your local network. Prefer binding to the docker0 address if you know it.
 
 import http from 'node:http';
-import { exec } from 'node:child_process';
+import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 function parseArgs(argv) {
   const out = {};
@@ -35,57 +49,116 @@ function parseArgs(argv) {
   return out;
 }
 
-const args = parseArgs(process.argv.slice(2));
-
-const PORT = parseInt(args.port || 3334, 10);
-const HOST_ROOT = args['host-root'] || process.cwd();
-const CONTAINER_ROOT = args['container-root'];
-
-if (!CONTAINER_ROOT) {
-  console.error('Missing required flag: --container-root=/path/inside/container');
-  process.exit(1);
+/**
+ * A line/column is a positive integer or it is nothing. Anything else is
+ * someone trying their luck, so it falls back to 1 rather than being passed on.
+ */
+function toPosition(value) {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return String(Number.isFinite(parsed) && parsed > 0 ? parsed : 1);
 }
 
-console.log('Editor bridge config:');
-console.log(`  PORT           = ${PORT}`);
-console.log(`  CONTAINER_ROOT = ${CONTAINER_ROOT}`);
-console.log(`  HOST_ROOT      = ${HOST_ROOT}`);
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url, 'http://localhost');
-  const file = url.searchParams.get('file'); // container-side filename
-  const line = url.searchParams.get('line') || '1';
-  const column = url.searchParams.get('column') || '1';
-  // column isn't used by the `phpstorm` CLI launcher, but is accepted
-  // here in case you swap in an editor that supports it.
-
-  if (!file) {
-    res.writeHead(400);
-    return res.end('missing ?file=');
-  }
-
-  const hostFile = file.startsWith(CONTAINER_ROOT)
-    ? HOST_ROOT + file.slice(CONTAINER_ROOT.length)
+/**
+ * Translate a container-side path to its host equivalent, then confine it to
+ * hostRoot. Returns null if it escapes — `path.join` has already collapsed any
+ * `..` by then, so the prefix test sees the real destination.
+ */
+export function resolveHostFile(file, { hostRoot, containerRoot }) {
+  const mapped = file.startsWith(containerRoot)
+    ? path.join(hostRoot, file.slice(containerRoot.length))
     : file;
 
-  console.log(`Opening ${hostFile} at line ${line}:${column}`);
-  
-  exec(`phpstorm --line ${line} --column ${column} "${hostFile}"`, (err) => {
-    if (err) console.error('Failed to launch editor:', err.message);
+  const resolved = path.resolve(mapped);
+  const root = path.resolve(hostRoot);
+
+  return resolved === root || resolved.startsWith(root + path.sep) ? resolved : null;
+}
+
+export function createRequestHandler({ hostRoot, containerRoot, launch = execFile }) {
+  return (req, res) => {
+    // A page in the developer's browser can be made to issue a GET at this
+    // port. It cannot read the reply, but the side effect alone is the problem,
+    // so anything arriving with a web origin attached is turned away.
+    if (req.headers.origin || req.headers.referer) {
+      res.writeHead(403);
+      return res.end('cross-origin requests are not accepted');
+    }
+
+    if (req.method !== 'GET') {
+      res.writeHead(405);
+      return res.end('method not allowed');
+    }
+
+    const url = new URL(req.url, 'http://localhost');
+    const file = url.searchParams.get('file'); // container-side filename
+    const line = toPosition(url.searchParams.get('line'));
+    const column = toPosition(url.searchParams.get('column'));
+    // column isn't used by the `phpstorm` CLI launcher, but is accepted
+    // here in case you swap in an editor that supports it.
+
+    if (!file) {
+      res.writeHead(400);
+      return res.end('missing ?file=');
+    }
+
+    const hostFile = resolveHostFile(file, { hostRoot, containerRoot });
+
+    if (hostFile === null) {
+      console.error(`Refusing to open ${file}: outside ${hostRoot}`);
+      res.writeHead(403);
+      return res.end('outside host root');
+    }
+
+    console.log(`Opening ${hostFile} at line ${line}:${column}`);
+
+    // execFile, not exec: no shell parses these, so the arguments cannot break
+    // out into commands of their own.
+    launch('phpstorm', ['--line', line, '--column', column, hostFile], (err) => {
+      if (err) console.error('Failed to launch editor:', err.message);
+    });
+
+    res.end('ok');
+  };
+}
+
+export function startBridge({ port, bind, hostRoot, containerRoot }) {
+  const server = http.createServer(createRequestHandler({ hostRoot, containerRoot }));
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      // Already running from a previous `npm run dev` — nothing to do.
+      console.log(`Editor bridge already running on port ${port}, skipping.`);
+      process.exit(0);
+    }
+    throw err;
   });
 
-  res.end('ok');
-});
+  server.listen(port, bind, () => {
+    console.log(`Editor bridge listening on http://${bind}:${port}`);
+  });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    // Already running from a previous `npm run dev` — nothing to do.
-    console.log(`Editor bridge already running on port ${PORT}, skipping.`);
-    process.exit(0);
+  return server;
+}
+
+/** Only take over the process when run as a script, so tests can import it. */
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const args = parseArgs(process.argv.slice(2));
+
+  const PORT = Number.parseInt(args.port ?? '3334', 10);
+  const BIND = args.bind || '127.0.0.1';
+  const HOST_ROOT = args['host-root'] || process.cwd();
+  const CONTAINER_ROOT = args['container-root'];
+
+  if (!CONTAINER_ROOT) {
+    console.error('Missing required flag: --container-root=/path/inside/container');
+    process.exit(1);
   }
-  throw err;
-});
 
-server.listen(PORT, () => {
-  console.log(`Editor bridge listening on http://localhost:${PORT}`);
-});
+  console.log('Editor bridge config:');
+  console.log(`  PORT           = ${PORT}`);
+  console.log(`  BIND           = ${BIND}`);
+  console.log(`  CONTAINER_ROOT = ${CONTAINER_ROOT}`);
+  console.log(`  HOST_ROOT      = ${HOST_ROOT}`);
+
+  startBridge({ port: PORT, bind: BIND, hostRoot: HOST_ROOT, containerRoot: CONTAINER_ROOT });
+}

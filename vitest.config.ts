@@ -48,6 +48,9 @@ export default defineConfig({
     },
     include: [
       "./resources/js/**/*.{test,spec}.{js,ts,jsx,tsx}",
+      // `tools/` holds developer scripts that run on the host with a shell in
+      // reach, so they are tested here rather than left to hand-checking.
+      "./tools/**/*.{test,spec}.{js,ts}",
     ],
     typecheck: {
       tsconfig: "./tsconfig.test.json",
