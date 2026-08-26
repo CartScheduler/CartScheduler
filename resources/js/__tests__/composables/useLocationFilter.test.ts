@@ -7,6 +7,12 @@ import shifts from "@/__mocked-requests__/shifts.json";
 import useLocationFilter from "@/Composables/useLocationFilter";
 import type { Shift } from "@/Composables/useLocationFilter";
 
+// `{ spy: true }` keeps the real implementations and only wraps them, so this
+// is safe for the whole file. It is declared here because vitest hoists every
+// `vi.mock` to module scope regardless of where it is written — leaving it
+// inside a test made its scope look narrower than it was.
+vi.mock("vue", { spy: true });
+
 vi.mock("axios", async (importActual) => {
   const actual = await importActual<typeof import ("axios")>();
   return {
@@ -112,8 +118,6 @@ describe("useLocationFilter", () => {
   });
 
   it("watches for when the date changes and retrieves shifts via a vue watcher", async () => {
-    vi.unmock("vue");
-
     vi.setSystemTime(new Date("2025-09-15"));
     const { date, getShifts } = useLocationFilter(timezone);
 
@@ -155,7 +159,6 @@ describe("useLocationFilter", () => {
   it("ignores vue watcher when the date doesn't change", async () => {
     vi.setSystemTime(new Date("2025-09-15"));
 
-    vi.mock("vue", { spy: true });
     const spy = vi.mocked(vue.watch);
 
     expect(spy).not.toBeCalled();
