@@ -25,11 +25,11 @@ class LocationsAndShiftsTest extends TestCase
         $sortedLocations = $locations->sortBy('name')->values();
 
         $this->actingAs($admin)
-            ->getJson("/admin/locations")
+            ->getJson('/admin/locations')
             ->assertOk()
-            ->assertInertia(fn(AssertableInertia $page) => $page
+            ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Locations/List')
-                ->has('locations', fn(AssertableInertia $data) => $data
+                ->has('locations', fn (AssertableInertia $data) => $data
                     ->where('0.name', $sortedLocations[0]->name)
                     ->has('0.shifts', $sortedLocations[0]->shifts->count())
                     ->where('1.name', $sortedLocations[1]->name)
@@ -50,7 +50,7 @@ class LocationsAndShiftsTest extends TestCase
     {
         $user = User::factory()->enabled()->create();
         $this->actingAs($user)
-            ->getJson("/admin/locations")
+            ->getJson('/admin/locations')
             ->assertForbidden();
     }
 
@@ -58,9 +58,9 @@ class LocationsAndShiftsTest extends TestCase
     {
         $admin = User::factory()->enabled()->adminRoleUser()->create();
         $this->actingAs($admin)
-            ->getJson("/admin/locations/create")
+            ->getJson('/admin/locations/create')
             ->assertOk()
-            ->assertInertia(fn(AssertableInertia $page) => $page
+            ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Locations/Add')
                 ->where('maxVolunteers', config('cart-scheduler.max_volunteers_per_location'))
             );
@@ -68,7 +68,7 @@ class LocationsAndShiftsTest extends TestCase
 
     public function test_admin_can_see_edit_location_page(): void
     {
-        $admin    = User::factory()->enabled()->adminRoleUser()->create();
+        $admin = User::factory()->enabled()->adminRoleUser()->create();
         $location = Location::factory()
             ->has(Shift::factory()->everyDay9am())
             ->create();
@@ -76,14 +76,14 @@ class LocationsAndShiftsTest extends TestCase
         $this->actingAs($admin)
             ->getJson("/admin/locations/{$location->id}/edit")
             ->assertOk()
-            ->assertInertia(fn(AssertableInertia $page) => $page
+            ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('Admin/Locations/Edit')
                 ->where('maxVolunteers', config('cart-scheduler.max_volunteers_per_location'))
-                ->has('location', fn(AssertableInertia $data) => $data
+                ->has('location', fn (AssertableInertia $data) => $data
                     ->where('id', $location->id)
                     ->where('name', $location->name)
                     ->where('description', $location->description)
-                    ->where('clean_description', fn($data) => $data !== '')
+                    ->where('clean_description', fn ($data) => $data !== '')
                     ->where('min_volunteers', $location->min_volunteers)
                     ->where('max_volunteers', $location->max_volunteers)
                     ->where('requires_brother', $location->requires_brother)
@@ -122,18 +122,65 @@ class LocationsAndShiftsTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
-                'name'             => 'A test city',
-                'description'      => 'lorem ipsum dolor sit amet',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 3,
+                'name' => 'A test city',
+                'description' => 'lorem ipsum dolor sit amet',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
                 'requires_brother' => true,
-                'is_enabled'       => true,
-                'shifts'           => [],
+                'is_enabled' => true,
+                'shifts' => [],
             ]);
         $location = Location::first();
 
         $response->assertRedirect("/admin/locations/$location->id/edit");
         $this->assertDatabaseCount('locations', 1);
+    }
+
+    public function test_updating_a_location_cannot_rewrite_another_locations_shift(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+
+        $target = Location::factory()->create();
+        $other = Location::factory()->create();
+        $otherShift = Shift::factory()->for($other)->create([
+            'start_time' => '08:00:00',
+            'end_time' => '10:00:00',
+        ]);
+
+        // The payload names a shift id belonging to a different location. The
+        // lookup used to be a global Shift::find, so this rewrote that shift.
+        $this->actingAs($admin)
+            ->putJson("/admin/locations/$target->id", [
+                'name' => $target->name,
+                'description' => '<p>Unchanged</p>',
+                'min_volunteers' => 1,
+                'max_volunteers' => 2,
+                'requires_brother' => false,
+                'is_enabled' => true,
+                'shifts' => [
+                    [
+                        'id' => $otherShift->id,
+                        'day_monday' => true,
+                        'day_tuesday' => true,
+                        'day_wednesday' => true,
+                        'day_thursday' => true,
+                        'day_friday' => true,
+                        'day_saturday' => true,
+                        'day_sunday' => true,
+                        'start_time' => '13:00:00',
+                        'end_time' => '17:00:00',
+                        'is_enabled' => true,
+                        'available_from' => null,
+                        'available_to' => null,
+                    ],
+                ],
+            ]);
+
+        $otherShift->refresh();
+
+        $this->assertSame('08:00:00', $otherShift->start_time);
+        $this->assertSame('10:00:00', $otherShift->end_time);
+        $this->assertSame($other->id, $otherShift->location_id);
     }
 
     public function test_admin_can_add_location_with_one_shift(): void
@@ -142,47 +189,47 @@ class LocationsAndShiftsTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
-                'name'             => 'A test city',
-                'description'      => '<p>lorem ipsum dolor sit amet</p>',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 3,
+                'name' => 'A test city',
+                'description' => '<p>lorem ipsum dolor sit amet</p>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
                 'requires_brother' => true,
-                'is_enabled'       => true,
-                'shifts'           => [
+                'is_enabled' => true,
+                'shifts' => [
                     // Note there are multiple shifts so we're using an array containing an array of shift(...s)
                     [
-                        'day_monday'     => true,
-                        'day_tuesday'    => true,
-                        'day_wednesday'  => false,
-                        'day_thursday'   => true,
-                        'day_friday'     => true,
-                        'day_saturday'   => true,
-                        'day_sunday'     => true,
-                        'start_time'     => '10:00:00',
-                        'end_time'       => '13:30:00',
-                        'is_enabled'     => true,
+                        'day_monday' => true,
+                        'day_tuesday' => true,
+                        'day_wednesday' => false,
+                        'day_thursday' => true,
+                        'day_friday' => true,
+                        'day_saturday' => true,
+                        'day_sunday' => true,
+                        'start_time' => '10:00:00',
+                        'end_time' => '13:30:00',
+                        'is_enabled' => true,
                         'available_from' => null,
-                        'available_to'   => null,
-                    ]
+                        'available_to' => null,
+                    ],
                 ],
             ]);
         $response->assertRedirect();
         $this->assertDatabaseCount('locations', 1);
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
-            'day_monday'     => 1,
-            'day_tuesday'    => 1,
-            'day_wednesday'  => 0,
-            'day_thursday'   => 1,
-            'day_friday'     => 1,
-            'day_saturday'   => 1,
-            'day_sunday'     => 1,
-            'start_time'     => "10:00:00",
-            'end_time'       => "13:30:00",
-            'is_enabled'     => 1,
-            'location_id'    => Location::first()->id,
+            'day_monday' => 1,
+            'day_tuesday' => 1,
+            'day_wednesday' => 0,
+            'day_thursday' => 1,
+            'day_friday' => 1,
+            'day_saturday' => 1,
+            'day_sunday' => 1,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => 1,
+            'location_id' => Location::first()->id,
             'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ]);
     }
 
@@ -191,38 +238,38 @@ class LocationsAndShiftsTest extends TestCase
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         $shift = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => false,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => true,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => true,
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => false,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => true,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => true,
             'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ];
 
         $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
-                'name'             => 'A test city',
-                'description'      => '<p>lorem ipsum dolor sit amet</p>',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 3,
+                'name' => 'A test city',
+                'description' => '<p>lorem ipsum dolor sit amet</p>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
                 'requires_brother' => true,
-                'is_enabled'       => true,
-                'shifts'           => [
+                'is_enabled' => true,
+                'shifts' => [
                     $shift,
                     [
                         ...$shift,
-                        'day_wednesday'  => true,
-                        'day_saturday'   => false,
-                        'start_time'     => '14:00:00',
-                        'end_time'       => '17:30:00',
+                        'day_wednesday' => true,
+                        'day_saturday' => false,
+                        'start_time' => '14:00:00',
+                        'end_time' => '17:30:00',
                         'available_from' => '2021-01-01',
-                        'available_to'   => '2021-01-31',
+                        'available_to' => '2021-01-31',
                     ],
                 ],
             ]);
@@ -230,20 +277,20 @@ class LocationsAndShiftsTest extends TestCase
         $this->assertDatabaseCount('locations', 1);
         $this->assertDatabaseCount('shifts', 2);
         $this->assertDatabaseHas('shifts', [
-            'day_wednesday'  => 0,
-            'day_saturday'   => 1,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
+            'day_wednesday' => 0,
+            'day_saturday' => 1,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
             'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ]);
         $this->assertDatabaseHas('shifts', [
-            'day_wednesday'  => 1,
-            'day_saturday'   => 0,
-            'start_time'     => '14:00:00',
-            'end_time'       => '17:30:00',
+            'day_wednesday' => 1,
+            'day_saturday' => 0,
+            'start_time' => '14:00:00',
+            'end_time' => '17:30:00',
             'available_from' => '2021-01-01 00:00:00',
-            'available_to'   => '2021-01-31 23:59:59',
+            'available_to' => '2021-01-31 23:59:59',
         ]);
     }
 
@@ -253,85 +300,85 @@ class LocationsAndShiftsTest extends TestCase
 
         $location = Location::factory()
             ->state([
-                'name'             => 'A test city',
-                'description'      => '<p>lorem ipsum dolor sit amet</p>',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 3,
+                'name' => 'A test city',
+                'description' => '<p>lorem ipsum dolor sit amet</p>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
                 'requires_brother' => true,
-                'is_enabled'       => false,
+                'is_enabled' => false,
             ])
             ->has(Shift::factory()
                 ->state([
-                    'day_monday'     => true,
-                    'day_tuesday'    => true,
-                    'day_wednesday'  => false,
-                    'day_thursday'   => true,
-                    'day_friday'     => true,
-                    'day_saturday'   => true,
-                    'day_sunday'     => true,
-                    'start_time'     => '10:00:00',
-                    'end_time'       => '13:30:00',
-                    'is_enabled'     => false,
+                    'day_monday' => true,
+                    'day_tuesday' => true,
+                    'day_wednesday' => false,
+                    'day_thursday' => true,
+                    'day_friday' => true,
+                    'day_saturday' => true,
+                    'day_sunday' => true,
+                    'start_time' => '10:00:00',
+                    'end_time' => '13:30:00',
+                    'is_enabled' => false,
                     'available_from' => null,
-                    'available_to'   => null,
+                    'available_to' => null,
                 ])
             )
             ->create();
 
         $this->assertDatabaseCount('locations', 1);
         $this->assertDatabaseHas('locations', [
-            'name'             => 'A test city',
-            'max_volunteers'   => 3,
+            'name' => 'A test city',
+            'max_volunteers' => 3,
             'requires_brother' => 1,
-            'is_enabled'       => 0,
+            'is_enabled' => 0,
         ]);
 
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
             'day_wednesday' => 0,
-            'day_sunday'    => 1,
+            'day_sunday' => 1,
         ]);
 
         $response = $this->actingAs($admin)
             ->putJson("/admin/locations/$location->id", [
-                'name'             => 'A test city!', // changed
-                'description'      => '<p>lorem ipsum dolor sit amet</p>',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 4, // changed
+                'name' => 'A test city!', // changed
+                'description' => '<p>lorem ipsum dolor sit amet</p>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 4, // changed
                 'requires_brother' => false, // changed
-                'is_enabled'       => true, // changed
-                'shifts'           => [
+                'is_enabled' => true, // changed
+                'shifts' => [
                     [
-                        'id'             => $location->shifts[0]->id,
-                        'day_monday'     => true,
-                        'day_tuesday'    => true,
-                        'day_wednesday'  => true, // changed
-                        'day_thursday'   => true,
-                        'day_friday'     => true,
-                        'day_saturday'   => true,
-                        'day_sunday'     => false, // changed
-                        'start_time'     => '10:00:00',
-                        'end_time'       => '13:30:00',
-                        'is_enabled'     => true,
+                        'id' => $location->shifts[0]->id,
+                        'day_monday' => true,
+                        'day_tuesday' => true,
+                        'day_wednesday' => true, // changed
+                        'day_thursday' => true,
+                        'day_friday' => true,
+                        'day_saturday' => true,
+                        'day_sunday' => false, // changed
+                        'start_time' => '10:00:00',
+                        'end_time' => '13:30:00',
+                        'is_enabled' => true,
                         'available_from' => null,
-                        'available_to'   => null,
+                        'available_to' => null,
                     ],
-                ]
+                ],
             ]);
 
         $response->assertRedirect("/admin/locations/$location->id/edit");
         $this->assertDatabaseCount('locations', 1);
         $this->assertDatabaseHas('locations', [
-            'name'             => 'A test city!',
-            'max_volunteers'   => 4,
+            'name' => 'A test city!',
+            'max_volunteers' => 4,
             'requires_brother' => 0,
-            'is_enabled'       => 1,
+            'is_enabled' => 1,
         ]);
 
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
             'day_wednesday' => 1,
-            'day_sunday'    => 0,
+            'day_sunday' => 0,
         ]);
     }
 
@@ -341,26 +388,26 @@ class LocationsAndShiftsTest extends TestCase
 
         $response = $this->actingAs($admin)
             ->postJson('/admin/locations', [
-                'name'             => 'A test city',
-                'description'      => '<p>lorem ipsum dolor sit amet</p>',
-                'min_volunteers'   => 2,
-                'max_volunteers'   => 3,
+                'name' => 'A test city',
+                'description' => '<p>lorem ipsum dolor sit amet</p>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
                 'requires_brother' => true,
-                'is_enabled'       => true,
-                'shifts'           => [
+                'is_enabled' => true,
+                'shifts' => [
                     [
-                        'day_monday'     => true,
-                        'day_tuesday'    => true,
-                        'day_wednesday'  => false,
-                        'day_thursday'   => true,
-                        'day_friday'     => true,
-                        'day_saturday'   => true,
-                        'day_sunday'     => true,
-                        'start_time'     => '10:00:00',
-                        'end_time'       => '13:30:00',
-                        'is_enabled'     => true,
+                        'day_monday' => true,
+                        'day_tuesday' => true,
+                        'day_wednesday' => false,
+                        'day_thursday' => true,
+                        'day_friday' => true,
+                        'day_saturday' => true,
+                        'day_sunday' => true,
+                        'start_time' => '10:00:00',
+                        'end_time' => '13:30:00',
+                        'is_enabled' => true,
                         'available_from' => '2021-01-01',
-                        'available_to'   => '2021-01-31',
+                        'available_to' => '2021-01-31',
                     ],
                 ],
             ]);
@@ -369,12 +416,12 @@ class LocationsAndShiftsTest extends TestCase
         $this->assertDatabaseCount('locations', 1);
         $this->assertDatabaseCount('shifts', 1);
         $this->assertDatabaseHas('shifts', [
-            'day_wednesday'  => 0,
-            'day_saturday'   => 1,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
+            'day_wednesday' => 0,
+            'day_saturday' => 1,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
             'available_from' => '2021-01-01 00:00:00',
-            'available_to'   => '2021-01-31 23:59:59',
+            'available_to' => '2021-01-31 23:59:59',
         ]);
     }
 
@@ -383,27 +430,27 @@ class LocationsAndShiftsTest extends TestCase
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         $locationState = [
-            'name'             => 'A test city',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 3,
+            'name' => 'A test city',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 3,
             'requires_brother' => true,
-            'is_enabled'       => true,
+            'is_enabled' => true,
         ];
 
         $shiftState = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => true,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => true,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => true,
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => true,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => true,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => true,
             'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ];
 
         $location = Location::factory()
@@ -424,12 +471,12 @@ class LocationsAndShiftsTest extends TestCase
                     ],
                     [
                         ...$shiftState,
-                        'start_time'     => '13:30:00',
-                        'end_time'       => '16:00:00',
+                        'start_time' => '13:30:00',
+                        'end_time' => '16:00:00',
                         'available_from' => '2021-01-01',
-                        'available_to'   => '2021-01-31',
+                        'available_to' => '2021-01-31',
                     ],
-                ]
+                ],
             ]);
 
         $response->assertRedirect("/admin/locations/$location->id/edit");
@@ -466,27 +513,27 @@ class LocationsAndShiftsTest extends TestCase
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         $locationState = [
-            'name'             => 'A test city!',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 4,
+            'name' => 'A test city!',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 4,
             'requires_brother' => false,
-            'is_enabled'       => true,
+            'is_enabled' => true,
         ];
 
         $shiftState = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => true,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => false,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => true,
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => true,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => false,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => true,
             'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ];
 
         $location = Location::factory()
@@ -509,15 +556,15 @@ class LocationsAndShiftsTest extends TestCase
                         ...$shiftState,
                         // end time is after the start time of the first shift. Should generate an error.
                         'start_time' => '09:00:00',
-                        'end_time'   => '11:30:00',
+                        'end_time' => '11:30:00',
                     ],
                     [
                         ...$shiftState,
                         // start time is before the end time of the first shift. Should generate an error.
                         'start_time' => '12:00:00',
-                        'end_time'   => '15:30:00',
+                        'end_time' => '15:30:00',
                     ],
-                ]
+                ],
             ]);
 
         $response->assertInvalid(['shifts.0.start_time', 'shifts.1.start_time']);
@@ -541,158 +588,27 @@ class LocationsAndShiftsTest extends TestCase
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         $locationState = [
-            'name'             => 'A test city!',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 4,
+            'name' => 'A test city!',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 4,
             'requires_brother' => false,
-            'is_enabled'       => true,
+            'is_enabled' => true,
         ];
 
         $shiftState = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => true,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => false,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => true,
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => true,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => false,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => true,
             'available_from' => null,
-            'available_to'   => null,
-        ];
-
-        $location = Location::factory()
-            ->state($locationState)
-            ->has(Shift::factory()->state($shiftState))
-            ->create();
-
-        $this->assertDatabaseCount('locations', 1);
-        $this->assertDatabaseCount('shifts', 1);
-
-        $response = $this->actingAs($admin)
-            ->putJson("/admin/locations/$location->id", [
-                ...$locationState,
-                'shifts' => [
-                    [
-                        'id' => $location->shifts[0]->id,
-                        ...$shiftState,
-                    ],
-                    [
-                        ...$shiftState,
-                        // start time is before the end time of the first shift. Should generate an error.
-                        'start_time'     => '12:00:00',
-                        'end_time'       => '15:30:00',
-                        'available_from' => '2021-01-01',
-                        'available_to'   => '2021-01-31',
-                    ]
-                ]
-            ]);
-
-        $response->assertInvalid(['shifts.0.start_time', 'shifts.1.start_time']);
-        $errors = $response->json('errors');
-
-        $this->assertStringContainsStringIgnoringCase('[Code: 121]', $errors['shifts.0.start_time'][0]);
-        $this->assertStringContainsStringIgnoringCase('[Code: 120]', $errors['shifts.1.start_time'][0]);
-
-        $this->assertDatabaseCount('locations', 1);
-        $this->assertDatabaseCount('shifts', 1);
-    }
-
-    public function test_admin_cannot_add_overlapping_enabled_shift_where_both_shifts_have_availability_from_and_to_dates(
-    ): void
-    {
-        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-
-        $locationState = [
-            'name'             => 'A test city!',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 4,
-            'requires_brother' => false,
-            'is_enabled'       => true,
-        ];
-
-        $shiftState = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => true,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => false,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => true,
-            'available_from' => '2021-01-01',
-            'available_to'   => '2021-01-31',
-        ];
-
-        $location = Location::factory()
-            ->state($locationState)
-            ->has(Shift::factory()->state($shiftState))
-            ->create();
-
-        $this->assertDatabaseCount('locations', 1);
-        $this->assertDatabaseCount('shifts', 1);
-
-        $response = $this->actingAs($admin)
-            ->putJson("/admin/locations/$location->id", [
-                ...$locationState,
-                'shifts' => [
-                    [
-                        'id' => $location->shifts[0]->id,
-                        ...$shiftState,
-                    ],
-                    [
-                        ...$shiftState,
-                        // start time is before the end time of the first shift. Should generate an error.
-                        'start_time'     => '12:00:00',
-                        'end_time'       => '15:30:00',
-                        'available_from' => '2021-01-01',
-                        'available_to'   => '2021-01-31',
-                    ]
-                ]
-            ]);
-
-        $response->assertInvalid(['shifts.0.start_time', 'shifts.1.start_time']);
-        $errors = $response->json('errors');
-
-        $this->assertStringContainsStringIgnoringCase('[Code: 110]', $errors['shifts.0.start_time'][0]);
-        $this->assertStringContainsStringIgnoringCase('[Code: 110]', $errors['shifts.1.start_time'][0]);
-
-        $this->assertDatabaseCount('locations', 1);
-        $this->assertDatabaseCount('shifts', 1);
-    }
-
-    public function test_admin_can_add_overlapping_disabled_shift(): void
-    {
-        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
-
-        $locationState = [
-            'name'             => 'A test city!',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 4,
-            'requires_brother' => false,
-            'is_enabled'       => true,
-        ];
-
-        $shiftState = [
-            'day_monday'     => true,
-            'day_tuesday'    => true,
-            'day_wednesday'  => true,
-            'day_thursday'   => true,
-            'day_friday'     => true,
-            'day_saturday'   => true,
-            'day_sunday'     => false,
-            'start_time'     => '10:00:00',
-            'end_time'       => '13:30:00',
-            'is_enabled'     => false,
-            'available_from' => null,
-            'available_to'   => null,
+            'available_to' => null,
         ];
 
         $location = Location::factory()
@@ -715,10 +631,140 @@ class LocationsAndShiftsTest extends TestCase
                         ...$shiftState,
                         // start time is before the end time of the first shift. Should generate an error.
                         'start_time' => '12:00:00',
-                        'end_time'   => '15:30:00',
+                        'end_time' => '15:30:00',
+                        'available_from' => '2021-01-01',
+                        'available_to' => '2021-01-31',
+                    ],
+                ],
+            ]);
+
+        $response->assertInvalid(['shifts.0.start_time', 'shifts.1.start_time']);
+        $errors = $response->json('errors');
+
+        $this->assertStringContainsStringIgnoringCase('[Code: 121]', $errors['shifts.0.start_time'][0]);
+        $this->assertStringContainsStringIgnoringCase('[Code: 120]', $errors['shifts.1.start_time'][0]);
+
+        $this->assertDatabaseCount('locations', 1);
+        $this->assertDatabaseCount('shifts', 1);
+    }
+
+    public function test_admin_cannot_add_overlapping_enabled_shift_where_both_shifts_have_availability_from_and_to_dates(
+    ): void {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+
+        $locationState = [
+            'name' => 'A test city!',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 4,
+            'requires_brother' => false,
+            'is_enabled' => true,
+        ];
+
+        $shiftState = [
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => true,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => false,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => true,
+            'available_from' => '2021-01-01',
+            'available_to' => '2021-01-31',
+        ];
+
+        $location = Location::factory()
+            ->state($locationState)
+            ->has(Shift::factory()->state($shiftState))
+            ->create();
+
+        $this->assertDatabaseCount('locations', 1);
+        $this->assertDatabaseCount('shifts', 1);
+
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/locations/$location->id", [
+                ...$locationState,
+                'shifts' => [
+                    [
+                        'id' => $location->shifts[0]->id,
+                        ...$shiftState,
+                    ],
+                    [
+                        ...$shiftState,
+                        // start time is before the end time of the first shift. Should generate an error.
+                        'start_time' => '12:00:00',
+                        'end_time' => '15:30:00',
+                        'available_from' => '2021-01-01',
+                        'available_to' => '2021-01-31',
+                    ],
+                ],
+            ]);
+
+        $response->assertInvalid(['shifts.0.start_time', 'shifts.1.start_time']);
+        $errors = $response->json('errors');
+
+        $this->assertStringContainsStringIgnoringCase('[Code: 110]', $errors['shifts.0.start_time'][0]);
+        $this->assertStringContainsStringIgnoringCase('[Code: 110]', $errors['shifts.1.start_time'][0]);
+
+        $this->assertDatabaseCount('locations', 1);
+        $this->assertDatabaseCount('shifts', 1);
+    }
+
+    public function test_admin_can_add_overlapping_disabled_shift(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+
+        $locationState = [
+            'name' => 'A test city!',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 4,
+            'requires_brother' => false,
+            'is_enabled' => true,
+        ];
+
+        $shiftState = [
+            'day_monday' => true,
+            'day_tuesday' => true,
+            'day_wednesday' => true,
+            'day_thursday' => true,
+            'day_friday' => true,
+            'day_saturday' => true,
+            'day_sunday' => false,
+            'start_time' => '10:00:00',
+            'end_time' => '13:30:00',
+            'is_enabled' => false,
+            'available_from' => null,
+            'available_to' => null,
+        ];
+
+        $location = Location::factory()
+            ->state($locationState)
+            ->has(Shift::factory()->state($shiftState))
+            ->create();
+
+        $this->assertDatabaseCount('locations', 1);
+        $this->assertDatabaseCount('shifts', 1);
+
+        $response = $this->actingAs($admin)
+            ->putJson("/admin/locations/$location->id", [
+                ...$locationState,
+                'shifts' => [
+                    [
+                        'id' => $location->shifts[0]->id,
+                        ...$shiftState,
+                    ],
+                    [
+                        ...$shiftState,
+                        // start time is before the end time of the first shift. Should generate an error.
+                        'start_time' => '12:00:00',
+                        'end_time' => '15:30:00',
                         'is_enabled' => true,
-                    ]
-                ]
+                    ],
+                ],
             ]);
         $response->assertRedirect("/admin/locations/{$location->id}/edit");
 
@@ -731,12 +777,12 @@ class LocationsAndShiftsTest extends TestCase
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
         $locationState = [
-            'name'             => 'A test city!',
-            'description'      => '<p>lorem ipsum dolor sit amet</p>',
-            'min_volunteers'   => 2,
-            'max_volunteers'   => 4,
+            'name' => 'A test city!',
+            'description' => '<p>lorem ipsum dolor sit amet</p>',
+            'min_volunteers' => 2,
+            'max_volunteers' => 4,
             'requires_brother' => false,
-            'is_enabled'       => true,
+            'is_enabled' => true,
         ];
 
         $location = Location::factory()
@@ -750,20 +796,20 @@ class LocationsAndShiftsTest extends TestCase
                 ...$locationState,
                 'shifts' => [
                     [
-                        'day_monday'     => true,
-                        'day_tuesday'    => true,
-                        'day_wednesday'  => true,
-                        'day_thursday'   => true,
-                        'day_friday'     => true,
-                        'day_saturday'   => true,
-                        'day_sunday'     => false,
-                        'start_time'     => '13:00:00', // end time is after start time. Should generate an error.
-                        'end_time'       => '11:30:00',
-                        'is_enabled'     => false,
+                        'day_monday' => true,
+                        'day_tuesday' => true,
+                        'day_wednesday' => true,
+                        'day_thursday' => true,
+                        'day_friday' => true,
+                        'day_saturday' => true,
+                        'day_sunday' => false,
+                        'start_time' => '13:00:00', // end time is after start time. Should generate an error.
+                        'end_time' => '11:30:00',
+                        'is_enabled' => false,
                         'available_from' => null,
-                        'available_to'   => null,
-                    ]
-                ]
+                        'available_to' => null,
+                    ],
+                ],
             ]);
 
         $response->assertInvalid(['shifts.0.start_time', 'shifts.0.end_time']);
@@ -776,7 +822,7 @@ class LocationsAndShiftsTest extends TestCase
     {
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
 
-        /** @var \App\Models\Location $location */
+        /** @var Location $location */
         $location = Location::factory()
             ->has(
                 Shift::factory()
@@ -789,7 +835,7 @@ class LocationsAndShiftsTest extends TestCase
         $location->load('shifts');
 
         $location->shifts->setHidden(['location_id', 'updated_at', 'created_at']);
-        $lArray                            = $location->setHidden(['id', 'updated_at', 'created_at'])->toArray();
+        $lArray = $location->setHidden(['id', 'updated_at', 'created_at'])->toArray();
         $lArray['shifts'][0]['is_enabled'] = true;
 
         $this->actingAs($admin)

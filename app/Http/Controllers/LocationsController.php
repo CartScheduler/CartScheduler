@@ -7,6 +7,7 @@ use App\Http\Requests\CreateLocationRequest;
 use App\Http\Requests\UpdateLocationRequest;
 use App\Models\Location;
 use App\Models\Shift;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
@@ -36,7 +37,7 @@ class LocationsController extends Controller
     }
 
     /**
-     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
+     * @throws MassAssignmentException
      */
     public function store(CreateLocationRequest $request): RedirectResponse
     {
@@ -46,7 +47,7 @@ class LocationsController extends Controller
         unset($data['shifts']);
         $location = Location::create($data);
         foreach ($shifts as $shift) {
-            $shiftModel = new Shift();
+            $shiftModel = new Shift;
             $shiftModel->fill($shift);
             $shiftModel->location_id = $location->id;
             $shiftModel->save();
@@ -63,7 +64,7 @@ class LocationsController extends Controller
     {
         return Inertia::render('Admin/Locations/Edit', [
             'maxVolunteers' => config('cart-scheduler.max_volunteers_per_location'),
-            'location'      => LocationAdminData::from($location->load([
+            'location' => LocationAdminData::from($location->load([
                 'shifts' => function ($query) {
                     $query->orderBy('start_time');
                 },
@@ -72,8 +73,8 @@ class LocationsController extends Controller
     }
 
     /**
-     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
-     * @throws \RuntimeException
+     * @throws MassAssignmentException
+     * @throws RuntimeException
      */
     public function update(UpdateLocationRequest $request, Location $location): RedirectResponse
     {
@@ -85,15 +86,17 @@ class LocationsController extends Controller
         // TODO is 'deactivated'. Also, add some info on the front-end so 'admin' knows that this will happen
         foreach ($shifts as $shift) {
             if (isset($shift['id'])) {
-                $shiftModel = Shift::find($shift['id']);
-                if (!$shiftModel) {
+                // Scoped to this location: a global `find` would let a payload
+                // naming another location's shift id rewrite that shift instead.
+                $shiftModel = $location->shifts()->find($shift['id']);
+                if (! $shiftModel) {
                     // @codeCoverageIgnoreStart
                     throw new RuntimeException("Shift with an ID of {$shift['id']} belonging to $location->name not found");
                     // @codeCoverageIgnoreEnd
                 }
                 unset($shift['id']);
             } else {
-                $shiftModel = new Shift();
+                $shiftModel = new Shift;
             }
             $shiftModel->fill($shift);
             $shiftModel->save();
@@ -104,7 +107,7 @@ class LocationsController extends Controller
         DB::commit();
 
         return Redirect::route('admin.locations.edit', $location);
-        //return Redirect::route('admin.locations.edit', $location, \Illuminate\Http\Response::HTTP_SEE_OTHER);
+        // return Redirect::route('admin.locations.edit', $location, \Illuminate\Http\Response::HTTP_SEE_OTHER);
     }
 
     public function destroy(Location $location): RedirectResponse
