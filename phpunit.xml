@@ -14,6 +14,12 @@
             <exclude>./tests/Feature/TwoFactorAuthenticationSettingsTest.php</exclude>
         </testsuite>
     </testsuites>
+    <!--
+        `tests/Browser` is deliberately not a testsuite. Browser tests drive a
+        real Chromium and need Playwright installed in the container, so they
+        must not run as part of `artisan test`. Run them on purpose:
+        `vendor/bin/sail php vendor/bin/pest tests/Browser`.
+    -->
     <source>
         <include>
             <directory>./app</directory>
