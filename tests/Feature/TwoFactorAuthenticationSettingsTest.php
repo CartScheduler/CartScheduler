@@ -1,56 +1,47 @@
 <?php
 
-namespace Tests\Feature;
-
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
-class TwoFactorAuthenticationSettingsTest extends TestCase
-{
-    use RefreshDatabase;
+uses(RefreshDatabase::class);
 
-    public function test_two_factor_authentication_can_be_enabled()
-    {
-        $this->actingAs($user = User::factory()->create());
+test('two factor authentication can be enabled', function () {
+    $this->actingAs($user = User::factory()->create());
 
-        $this->withSession(['auth.password_confirmed_at' => time()]);
+    $this->withSession(['auth.password_confirmed_at' => time()]);
 
-        $response = $this->post('/user/two-factor-authentication');
+    $response = $this->post('/user/two-factor-authentication');
 
-        $this->assertNotNull($user->fresh()->two_factor_secret);
-        $this->assertCount(8, $user->fresh()->recoveryCodes());
-    }
+    expect($user->fresh()->two_factor_secret)->not->toBeNull();
+    expect($user->fresh()->recoveryCodes())->toHaveCount(8);
+});
 
-    public function test_recovery_codes_can_be_regenerated()
-    {
-        $this->actingAs($user = User::factory()->create());
+test('recovery codes can be regenerated', function () {
+    $this->actingAs($user = User::factory()->create());
 
-        $this->withSession(['auth.password_confirmed_at' => time()]);
+    $this->withSession(['auth.password_confirmed_at' => time()]);
 
-        $this->post('/user/two-factor-authentication');
-        $this->post('/user/two-factor-recovery-codes');
+    $this->post('/user/two-factor-authentication');
+    $this->post('/user/two-factor-recovery-codes');
 
-        $user = $user->fresh();
+    $user = $user->fresh();
 
-        $this->post('/user/two-factor-recovery-codes');
+    $this->post('/user/two-factor-recovery-codes');
 
-        $this->assertCount(8, $user->recoveryCodes());
-        $this->assertCount(8, array_diff($user->recoveryCodes(), $user->fresh()->recoveryCodes()));
-    }
+    expect($user->recoveryCodes())->toHaveCount(8);
+    expect(array_diff($user->recoveryCodes(), $user->fresh()->recoveryCodes()))->toHaveCount(8);
+});
 
-    public function test_two_factor_authentication_can_be_disabled()
-    {
-        $this->actingAs($user = User::factory()->create());
+test('two factor authentication can be disabled', function () {
+    $this->actingAs($user = User::factory()->create());
 
-        $this->withSession(['auth.password_confirmed_at' => time()]);
+    $this->withSession(['auth.password_confirmed_at' => time()]);
 
-        $this->post('/user/two-factor-authentication');
+    $this->post('/user/two-factor-authentication');
 
-        $this->assertNotNull($user->fresh()->two_factor_secret);
+    expect($user->fresh()->two_factor_secret)->not->toBeNull();
 
-        $this->delete('/user/two-factor-authentication');
+    $this->delete('/user/two-factor-authentication');
 
-        $this->assertNull($user->fresh()->two_factor_secret);
-    }
-}
+    expect($user->fresh()->two_factor_secret)->toBeNull();
+});

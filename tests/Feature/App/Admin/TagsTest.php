@@ -1,127 +1,116 @@
 <?php
 
-namespace Tests\Feature\App\Admin;
-
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Tags\Tag;
-use Tests\TestCase;
 use Tests\Traits\MakesTags;
 
-class TagsTest extends TestCase
-{
-    use RefreshDatabase;
-    use MakesTags;
+uses(RefreshDatabase::class);
 
-    public function test_admin_can_retreive_all_tags(): void
-    {
-        $admin = User::factory()->adminRoleUser()->create();
-        $tags  = $this->makeTags(5);
+uses(MakesTags::class);
 
-        $this->actingAs($admin)
-            ->getJson("/admin/report-tags")
-            ->assertOk()
-            ->assertJsonCount(5)
-            ->assertJsonPath('0.id', $tags[0]->id)
-            ->assertJsonPath('0.name', $tags[0]->name)
-            ->assertJsonPath('0.order_column', $tags[0]->order_column);
-    }
+test('admin can retreive all tags', function () {
+    $admin = User::factory()->adminRoleUser()->create();
+    $tags = $this->makeTags(5);
 
-    public function test_non_admin_cannot_retrieve_all_tags(): void
-    {
-        $user = User::factory()->enabled()->create();
+    $this->actingAs($admin)
+        ->getJson('/admin/report-tags')
+        ->assertOk()
+        ->assertJsonCount(5)
+        ->assertJsonPath('0.id', $tags[0]->id)
+        ->assertJsonPath('0.name', $tags[0]->name)
+        ->assertJsonPath('0.order_column', $tags[0]->order_column);
+});
 
-        $this->actingAs($user)
-            ->getJson("/admin/report-tags")
-            ->assertForbidden();
-    }
+test('non admin cannot retrieve all tags', function () {
+    $user = User::factory()->enabled()->create();
 
-    public function test_admin_can_add_a_tag(): void
-    {
-        $admin = User::factory()->adminRoleUser()->create();
+    $this->actingAs($user)
+        ->getJson('/admin/report-tags')
+        ->assertForbidden();
+});
 
-        $this->actingAs($admin)
-            ->postJson("/admin/report-tags", [
-                'name' => 'Test Tag',
-            ])
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 1);
-    }
+test('admin can add a tag', function () {
+    $admin = User::factory()->adminRoleUser()->create();
 
-    public function test_admin_cannot_create_a_duplicate_tag(): void
-    {
-        $admin = User::factory()->adminRoleUser()->create();
+    $this->actingAs($admin)
+        ->postJson('/admin/report-tags', [
+            'name' => 'Test Tag',
+        ])
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 1);
+});
 
-        $this->actingAs($admin)
-            ->postJson("/admin/report-tags", [
-                'name' => 'Test Tag',
-            ])
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 1);
+test('admin cannot create a duplicate tag', function () {
+    $admin = User::factory()->adminRoleUser()->create();
 
-        $this->actingAs($admin)
-            ->postJson("/admin/report-tags", [
-                'name' => 'Test Tag',
-            ])
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 1);
+    $this->actingAs($admin)
+        ->postJson('/admin/report-tags', [
+            'name' => 'Test Tag',
+        ])
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 1);
 
-        $this->actingAs($admin)
-            ->postJson("/admin/report-tags", [
-                'name' => 'Test Tag2',
-            ])
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 2);
-    }
+    $this->actingAs($admin)
+        ->postJson('/admin/report-tags', [
+            'name' => 'Test Tag',
+        ])
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 1);
 
+    $this->actingAs($admin)
+        ->postJson('/admin/report-tags', [
+            'name' => 'Test Tag2',
+        ])
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 2);
+});
 
-    public function test_admin_can_edit_a_tag(): void
-    {
-        $admin   = User::factory()->adminRoleUser()->create();
-        $tag     = $this->makeTags(5)->first();
-        $newName = 'Test Tag_' . now()->timestamp;
+test('admin can edit a tag', function () {
+    $admin = User::factory()->adminRoleUser()->create();
+    $tag = $this->makeTags(5)->first();
+    $newName = 'Test Tag_'.now()->timestamp;
 
-        $this->actingAs($admin)
-            ->putJson("/admin/report-tags/$tag->id", [
-                'name' => $newName,
-            ])
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 5);
-        $tag->refresh();
-        $this->assertSame($tag->name, $newName);
-    }
+    $this->actingAs($admin)
+        ->putJson("/admin/report-tags/$tag->id", [
+            'name' => $newName,
+        ])
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 5);
+    $tag->refresh();
+    expect($newName)->toBe($tag->name);
+});
 
-    public function test_admin_can_delete_a_tag(): void
-    {
-        $admin   = User::factory()->adminRoleUser()->create();
-        /** @var \Spatie\Tags\Tag $tag */
-        $tag = $this->makeTags(5)->first();
+test('admin can delete a tag', function () {
+    $admin = User::factory()->adminRoleUser()->create();
 
-        $this->actingAs($admin)
-            ->deleteJson("/admin/report-tags/$tag->id")
-            ->assertNoContent();
-        $this->assertDatabaseCount('tags', 4);
+    /** @var Tag $tag */
+    $tag = $this->makeTags(5)->first();
 
-        $this->assertModelMissing($tag);
-    }
+    $this->actingAs($admin)
+        ->deleteJson("/admin/report-tags/$tag->id")
+        ->assertNoContent();
+    $this->assertDatabaseCount('tags', 4);
 
-    public function test_admin_can_change_sort_order_of_tags(): void
-    {
-        $admin = User::factory()->adminRoleUser()->create();
-        /** @var \Spatie\Tags\Tag $tag */
-        $tags = $this->makeTags(5);
+    $this->assertModelMissing($tag);
+});
 
-        $this->assertDatabaseCount('tags', 5);
-        $dbTags = Tag::all();
-        $this->assertSame($tags->pluck('order_column')->toArray(), $dbTags->pluck('order_column')->toArray());
+test('admin can change sort order of tags', function () {
+    $admin = User::factory()->adminRoleUser()->create();
 
-        $this->actingAs($admin)
-            ->putJson("/admin/report-tag-sort-order", [
-                'ids' => $tags->pluck('id')->reverse()->toArray(),
-            ])
-            ->assertNoContent();
+    /** @var Tag $tag */
+    $tags = $this->makeTags(5);
 
-        $dbTags = Tag::all();
-        $this->assertSame($tags->reverse()->pluck('order_column')->toArray(), $dbTags->pluck('order_column')->toArray());
-    }
-}
+    $this->assertDatabaseCount('tags', 5);
+    $dbTags = Tag::all();
+    expect($dbTags->pluck('order_column')->toArray())->toBe($tags->pluck('order_column')->toArray());
+
+    $this->actingAs($admin)
+        ->putJson('/admin/report-tag-sort-order', [
+            'ids' => $tags->pluck('id')->reverse()->toArray(),
+        ])
+        ->assertNoContent();
+
+    $dbTags = Tag::all();
+    expect($dbTags->pluck('order_column')->toArray())->toBe($tags->reverse()->pluck('order_column')->toArray());
+});

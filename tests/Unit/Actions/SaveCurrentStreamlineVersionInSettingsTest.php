@@ -1,31 +1,23 @@
 <?php
 
-namespace Tests\Unit\Actions;
-
 use App\Actions\SaveCurrentStreamlineVersionInSettings;
 use App\Settings\GeneralSettings;
-use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\Config;
 use Mockery\MockInterface;
 
-class SaveCurrentStreamlineVersionInSettingsTest extends TestCase
-{
+test('should update settings with current version when config returns valid version', function () {
+    /** @var GeneralSettings $mockSettings */
+    $mockSettings = $this->mock(GeneralSettings::class,
+        fn (MockInterface $mock) => $mock->shouldReceive('save')->once()
+    );
 
-    public function test_should_update_settings_with_current_version_when_config_returns_valid_version(): void
-    {
-        /** @var GeneralSettings $mockSettings */
-        $mockSettings = $this->mock(GeneralSettings::class,
-            fn(MockInterface $mock) => $mock->shouldReceive('save')->once()
-        );
+    Config::shouldReceive('get')
+        ->with('streamline.installed_version')
+        ->andReturn('1.2.3');
 
-        Config::shouldReceive('get')
-            ->with('streamline.installed_version')
-            ->andReturn('1.2.3');
+    $action = new SaveCurrentStreamlineVersionInSettings($mockSettings);
 
-        $action = new SaveCurrentStreamlineVersionInSettings($mockSettings);
+    $action();
 
-        $action();
-
-        $this->assertEquals('1.2.3', $mockSettings->currentVersion);
-    }
-}
+    expect($mockSettings->currentVersion)->toEqual('1.2.3');
+});
