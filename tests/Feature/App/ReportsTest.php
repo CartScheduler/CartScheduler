@@ -16,9 +16,9 @@ use Tests\Traits\MakesTags;
 
 class ReportsTest extends TestCase
 {
-    use RefreshDatabase;
     use ExtraFunctions;
     use MakesTags;
+    use RefreshDatabase;
 
     public function test_user_receives_correct_reports(): void
     {
@@ -83,7 +83,7 @@ class ReportsTest extends TestCase
     public function test_user_can_submit_report_with_tags(): void
     {
         $user = User::factory()->enabled()->male()->create();
-        $tag  = Tag::findOrCreate('test_tag', 'reports');
+        $tag = Tag::findOrCreate('test_tag', 'reports');
 
         $shift = Shift::factory()->everyDay9am()->for(Location::factory())->create();
 
@@ -96,15 +96,15 @@ class ReportsTest extends TestCase
             ->create();
 
         $reportData = [
-            'shift_date'          => '2023-01-01',
-            'shift_id'            => $shift->getKey(),
-            'start_time'          => '09:00:00',
+            'shift_date' => '2023-01-01',
+            'shift_id' => $shift->getKey(),
+            'start_time' => '09:00:00',
             'shift_was_cancelled' => false,
-            'placements_count'    => 2,
-            'videos_count'        => 3,
-            'requests_count'      => 4,
-            'comments'            => 'A test comment',
-            'tags'                => [$tag->id],
+            'placements_count' => 2,
+            'videos_count' => 3,
+            'requests_count' => 4,
+            'comments' => 'A test comment',
+            'tags' => [$tag->id],
         ];
 
         $this->actingAs($user)->postJson('/save-report', $reportData);
@@ -124,7 +124,7 @@ class ReportsTest extends TestCase
     public function test_validate_sister_cannot_submit_report_if_brother_only_is_specified(): void
     {
         $user = User::factory()->enabled()->female()->create();
-        $tag  = Tag::findOrCreate('test_tag', 'reports');
+        $tag = Tag::findOrCreate('test_tag', 'reports');
 
         $shift = Shift::factory()
             ->everyDay9am()
@@ -140,15 +140,15 @@ class ReportsTest extends TestCase
             ->create();
 
         $reportData = [
-            'shift_date'          => '2023-01-01',
-            'shift_id'            => $shift->getKey(),
-            'start_time'          => '09:00:00',
+            'shift_date' => '2023-01-01',
+            'shift_id' => $shift->getKey(),
+            'start_time' => '09:00:00',
             'shift_was_cancelled' => false,
-            'placements_count'    => 2,
-            'videos_count'        => 3,
-            'requests_count'      => 4,
-            'comments'            => 'A test comment',
-            'tags'                => [$tag->id],
+            'placements_count' => 2,
+            'videos_count' => 3,
+            'requests_count' => 4,
+            'comments' => 'A test comment',
+            'tags' => [$tag->id],
         ];
 
         $response = $this->actingAs($user)->postJson('/save-report', $reportData);
@@ -206,7 +206,7 @@ class ReportsTest extends TestCase
     public function test_validate_sister_can_be_prompted_to_submit_report_if_brother_only_is_not_specified(): void
     {
         $user = User::factory()->enabled()->female()->create();
-        $tag  = Tag::findOrCreate('test_tag', 'reports');
+        $tag = Tag::findOrCreate('test_tag', 'reports');
 
         $shift = Shift::factory()
             ->everyDay9am()
@@ -222,15 +222,15 @@ class ReportsTest extends TestCase
             ->create();
 
         $reportData = [
-            'shift_date'          => '2023-01-01',
-            'shift_id'            => $shift->getKey(),
-            'start_time'          => '09:00:00',
+            'shift_date' => '2023-01-01',
+            'shift_id' => $shift->getKey(),
+            'start_time' => '09:00:00',
             'shift_was_cancelled' => false,
-            'placements_count'    => 2,
-            'videos_count'        => 3,
-            'requests_count'      => 4,
-            'comments'            => 'A test comment',
-            'tags'                => [$tag->id],
+            'placements_count' => 2,
+            'videos_count' => 3,
+            'requests_count' => 4,
+            'comments' => 'A test comment',
+            'tags' => [$tag->id],
         ];
 
         $response = $this->actingAs($user)->postJson('/save-report', $reportData);
@@ -256,14 +256,14 @@ class ReportsTest extends TestCase
             ->create();
 
         $reportData = [
-            'shift_date'          => '2023-01-02',
-            'shift_id'            => $shift->getKey(),
-            'start_time'          => '09:00:00',
+            'shift_date' => '2023-01-02',
+            'shift_id' => $shift->getKey(),
+            'start_time' => '09:00:00',
             'shift_was_cancelled' => false,
-            'placements_count'    => 2,
-            'videos_count'        => 3,
-            'requests_count'      => 4,
-            'comments'            => 'A test comment',
+            'placements_count' => 2,
+            'videos_count' => 3,
+            'requests_count' => 4,
+            'comments' => 'A test comment',
         ];
 
         $this->actingAs($user)
@@ -280,6 +280,76 @@ class ReportsTest extends TestCase
         $this->assertDatabaseCount('reports', 0);
     }
 
+    public function test_user_cannot_submit_a_report_for_a_shift_they_were_not_on(): void
+    {
+        $rostered = User::factory()->enabled()->male()->create();
+        $stranger = User::factory()->enabled()->male()->create();
+
+        $shift = Shift::factory()->everyDay9am()->for(Location::factory()->allPublishers())->create();
+
+        // Only the rostered volunteer has an assignment row for this shift.
+        ShiftUser::factory()
+            ->state(['shift_date' => '2023-01-01'])
+            ->for($shift, 'shift')
+            ->for($rostered, 'user')
+            ->create();
+
+        $this->assertDatabaseCount('reports', 0);
+
+        $this->actingAs($stranger)
+            ->postJson('/save-report', [
+                'shift_date' => '2023-01-01',
+                'shift_id' => $shift->getKey(),
+                'start_time' => '09:00:00',
+                'shift_was_cancelled' => false,
+                'placements_count' => 2,
+                'videos_count' => 3,
+                'requests_count' => 4,
+                'comments' => 'I was never here',
+            ])
+            ->assertUnprocessable()
+            ->assertContainsStringIgnoringCase('message', 'does not match a shift');
+
+        // A shift accepts one report, so a forged one would also have locked
+        // out the volunteer who actually worked it.
+        $this->assertDatabaseCount('reports', 0);
+    }
+
+    public function test_rostered_user_can_still_submit_when_someone_else_is_on_the_same_shift(): void
+    {
+        $user = User::factory()->enabled()->male()->create();
+        $associate = User::factory()->enabled()->male()->create();
+
+        $shift = Shift::factory()->everyDay9am()->for(Location::factory()->allPublishers())->create();
+
+        foreach ([$user, $associate] as $volunteer) {
+            ShiftUser::factory()
+                ->state(['shift_date' => '2023-01-01'])
+                ->for($shift, 'shift')
+                ->for($volunteer, 'user')
+                ->create();
+        }
+
+        // Scoping the lookup to the reporting user must not stop a genuine
+        // shared shift being reported, nor lose the associate from the metadata.
+        $this->actingAs($user)
+            ->postJson('/save-report', [
+                'shift_date' => '2023-01-01',
+                'shift_id' => $shift->getKey(),
+                'start_time' => '09:00:00',
+                'shift_was_cancelled' => false,
+                'placements_count' => 1,
+                'videos_count' => 0,
+                'requests_count' => 0,
+                'comments' => 'Shared shift',
+            ]);
+
+        $this->assertDatabaseCount('reports', 1);
+        $report = Report::first();
+        $this->assertSame($user->id, $report->report_submitted_user_id);
+        $this->assertSame($associate->id, $report->metadata['associates'][0]['id']);
+    }
+
     public function test_user_can_retrieve_all_tags(): void
     {
         $user = User::factory()->enabled()->create();
@@ -288,7 +358,7 @@ class ReportsTest extends TestCase
         $this->assertDatabaseCount('tags', 5);
 
         $this->actingAs($user)
-            ->getJson("/get-report-tags")
+            ->getJson('/get-report-tags')
             ->assertOk()
             ->assertJsonCount(5)
             ->assertJsonPath('0.id', $tags[0]->id)
@@ -308,8 +378,6 @@ class ReportsTest extends TestCase
             ->assertJsonPath('3.order_column', 4)
             ->assertJsonPath('4.id', $tags[4]->id)
             ->assertJsonPath('4.name', $tags[4]->name)
-            ->assertJsonPath('4.order_column', 5)
-        ;
+            ->assertJsonPath('4.order_column', 5);
     }
-
 }
