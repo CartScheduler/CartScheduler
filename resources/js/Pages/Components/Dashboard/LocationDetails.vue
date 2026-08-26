@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { format, parse } from "date-fns";
-import { onMounted, useTemplateRef } from "vue";
+import { computed, onMounted, useTemplateRef } from "vue";
 import relativeDateToNow from "@/Utils/relativeDateToNow";
+import sanitiseRichText from "@/Utils/sanitiseRichText";
 import type { Location } from "@/Composables/useLocationFilter";
 import type { AuthUser } from "@/types/laravel-request-helpers";
 
-defineProps<{
+const { location } = defineProps<{
   location: Location;
   isRestricted: boolean;
   date: Date;
@@ -15,6 +16,13 @@ defineProps<{
 defineEmits<{
   toggleReservation: [locationId: number, shiftId: number, toggleOn: boolean];
 }>();
+
+/**
+ * Descriptions are stored as raw HTML and rendered with `v-html`. They are
+ * sanitised on write, so this is the second line — it covers rows written
+ * before that existed, and keeps the sink safe if a future write path forgets.
+ */
+const safeDescription = computed(() => sanitiseRichText(location.description));
 
 const gridCols: Record<Location["max_volunteers"], string> = {
   // See tailwind.config.js
@@ -49,7 +57,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-html="location.description"
+    <div v-html="safeDescription"
          class="p-3 pt-0 w-full description dark:text-gray-100"></div>
     <div class="grid gap-x-2 gap-y-3 w-full sm:gap-y-4"
          :class="gridCols[location.max_volunteers]"

