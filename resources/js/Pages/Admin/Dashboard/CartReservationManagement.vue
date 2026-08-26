@@ -186,20 +186,29 @@ type SelectedRemoveUser = {
 };
 
 const removeVolunteer = async () => {
+  // Read once, up front. The `finally` below clears the selection, so a second
+  // call entered while the first request is still out — a double-tap on the
+  // confirm button — used to find it already `undefined` and throw building
+  // the toast, reporting a crash for a removal that had in fact succeeded.
+  const selected = selectedRemoveUser.value;
+  if (!selected) {
+    return;
+  }
+
   const timeoutId = setTimeout(() => isLoading.value = true, 1000);
 
   try {
     await axios.delete("/admin/toggle-shift-for-user", {
       data: {
         do_reserve: false,
-        user: selectedRemoveUser.value!.volunteer.id,
-        location: selectedRemoveUser.value!.location.id,
-        shift: selectedRemoveUser.value!.shift.id,
-        date: format(selectedRemoveUser.value!.date, "yyyy-MM-dd"),
+        user: selected.volunteer.id,
+        location: selected.location.id,
+        shift: selected.shift.id,
+        date: format(selected.date, "yyyy-MM-dd"),
       },
     });
 
-    toast.warning(`${selectedRemoveUser.value!.volunteer.name} was removed from ${selectedRemoveUser.value!.location.name} at ${selectedRemoveUser.value!.shift.start_time}`);
+    toast.warning(`${selected.volunteer.name} was removed from ${selected.location.name} at ${selected.shift.start_time}`);
   } catch (e) {
     if (isAxiosError(e) && e.response?.data?.message) {
       toast.error(e.response.data.message);
