@@ -6,6 +6,7 @@ import {
   endOfMonth,
   isAfter,
   isBefore,
+  isSameDay,
   parseISO,
   set,
   setHours,
@@ -104,7 +105,10 @@ const restrictedDates = computed(() => {
   const restricted: Date[] = [];
 
   for (const date of paddedDates) {
-    if (!shiftMarkers.some((m) => m.date.getDate() === date.getDate())) {
+    // Whole date, not day-of-month. Comparing `getDate()` alone let a marker on
+    // the 5th of any month leave the 5th of every other month selectable for a
+    // restricted user — `hasMarker` below already compares all three parts.
+    if (!shiftMarkers.some((m) => isSameDay(m.date, date))) {
       restricted.push(date);
     }
   }

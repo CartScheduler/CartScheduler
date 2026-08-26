@@ -1,15 +1,27 @@
 import { render } from "@testing-library/vue";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ComponentSpinner from "@/Components/ComponentSpinner.vue";
 import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
+import type { DateMark } from "@/types/types";
+
+/** Mutable so a test can put the user under roster restrictions. */
+const pageProps = vi.hoisted(() => ({ isUnrestricted: true }));
 
 vi.mock("@inertiajs/vue3", () => ({
-  usePage: () => ({ props: { isUnrestricted: true } }),
+  usePage: () => ({ props: pageProps }),
 }));
 
 const stubs = {
-  PDatePicker: { template: "<div data-testid='calendar' />" },
+  // Records what the picker was told to disable, which is otherwise internal.
+  PDatePicker: {
+    props: ["disabledDates"],
+    template: "<div data-testid='calendar' :data-disabled-count='disabledDates?.length ?? \"none\"' />",
+  },
 };
+
+beforeEach(() => {
+  pageProps.isUnrestricted = true;
+});
 
 /**
  * The real spinner, not a stub: whether the calendar is covered is the whole
@@ -61,5 +73,47 @@ describe("DatePicker", () => {
     // contributed no height, its row was sized by the shorter accordion beside
     // it, and a month of dates spilled over the panel underneath.
     expect(heightCollapsersIn(container)).toEqual([]);
+  });
+
+  describe("a restricted user", () => {
+    const markOn = (iso: string): DateMark => ({
+      date: new Date(`${iso}T12:00:00`),
+      locations: [],
+    } as unknown as DateMark);
+
+    beforeEach(() => {
+      pageProps.isUnrestricted = false;
+    });
+
+    it("can pick the days they are rostered on", () => {
+      const utils = renderPicker({
+        date: new Date("2025-09-15T12:00:00"),
+        shiftMarkers: [markOn("2025-09-05"), markOn("2025-09-20")],
+      });
+
+      // September has 30 days; the two rostered ones stay selectable.
+      expect(utils.getByTestId("calendar").getAttribute("data-disabled-count")).toBe("28");
+    });
+
+    it("cannot pick the same day number in a month they are not rostered on", () => {
+      const utils = renderPicker({
+        // Showing October, with the only marker back in September.
+        date: new Date("2025-10-15T12:00:00"),
+        shiftMarkers: [markOn("2025-09-05")],
+      });
+
+      // Comparing day-of-month alone left 5 October open off the back of a
+      // shift on 5 September, so a restricted user could book a date they had
+      // no claim to. Every one of October's 31 days should be disabled.
+      expect(utils.getByTestId("calendar").getAttribute("data-disabled-count")).toBe("31");
+    });
+
+    it("leaves every date alone for an unrestricted user", () => {
+      pageProps.isUnrestricted = true;
+
+      const utils = renderPicker({ shiftMarkers: [markOn("2025-09-05")] });
+
+      expect(utils.getByTestId("calendar").getAttribute("data-disabled-count")).toBe("none");
+    });
   });
 });
