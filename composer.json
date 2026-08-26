@@ -33,7 +33,7 @@
     "tightenco/ziggy": "^2.3.0"
   },
   "require-dev": {
-    "brianium/paratest": "^7.8.1",
+    "brianium/paratest": "^7.20.0",
     "dg/bypass-finals": "^1.8.0",
     "driftingly/rector-laravel": "^2.0.7",
     "ergebnis/phpunit-slow-test-detector": "^2.19",
@@ -46,7 +46,9 @@
     "league/csv": "^9.16",
     "mockery/mockery": "^1.6.12",
     "nunomaduro/collision": "^8.4.0",
-    "phpunit/phpunit": "^11.3.6",
+    "pestphp/pest": "^4.7",
+    "pestphp/pest-plugin-laravel": "^4.0",
+    "phpunit/phpunit": "^12.5",
     "rector/rector": "^2.1.7",
     "roave/security-advisories": "dev-latest",
     "spatie/laravel-ignition": "^2.8.0"
@@ -96,7 +98,8 @@
     "preferred-install": "dist",
     "sort-packages": true,
     "allow-plugins": {
-      "phpstan/extension-installer": true
+      "phpstan/extension-installer": true,
+      "pestphp/pest-plugin": true
     }
   },
   "prefer-stable": true
