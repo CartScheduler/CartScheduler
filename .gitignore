@@ -50,8 +50,3 @@ node_modules/
 # tasks.json
 # tasks/
 /.superpowers
-
-# Pest browser testing
-/tests/Browser/Screenshots
-/storage/framework/playwright
-/storage/framework/tmp
