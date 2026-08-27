@@ -1,7 +1,5 @@
 import { render } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
-import { effectScope } from "vue";
-import useViewportShell from "@/Composables/useViewportShell";
 import AppLayout from "@/Layouts/AppLayout.vue";
 
 vi.mock("@bugsnag/js", () => ({ default: { setUser: vi.fn() } }));
@@ -52,23 +50,4 @@ describe("AppLayout", () => {
     expect(getContentPanel(container).classList.contains("overflow-hidden")).toBe(true);
   });
 
-  it("stops clipping below sm for a page that asks", () => {
-    // `overflow: hidden` makes this box a scroll container, and `sticky`
-    // resolves against the nearest one — so anything the page pins would be
-    // stuck to a box that never scrolls and would scroll away with the page.
-    const scope = effectScope();
-    scope.run(() => {
-      useViewportShell().unclipContent();
-    });
-
-    const { container } = renderLayout();
-    const panel = getContentPanel(container);
-
-    expect(panel.classList.contains("max-sm:overflow-visible")).toBe(true);
-    // Still clipped on desktop, where there are corners to protect.
-    expect(panel.classList.contains("sm:overflow-hidden")).toBe(true);
-    expect(panel.classList.contains("overflow-hidden")).toBe(false);
-
-    scope.stop();
-  });
 });

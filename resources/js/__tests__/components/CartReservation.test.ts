@@ -196,16 +196,23 @@ describe("CartReservation", () => {
     await vi.waitFor(() => expect(track.style.height).toBe("400px"));
   });
 
-  it("pins the view indicator while the page scrolls", async () => {
+  it("keeps the view indicator at the bottom of the window, whatever the views do", async () => {
     const { container, findByTestId } = renderCartReservation();
     await findByTestId("calendar");
 
     const dots = container.querySelector("nav[aria-label='Dashboard views']") as HTMLElement;
-    expect(dots.className).toContain("max-sm:sticky");
+
+    // Not `sticky`: a volunteer rostered onto nothing gets a short timeline,
+    // and sticky would let the dots ride up to the end of that content. They
+    // are how you leave the view, so they cannot wander with it.
+    expect(dots.className).toContain("max-sm:fixed");
+    expect(dots.className).not.toContain("max-sm:sticky");
     expect(dots.className).toContain("max-sm:bottom-0");
-    // In flow, so nothing has to be padded out from under it; the backdrop is
-    // what stops the list showing through.
     expect(dots.className).toContain("backdrop-blur-sm");
+
+    // Out of flow, so the views have to be padded clear of them.
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain("max-sm:pb-[calc(env(safe-area-inset-bottom)+2.5rem)]");
   });
 
   it("stops date alignment from sliding the panes", () => {

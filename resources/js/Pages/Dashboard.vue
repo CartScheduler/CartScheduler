@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import useViewportShell from "@/Composables/useViewportShell";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
 import ReportsModal from "@/Pages/Components/Dashboard/ReportsModal.vue";
-
-// The page scrolls like every other one; the view indicator stays put with
-// `sticky`, which needs the layout's content box not to clip it.
-useViewportShell().unclipContent();
 
 const outstandingReportCount = ref(0);
 

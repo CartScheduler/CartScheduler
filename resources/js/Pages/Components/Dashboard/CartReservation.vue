@@ -189,7 +189,9 @@ const onHintChoice = (keep: boolean) => {
 
 <template>
   <!-- Collapses on desktop so the track is the page's direct child, as before. -->
-  <div class="max-sm:flex max-sm:flex-col max-sm:gap-2 sm:contents">
+  <!-- The bottom pad clears the fixed view indicator, which is out of flow and
+    would otherwise sit over the end of whichever view is on screen. -->
+  <div class="max-sm:flex max-sm:flex-col max-sm:gap-2 max-sm:pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:contents">
     <!--
       Mobile: a snap carousel, so the two views can be swiped between. The browser
       owns the gesture, the axis locking and the momentum; all this component does
@@ -278,14 +280,16 @@ const onHintChoice = (keep: boolean) => {
       Says which of the two views you are on, and that there is exactly one
       other to reach. The dot is small but its button is a full tap target.
 
-      `sticky` keeps them in reach while the page scrolls, and because they stay
-      in flow there is no overlay to pad the page out for. The blurred backdrop
-      is what stops the list running visibly underneath them.
+      `fixed` rather than `sticky`: the indicator has to sit at the bottom of the
+      window whatever the views are doing. A volunteer rostered onto nothing gets
+      a short timeline, and `sticky` would let the dots ride up to the end of
+      that content — they are how you leave the view, so they cannot go
+      wandering with it. The page is padded out from under them below.
 
       The safe-area padding matters here: pinned to the bottom of the window,
       without it these sit under the home indicator on a notched phone.
     -->
-    <nav class="bg-panel/75 dark:bg-panel-dark/75 flex items-center justify-center py-1 backdrop-blur-sm max-sm:sticky max-sm:bottom-0 max-sm:z-30 max-sm:-mx-4 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:hidden"
+    <nav class="bg-panel/75 dark:bg-panel-dark/75 flex items-center justify-center py-1 backdrop-blur-sm max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:hidden"
          aria-label="Dashboard views">
       <button v-for="view in VIEWS"
               :key="view"

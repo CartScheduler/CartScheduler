@@ -6,7 +6,6 @@ import { computed, onMounted, provide, ref, watch } from "vue";
 import ObtrusiveNotification from "@/Components/ObtrusiveNotification.vue";
 import useCurrentPageInfo from "@/Composables/useCurrentPageInfo";
 import { useDarkMode } from "@/Composables/useDarkMode.js";
-import useViewportShell from "@/Composables/useViewportShell";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys.js"; // TODO AFTER REMOVING FLOATING-VUE, DELETE
 import "@vuepic/vue-datepicker/dist/main.css"; // FIXME AFTER REMOVING VUE-DATEPICKER, DELETE
@@ -36,7 +35,6 @@ onMounted(() => {
 // `.dark` on <html>, and the theme has to resolve for every page under this
 // layout rather than depending on the nav's switch happening to be mounted.
 useDarkMode();
-const { contentUnclipped } = useViewportShell();
 
 provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
 
@@ -82,11 +80,7 @@ onMounted(() => {
 
         <!-- Page Content -->
         <section class="page-grid w-dvw flex-1">
-          <!-- The clip guards the rounded corners below `sm`, where there are
-            none, so a page that pins something with `sticky` can opt out of it
-            and still be clipped on desktop. See useViewportShell. -->
-          <div class="bg-panel dark:bg-panel-dark std-border border border-t-0 px-4 pt-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6"
-               :class="contentUnclipped ? 'max-sm:overflow-visible sm:overflow-hidden' : 'overflow-hidden'">
+          <div class="bg-panel dark:bg-panel-dark std-border overflow-hidden border border-t-0 px-4 pt-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6">
             <slot />
           </div>
         </section>
