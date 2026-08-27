@@ -115,16 +115,24 @@ const confirmDelete = (event: Event) => {
 
 <template>
   <template v-if="shift">
-    <div class="grid grid-cols-8 gap-2">
-      <div class="justify-self-center text-center">
-        <JetLabel for="all" value="All" />
+    <!--
+      Flex rather than `grid-cols-8`: that resolves to `minmax(0, 1fr)`, whose
+      tracks may shrink below their content, and this sits in the `auto` column
+      of the parent grid. Firefox sized that column narrower than Chrome and the
+      day columns collided. Fixed-width items in a wrapping row cannot overlap
+      whatever the column resolves to, and they drop onto a second line on a
+      phone instead of being squeezed.
+    -->
+    <div class="flex flex-wrap justify-center gap-x-2 gap-y-3">
+      <div class="w-10 text-center">
+        <JetLabel :for="`all-${fieldUnique}`" value="All" />
         <PCheckbox binary
-                   input-id="all"
+                   :input-id="`all-${fieldUnique}`"
                    v-model="allDays"
                    :value="true"
                    class="mt-3" />
       </div>
-      <div v-for="day in days" :key="day.label" class="justify-self-center text-center">
+      <div v-for="day in days" :key="day.label" class="w-10 text-center">
         <JetLabel :for="day.value + fieldUnique" :value="day.label" />
         <PCheckbox binary
                    :input-id="day.value + fieldUnique"
@@ -157,7 +165,7 @@ const confirmDelete = (event: Event) => {
     </div>
     <div class="sm:col-start-2">
       <JetLabel :for="`available-from-${fieldUnique}`" value="Available From" />
-      <PDatePicker :input-id="`available-to-${fieldUnique}`"
+      <PDatePicker :input-id="`available-from-${fieldUnique}`"
                    show-button-bar
                    icon-display="input"
                    v-model="availableFrom"
