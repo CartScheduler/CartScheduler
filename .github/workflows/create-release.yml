@@ -48,6 +48,12 @@ jobs:
           exclusions: >
             *.git*
             /*node_modules/*
+            /*.claude/*
+            /*.devcontainer/*
+            /*tools/*
+            boost.json
+            CLAUDE.md
+            tailwind.config.d.ts
             .editorconfig
             .env.ci
             .env
