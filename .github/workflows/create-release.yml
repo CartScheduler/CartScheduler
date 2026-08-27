@@ -48,6 +48,7 @@ jobs:
           exclusions: >
             *.git*
             /*node_modules/*
+            /*vendor/*
             /*.claude/*
             /*.devcontainer/*
             /*tools/*
