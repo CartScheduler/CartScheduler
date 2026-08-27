@@ -4,8 +4,9 @@ import useViewportShell from "@/Composables/useViewportShell";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
 import ReportsModal from "@/Pages/Components/Dashboard/ReportsModal.vue";
 
-// The shift views own their scrolling, so the shell must not scroll as well.
-useViewportShell().fillViewport();
+// The page scrolls like every other one; the view indicator stays put with
+// `sticky`, which needs the layout's content box not to clip it.
+useViewportShell().unclipContent();
 
 const outstandingReportCount = ref(0);
 
@@ -34,7 +35,7 @@ const showReportsModal = ref(false);
   </PageHeader>
   <!-- No top padding: the layout already pads above, and doubling it up put
     more space over the view-switch button than its own gap leaves below. -->
-  <div class="flex flex-col sm:rounded-lg pb-2 max-w-7xl sm:min-h-full max-sm:flex-1 max-sm:min-h-0">
+  <div class="flex flex-col sm:rounded-lg pb-2 max-w-7xl sm:min-h-full">
     <CartReservation/>
   </div>
   <ReportsModal v-model="showReportsModal"

@@ -69,21 +69,15 @@ describe("ShiftTimelineView", () => {
     expect(switchButton.textContent).toContain("Switch to Calendar view");
   });
 
-  it("hosts the vertical edge gradients on a wrapper outside the scroller", () => {
+  it("drops the edge gradients along with the scroller they reacted to", () => {
     const { container } = renderView();
 
-    // Non-scrolling host: lifts the scroller's timeline into scope and owns the
-    // gradient pseudo-elements.
-    const gradientHost = container.querySelector(".scroll-gradient-y");
-    expect(gradientHost).not.toBeNull();
-    expect(gradientHost?.classList.contains("scroll-edge-scope-y")).toBe(true);
-    expect(gradientHost?.classList.contains("relative")).toBe(true);
-
-    // The scroller declares the timeline and holds the shift list.
-    const scroller = gradientHost?.querySelector(".scroll-edge-source-y");
-    expect(scroller).not.toBeNull();
-    expect(scroller?.className).toContain("max-sm:overflow-y-auto");
-    expect(scroller?.querySelector("[data-testid='shift-list']")).not.toBeNull();
+    // Both are scroll-timeline machinery: with the page scrolling there is no
+    // inner scrollport left for a gradient to pin itself to, and leaving them
+    // would be dead styling that reads as though the fades still work.
+    expect(container.querySelector(".scroll-gradient-y")).toBeNull();
+    expect(container.querySelector(".scroll-edge-scope-y")).toBeNull();
+    expect(container.querySelector(".scroll-edge-source-y")).toBeNull();
   });
 
   it("hangs the switch hint off the button rather than loose in the view", () => {
@@ -130,23 +124,21 @@ describe("ShiftTimelineView", () => {
     expect(queryByTestId("hint")).toBeNull();
   });
 
-  it("puts the scrollbar out in the page margin, clear of the edge fades", () => {
+  it("keeps no scroller of its own on mobile, so the page scrolls", () => {
     const { container } = renderView();
 
     const root = container.firstElementChild as HTMLElement;
-    const gradientHost = container.querySelector(".scroll-gradient-y") as HTMLElement;
-    const scroller = gradientHost.querySelector(".scroll-edge-source-y") as HTMLElement;
+    const listWrapper = root.querySelector("[data-testid='shift-list']")?.parentElement as HTMLElement;
 
-    // Same pairing as the calendar view: the view holds the page margin, and
-    // the scroller reaches back across it to put the bar on the window edge,
-    // laying it out again inside so the list holds still.
+    // The pane is measured to size the carousel track, which only works while
+    // it grows to its content. A scroller here would cap it at one screen and
+    // take the scrolling back off the page.
+    expect(listWrapper.className).not.toContain("overflow-y-auto");
+    // The margin-reaching pair went with the scrollbar it was positioning.
+    expect(listWrapper.className).not.toContain("-mx-4");
+
+    // The view still holds the page margin for its own content.
     expect(root.className).toContain("max-sm:px-4");
-    expect(scroller.className).toContain("max-sm:-mx-4");
-    expect(scroller.className).toContain("max-sm:px-4");
-
-    // The fades are drawn on the host, which does not reach — so they stop at
-    // the list's edge instead of washing over the scrollbar and the margin.
-    expect(gradientHost.className).not.toContain("-mx-4");
   });
 
   it("shows the loading spinner while the shift data is unresolved", () => {

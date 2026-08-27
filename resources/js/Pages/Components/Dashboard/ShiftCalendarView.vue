@@ -87,17 +87,12 @@ debouncedWatch(() => locations, () => {
     </div>
 
     <!--
-      Mobile: the picker and the locations share one scroll region beneath the
-      pinned switch button. Desktop: this wrapper collapses to `contents` so
-      both children sit directly in the two-column grid.
-
-      The pane carries the page margin, so `-mx-4 px-4` lets the scroller reach
-      back across it and lay it out again inside. The scrollbar then rides the
-      window edge rather than sitting between the accordion and the margin,
-      while the content keeps the width it had — the pair cancels out whether
-      the scrollbar takes layout space or overlays it.
+      Mobile: the picker and the locations stack under the switch button and
+      grow to their content, because the page is what scrolls. Desktop: this
+      wrapper collapses to `contents` so both children sit directly in the
+      two-column grid.
     -->
-    <div class="max-sm:-mx-4 max-sm:flex max-sm:min-h-0 max-sm:flex-col max-sm:gap-3 max-sm:overflow-y-auto max-sm:px-4 sm:contents">
+    <div class="max-sm:flex max-sm:flex-col max-sm:gap-3 sm:contents">
       <DatePicker v-model:date="date"
                   :shiftMarkers
                   :is-ready="hasInitialised"

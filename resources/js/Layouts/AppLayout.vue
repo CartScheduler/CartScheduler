@@ -36,7 +36,7 @@ onMounted(() => {
 // `.dark` on <html>, and the theme has to resolve for every page under this
 // layout rather than depending on the nav's switch happening to be mounted.
 useDarkMode();
-const { fillsViewport } = useViewportShell();
+const { contentUnclipped } = useViewportShell();
 
 provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
 
@@ -65,15 +65,7 @@ onMounted(() => {
 
 <template>
   <div class="from-page dark:bg-page-dark dark:from-page-dark bg-gradient-to-b to-neutral-50 text-neutral-900 dark:bg-gradient-to-b dark:to-neutral-950 dark:text-neutral-100">
-    <!--
-      `fillsViewport` pages pin the shell to the device height on mobile, so
-      overflow lands in a scroll container inside the page instead of moving
-      the whole layout. Every wrapper down to the page slot needs `min-h-0`,
-      or the default `min-height: auto` on flex/grid items lets content push
-      the shell taller than the viewport again.
-    -->
-    <div class="flex w-dvw max-w-full-dvw flex-col content-start justify-stretch"
-         :class="fillsViewport ? 'max-sm:h-dvh max-sm:overflow-hidden sm:min-h-dvh' : 'min-h-dvh'">
+    <div class="flex min-h-dvh w-dvw max-w-full-dvw flex-col content-start justify-stretch">
       <NavBar class="page-grid border-b border-neutral-300 dark:border-neutral-700/85" />
 
       <!-- Page Heading -->
@@ -82,21 +74,19 @@ onMounted(() => {
         <slot name="header" />
       </header>
 
-      <main class="flex flex-1 sm:flex-col"
-            :class="{ 'max-sm:min-h-0': fillsViewport }">
+      <main class="flex flex-1 sm:flex-col">
         <!-- Page Top -->
         <section v-if="$slots['page-top']" class="page-grid text-neutral-900 dark:text-neutral-100">
           <slot name="page-top" />
         </section>
 
         <!-- Page Content -->
-        <section class="page-grid w-dvw flex-1"
-                 :class="{ 'max-sm:min-h-0 max-sm:grid-rows-[minmax(0,1fr)]': fillsViewport }">
-          <!-- Viewport-filling pages get a tighter top pad: their first row is
-            usually a control whose own gap sets the rhythm below it, and the
-            default `pt-4` on top of the page's padding reads as lopsided. -->
-          <div class="bg-panel dark:bg-panel-dark std-border overflow-hidden border border-t-0 px-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6"
-               :class="fillsViewport ? 'pt-2 max-sm:flex max-sm:flex-col max-sm:min-h-0' : 'pt-4'">
+        <section class="page-grid w-dvw flex-1">
+          <!-- The clip guards the rounded corners below `sm`, where there are
+            none, so a page that pins something with `sticky` can opt out of it
+            and still be clipped on desktop. See useViewportShell. -->
+          <div class="bg-panel dark:bg-panel-dark std-border border border-t-0 px-4 pt-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6"
+               :class="contentUnclipped ? 'max-sm:overflow-visible sm:overflow-hidden' : 'overflow-hidden'">
             <slot />
           </div>
         </section>

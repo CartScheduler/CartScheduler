@@ -170,6 +170,44 @@ describe("CartReservation", () => {
     }
   });
 
+  it("keeps each pane at its own height and sizes the track to the active one", async () => {
+    const { container, findByTestId, getAllByRole } = renderCartReservation();
+    const track = getTrack(container);
+    await findByTestId("calendar");
+    await findByTestId("timeline");
+
+    // Without this the panes stretch to the track and the measurement below
+    // would only ever read back the height it last wrote.
+    expect(track.className).toContain("max-sm:items-start");
+
+    // jsdom lays nothing out, so the two panes are given heights to be found at.
+    const [calendarPane, listPane] = [...track.children] as HTMLElement[];
+    Object.defineProperty(calendarPane, "scrollHeight", { value: 400, configurable: true });
+    Object.defineProperty(listPane, "scrollHeight", { value: 900, configurable: true });
+
+    const dots = getAllByRole("button", { name: dotLabel });
+    dots[1]?.click();
+    // The taller timeline: the page grows to fit it.
+    await vi.waitFor(() => expect(track.style.height).toBe("900px"));
+
+    dots[0]?.click();
+    // Back to the shorter calendar, rather than leaving a screen of dead space
+    // to scroll through — which is the whole point of measuring.
+    await vi.waitFor(() => expect(track.style.height).toBe("400px"));
+  });
+
+  it("pins the view indicator while the page scrolls", async () => {
+    const { container, findByTestId } = renderCartReservation();
+    await findByTestId("calendar");
+
+    const dots = container.querySelector("nav[aria-label='Dashboard views']") as HTMLElement;
+    expect(dots.className).toContain("max-sm:sticky");
+    expect(dots.className).toContain("max-sm:bottom-0");
+    // In flow, so nothing has to be padded out from under it; the backdrop is
+    // what stops the list showing through.
+    expect(dots.className).toContain("backdrop-blur-sm");
+  });
+
   it("stops date alignment from sliding the panes", () => {
     const { container } = renderCartReservation();
 

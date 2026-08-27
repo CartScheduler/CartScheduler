@@ -96,48 +96,38 @@ describe("ShiftCalendarView", () => {
     expect(emitted("toggleReservation")).toEqual([[7, 5, true]]);
   });
 
-  it("scrolls the picker and locations together beneath a pinned switch button", () => {
+  it("stacks the picker and locations under the switch button", () => {
     const { container } = renderView();
 
     const root = container.firstElementChild as HTMLElement;
-    // The button is its own grid row, so it stays put while the rest scrolls.
     expect(root.firstElementChild?.textContent).toContain("Switch to Timeline view");
 
-    const scrollRegion = root.children[1] as HTMLElement;
-    expect(scrollRegion.className).toContain("max-sm:overflow-y-auto");
-    expect(scrollRegion.className).toContain("max-sm:min-h-0");
-    // Both the picker and the locations live inside that one region.
-    expect(scrollRegion.querySelector("[data-testid='date-picker']")).not.toBeNull();
-    expect(scrollRegion.querySelector("[data-testid='panel']")).not.toBeNull();
+    const stack = root.children[1] as HTMLElement;
+    // Both the picker and the locations live inside that one wrapper.
+    expect(stack.querySelector("[data-testid='date-picker']")).not.toBeNull();
+    expect(stack.querySelector("[data-testid='panel']")).not.toBeNull();
+    expect(stack.className).toContain("max-sm:flex-col");
 
     // On sm+ the wrapper collapses so its children join the two-column grid.
-    expect(scrollRegion.className).toContain("sm:contents");
+    expect(stack.className).toContain("sm:contents");
   });
 
-  it("puts the scrollbar out in the page margin rather than beside the accordion", () => {
+  it("keeps no scroller of its own on mobile, so the page scrolls", () => {
     const { container } = renderView();
 
     const root = container.firstElementChild as HTMLElement;
-    const scrollRegion = root.children[1] as HTMLElement;
+    const stack = root.children[1] as HTMLElement;
 
-    // The view holds the page margin now that the pane spans the full width,
-    // which is what leaves the scroller something to reach back across.
+    // The pane is measured to size the carousel track, which only works while
+    // it grows to its content. A scroller here would cap it at one screen and
+    // take the scrolling back off the page.
+    expect(stack.className).not.toContain("overflow-y-auto");
+
+    // The margin-reaching pair went with the scrollbar it was positioning.
+    expect(stack.className).not.toContain("-mx-4");
+
+    // The view still holds the page margin for its own content.
     expect(root.className).toContain("max-sm:px-4");
-
-    // Reaching across that margin is what moves the bar to the window edge;
-    // laying it out again inside is what stops the content moving with it.
-    // Either class alone is a bug, so both are asserted.
-    expect(scrollRegion.className).toContain("max-sm:-mx-4");
-    expect(scrollRegion.className).toContain("max-sm:px-4");
-
-    // The pinned button stays inside the margin — reaching out here would push
-    // it past the panel edge.
-    const switchButton = root.firstElementChild as HTMLElement;
-    expect(switchButton.className).not.toContain("-mx-4");
-
-    // Desktop scrolls the window, where the bar is already at the edge.
-    // Matched as a class rather than a substring: `max-sm:-mx-4` contains it.
-    expect(scrollRegion.classList.contains("sm:-mx-4")).toBe(false);
     expect(root.classList.contains("sm:px-4")).toBe(false);
   });
 

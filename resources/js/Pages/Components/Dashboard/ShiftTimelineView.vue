@@ -71,20 +71,12 @@ const cardKey = computed(() => {
     </div>
 
     <!--
-      The switch button sits outside the scroller so it stays put without
-      `sticky`, which leaves this wrapper free to host the edge fades: it hugs
-      the scroll viewport but never scrolls itself, so the gradients stay
-      pinned to the top and bottom edges while the list moves underneath.
+      The edge fades and the mobile scroller they belonged to are both gone: the
+      page scrolls now, so there is no inner scrollport for a gradient to pin
+      itself to. `scroll-gradient-y` still serves the shift detail dialog.
     -->
-    <div class="scroll-edge-scope-y scroll-gradient-y relative grid min-h-0 grid-rows-1">
-      <!--
-        `-mx-4 px-4` matches the calendar view: the scroller reaches back across
-        the page margin the pane now carries, so its scrollbar rides the window
-        edge, and lays that margin out again inside so the list keeps the width
-        it had. The fades stay on the wrapper above, which does not reach, so
-        they stop at the list rather than washing over the bar.
-      -->
-      <div class="scroll-edge-source-y grid min-h-0 grid-cols-1 grid-rows-[auto_1fr] gap-2 max-sm:-mx-4 max-sm:overflow-y-auto max-sm:px-4">
+    <div class="relative grid min-h-0 grid-rows-1">
+      <div class="grid min-h-0 grid-cols-1 grid-rows-[auto_1fr] gap-2">
         <ShiftList v-model="selectedShift"
                    :marker-dates="markerDates"
                    :locations="locations"

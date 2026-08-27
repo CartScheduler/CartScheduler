@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { usePage } from "@inertiajs/vue3";
-import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
+import { breakpointsTailwind, useBreakpoints, useResizeObserver } from "@vueuse/core";
 import { isSameDay } from "date-fns";
-import { computed, onMounted, ref, useTemplateRef } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
 import useViewCarousel from "@/Composables/useViewCarousel";
 import useViewSwitchButton from "@/Composables/useViewSwitchButton";
@@ -130,6 +130,39 @@ const { isBuilt } = useViewCarousel({
 const isViewRendered = (view: typeof VIEWS[number]) =>
   isCarousel.value ? isBuilt(view) : shiftView.value === view;
 
+const panes = {
+  calendar: useTemplateRef<HTMLElement>("calendarPane"),
+  list: useTemplateRef<HTMLElement>("listPane"),
+} as const;
+
+/**
+ * Height of the pane on screen, applied to the track.
+ *
+ * Both panes sit side by side in the track, so its natural height is the
+ * taller of the two. Now that the page scrolls rather than the panes, that
+ * would leave the shorter view trailing a screen of dead space to scroll
+ * through. `items-start` keeps each pane at its own content height, and this
+ * sizes the track to whichever one you are actually looking at.
+ */
+const trackHeight = ref<number>();
+
+const measureTrack = () => {
+  if (!isCarousel.value) {
+    trackHeight.value = undefined;
+    return;
+  }
+  const pane = panes[shiftView.value].value;
+  if (pane) {
+    trackHeight.value = pane.scrollHeight;
+  }
+};
+
+useResizeObserver([panes.calendar, panes.list], measureTrack);
+
+// `post` so the incoming pane has been rendered before it is measured — on the
+// first switch to a view the carousel has only just built, it has no height yet.
+watch([shiftView, isCarousel], () => void nextTick(measureTrack), { immediate: true, flush: "post" });
+
 const { isSwitchButtonShown, hasChosen, setSwitchButtonShown } = useViewSwitchButton();
 
 // Desktop has no carousel to swipe, so there the button is the only way across
@@ -156,13 +189,19 @@ const onHintChoice = (keep: boolean) => {
 
 <template>
   <!-- Collapses on desktop so the track is the page's direct child, as before. -->
-  <div class="max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col max-sm:gap-2 sm:contents">
+  <div class="max-sm:flex max-sm:flex-col max-sm:gap-2 sm:contents">
     <!--
       Mobile: a snap carousel, so the two views can be swiped between. The browser
       owns the gesture, the axis locking and the momentum; all this component does
       is settle the state afterwards. `overflow-y-hidden` is required — setting
-      one axis to `auto` makes the other compute to `auto` too, which would hand
-      the vertical scrolling back to the shell.
+      one axis to `auto` makes the other compute to `auto` too, which would give
+      the track a scroller of its own and take the scrolling off the page again.
+      It also clips the off-screen pane when it is the taller of the two.
+
+      `items-start` stops the panes stretching to the track, so each keeps its own
+      content height and can be measured; the height below is then the active
+      pane's. Without it the two would size to each other and the measurement
+      would just read back whatever it last wrote.
 
       `-mx-4` hands the shell's page margin to the panes: the track spans the full
       width, so each pane does too, and each lays that margin back inside itself.
@@ -178,8 +217,10 @@ const onHintChoice = (keep: boolean) => {
     -->
     <div ref="track"
          data-scroll-align-boundary
-         class="no-scrollbar min-h-0 flex-1 max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain sm:grid sm:min-h-full sm:grid-cols-1 sm:grid-rows-1">
-      <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
+         :style="trackHeight ? { height: `${trackHeight}px` } : undefined"
+         class="no-scrollbar max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:items-start max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain max-sm:transition-[height] max-sm:duration-300 sm:grid sm:min-h-full sm:flex-1 sm:grid-cols-1 sm:grid-rows-1">
+      <div ref="calendarPane"
+           class="max-sm:grid max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 sm:contents">
         <ShiftCalendarView v-if="isViewRendered('calendar')"
                            v-model:date="date"
                            v-model:expanded-panel="expandedAccordionPanelIndex"
@@ -209,7 +250,8 @@ const onHintChoice = (keep: boolean) => {
         </ShiftCalendarView>
       </div>
 
-      <div class="max-sm:grid max-sm:min-h-0 max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 max-sm:grid-rows-1 sm:contents">
+      <div ref="listPane"
+           class="max-sm:grid max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 sm:contents">
         <ShiftTimelineView v-if="isViewRendered('list')"
                            v-model="selectedShift"
                            :is-active="shiftView === 'list'"
@@ -236,10 +278,14 @@ const onHintChoice = (keep: boolean) => {
       Says which of the two views you are on, and that there is exactly one
       other to reach. The dot is small but its button is a full tap target.
 
-      The safe-area padding matters here: the shell is pinned to `h-dvh`, so
+      `sticky` keeps them in reach while the page scrolls, and because they stay
+      in flow there is no overlay to pad the page out for. The blurred backdrop
+      is what stops the list running visibly underneath them.
+
+      The safe-area padding matters here: pinned to the bottom of the window,
       without it these sit under the home indicator on a notched phone.
     -->
-    <nav class="flex shrink-0 items-center justify-center pb-[env(safe-area-inset-bottom)] sm:hidden"
+    <nav class="bg-panel/75 dark:bg-panel-dark/75 flex items-center justify-center py-1 backdrop-blur-sm max-sm:sticky max-sm:bottom-0 max-sm:z-30 max-sm:-mx-4 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:hidden"
          aria-label="Dashboard views">
       <button v-for="view in VIEWS"
               :key="view"
