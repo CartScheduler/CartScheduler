@@ -6,6 +6,12 @@ jobs:
   test-and-release:
     runs-on: ubuntu-latest
 
+    # The repository default for GITHUB_TOKEN is read-only, which makes
+    # ncipollo/release-action fail with "403: Resource not accessible by
+    # integration". Creating a release needs contents: write.
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
