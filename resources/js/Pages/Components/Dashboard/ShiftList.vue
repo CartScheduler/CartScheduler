@@ -77,6 +77,15 @@ const selectShift = (shift: ShiftItem) => {
 
 const selectedLocation = computed(() => locations.find((location) => location.id === selectedShift.value?.locationId));
 
+/**
+ * The timeline only ever holds shifts this user is rostered onto, so an empty
+ * map means exactly that — not that the server has nothing to say.
+ *
+ * Gated on `markerDates` because it is undefined until the first fetch
+ * resolves; testing the map alone would flash the notice over every load.
+ */
+const hasNoRosteredShifts = computed(() => !!markerDates && shifts.value.size === 0);
+
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
@@ -88,10 +97,11 @@ watch(isNotMobile, (val) => {
 
 // The timeline isn't re-rendered on a calendar→timeline switch, so CSS
 // `scroll-initial-target` can't re-fire — the selected date has to be aligned
-// imperatively. Only the timeline's own scrollers move (horizontal on desktop,
-// the vertical scroller on mobile); the page keeps its scroll position, so the
-// site header stays put. `scroll-mt`/`scroll-ms` on the date leave a little
-// breathing room.
+// imperatively. Only the timeline's own scroller moves, which since the page
+// took back the vertical scrolling means the horizontal one on desktop and
+// nothing at all on mobile; the page keeps its scroll position either way, so
+// the site header stays put. `scroll-mt`/`scroll-ms` on the date leave a
+// little breathing room.
 //
 // Keyed off `isActive` rather than `onMounted`, because in the carousel this
 // component stays mounted while the user is on the calendar — the date they
@@ -181,6 +191,28 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
             </dd>
           </template>
         </dl>
+        <!--
+          Without this the timeline simply rendered nothing, which reads as a
+          page that failed rather than as an empty roster. What to do next
+          differs by user: a restricted volunteer cannot book a shift, so
+          offering it would be a dead end.
+        -->
+        <div v-else-if="hasNoRosteredShifts" class="px-6 py-10 text-center">
+          <span aria-hidden="true"
+                class="iconify mdi--calendar-blank-outline text-3xl text-neutral-400 dark:text-neutral-500" />
+          <p class="mt-2 font-semibold text-neutral-700 dark:text-neutral-200">
+            You are not rostered onto any shifts.
+          </p>
+          <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <template v-if="isRestricted">
+              An administrator will roster you onto a shift.
+            </template>
+
+            <template v-else>
+              Pick a date in the calendar view to book one yourself, or wait to be rostered by an administrator.
+            </template>
+          </p>
+        </div>
       </div>
     </ComponentSpinner>
     <ShiftDetailOverlay :show="isDetailOpen"

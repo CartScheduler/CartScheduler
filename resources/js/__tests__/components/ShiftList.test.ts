@@ -22,6 +22,10 @@ const alignToScrollContainers = vi.mocked(alignToScrollContainersImport);
 // throw. Stub it so the dedicated test can assert it is never used.
 const scrollIntoView = vi.fn();
 
+const bookItYourself = /book one yourself/i;
+const waitToBeRostered = /wait to be rostered by an administrator/i;
+const notRostered = "You are not rostered onto any shifts.";
+
 const makeShift = (overrides: Record<string, unknown>) => ({
   shift_date: "2025-09-15T00:00:00+10:00",
   shift_id: 1,
@@ -239,4 +243,36 @@ describe("ShiftList", () => {
     expect(scroller?.querySelector("dl")).not.toBeNull();
   });
 
+  describe("when the volunteer is rostered onto nothing", () => {
+    it("says so rather than rendering an empty timeline", () => {
+      const { container } = renderShiftList({ markerDates: {} });
+
+      // The bare list read as a page that had failed to load.
+      expect(container.querySelector("dl")).toBeNull();
+      screen.getByText(notRostered);
+    });
+
+    it("offers self-rostering to an unrestricted volunteer", () => {
+      renderShiftList({ markerDates: {}, isRestricted: false });
+
+      screen.getByText(bookItYourself);
+      screen.getByText(waitToBeRostered);
+    });
+
+    it("only offers the wait to a restricted volunteer", () => {
+      renderShiftList({ markerDates: {}, isRestricted: true });
+
+      // Booking is not open to them, so offering it would be a dead end.
+      screen.getByText("An administrator will roster you onto a shift.");
+      expect(screen.queryByText(bookItYourself)).toBeNull();
+    });
+
+    it("stays quiet until the first fetch has resolved", () => {
+      // `markerDates` is undefined until then, and an empty map cannot be told
+      // from an unanswered one — so the notice would flash over every load.
+      renderShiftList({ markerDates: undefined });
+
+      expect(screen.queryByText(notRostered)).toBeNull();
+    });
+  });
 });
