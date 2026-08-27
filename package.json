@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "postdev": "tools/host-editor-bridge.js --container-root=/var/www/html",
+    "editor-bridge": "tools/host-editor-bridge.js --container-root=/var/www/html",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest watch",
