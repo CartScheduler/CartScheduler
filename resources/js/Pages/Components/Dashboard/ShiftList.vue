@@ -209,7 +209,8 @@ const doesDateHaveShifts = (shift: ShiftItem | undefined) => shift?.formattedDat
             </template>
 
             <template v-else>
-              Pick a date in the calendar view to book one yourself, or wait to be rostered by an administrator.
+              Switch to the Calendar view, then pick a date to book yourself, otherwise wait to be rostered by an
+              administrator.
             </template>
           </p>
         </div>

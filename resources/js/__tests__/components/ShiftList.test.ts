@@ -22,7 +22,7 @@ const alignToScrollContainers = vi.mocked(alignToScrollContainersImport);
 // throw. Stub it so the dedicated test can assert it is never used.
 const scrollIntoView = vi.fn();
 
-const bookItYourself = /book one yourself/i;
+const bookItYourself = /pick a date to book yourself/i;
 const waitToBeRostered = /wait to be rostered by an administrator/i;
 const notRostered = "You are not rostered onto any shifts.";
 
