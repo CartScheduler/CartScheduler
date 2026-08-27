@@ -68,24 +68,23 @@ const renderShift = (props: Record<string, unknown> = {}) => render(Shift, {
 });
 
 describe("Shift day selectors", () => {
-  it("lays the days out so they cannot collide", () => {
+  it("gives the days a column with a floor under it", () => {
     const { container } = renderShift();
 
-    const dayRow = container.querySelector("div") as HTMLElement;
+    const layout = container.querySelector("div") as HTMLElement;
+    const dayRow = layout.firstElementChild as HTMLElement;
 
-    // `grid-cols-8` resolves to `minmax(0, 1fr)`, whose tracks may shrink below
-    // their content. In the `auto` column of the parent grid Firefox sized them
-    // narrower than Chrome and the checkboxes ran together.
+    // The shift lays its own fields out, so the days are no longer squeezed
+    // into an `auto` track shared with three other columns.
+    expect(layout.className).toContain("sm:grid-cols-[auto_minmax(0,1fr)_auto]");
+
+    // `grid-cols-8` expands to `repeat(8, minmax(0, 1fr))`, whose tracks may
+    // shrink below their content — Firefox did exactly that and the checkboxes
+    // ran together. The floor is what stops it, in any browser.
+    expect(dayRow.className).toContain("grid-cols-[repeat(8,minmax(2.25rem,1fr))]");
     expect(dayRow.className).not.toContain("grid-cols-8");
-    expect(dayRow.className).toContain("flex-wrap");
 
-    // Fixed-width items cannot overlap however the column resolves, and wrap to
-    // a second line on a narrow phone rather than being squeezed.
-    const cells = [...dayRow.children] as HTMLElement[];
-    expect(cells).toHaveLength(days.length + 1);
-    for (const cell of cells) {
-      expect(cell.className).toContain("w-10");
-    }
+    expect(dayRow.children).toHaveLength(days.length + 1);
   });
 
   it("gives every shift on the page its own 'All' checkbox id", () => {

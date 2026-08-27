@@ -116,79 +116,88 @@ const confirmDelete = (event: Event) => {
 <template>
   <template v-if="shift">
     <!--
-      Flex rather than `grid-cols-8`: that resolves to `minmax(0, 1fr)`, whose
-      tracks may shrink below their content, and this sits in the `auto` column
-      of the parent grid. Firefox sized that column narrower than Chrome and the
-      day columns collided. Fixed-width items in a wrapping row cannot overlap
-      whatever the column resolves to, and they drop onto a second line on a
-      phone instead of being squeezed.
+      Each shift owns its layout rather than laying its fields straight into the
+      list's grid. There the days sat in an `auto` track competing with three
+      other columns, and `grid-cols-8` — which Tailwind expands to
+      `repeat(8, minmax(0, 1fr))` — is free to shrink below its content, so
+      Firefox resolved that track narrower than Chrome and the checkboxes
+      collided. Here the days take the room they need and the fields take what
+      is left, which they can afford to give.
     -->
-    <div class="flex flex-wrap justify-center gap-x-2 gap-y-3">
-      <div class="w-10 text-center">
-        <JetLabel :for="`all-${fieldUnique}`" value="All" />
-        <PCheckbox binary
-                   :input-id="`all-${fieldUnique}`"
-                   v-model="allDays"
-                   :value="true"
-                   class="mt-3" />
+    <div class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start">
+      <!-- A floor under each day column too, so one can never end up narrower
+        than its own label whatever the track above resolves to. -->
+      <div class="grid grid-cols-[repeat(8,minmax(2.25rem,1fr))] gap-x-2 sm:self-center">
+        <div class="text-center">
+          <JetLabel :for="`all-${fieldUnique}`" value="All" />
+          <PCheckbox binary
+                     :input-id="`all-${fieldUnique}`"
+                     v-model="allDays"
+                     :value="true"
+                     class="mt-3" />
+        </div>
+        <div v-for="day in days" :key="day.label" class="text-center">
+          <JetLabel :for="day.value + fieldUnique" :value="day.label" />
+          <PCheckbox binary
+                     :input-id="day.value + fieldUnique"
+                     v-model="shift[day.value]"
+                     :value="day.value"
+                     class="mt-3" />
+        </div>
       </div>
-      <div v-for="day in days" :key="day.label" class="w-10 text-center">
-        <JetLabel :for="day.value + fieldUnique" :value="day.label" />
-        <PCheckbox binary
-                   :input-id="day.value + fieldUnique"
-                   v-model="shift[day.value]"
-                   :value="day.value"
-                   class="mt-3" />
+
+      <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-3">
+        <div class="sm:col-span-2">
+          <JetLabel :for="`shift-range-${fieldUnique}`" value="Shift Time From &amp; To" />
+          <Datepicker time-picker
+                      range
+                      auto-apply
+                      v-model="shiftTimeRange"
+                      :id="`shift-range-${fieldUnique}`"
+                      :enable-seconds="false"
+                      :clearable="false"
+                      :minutes-increment="5"
+                      :dark="isDarkMode" />
+          <JetInputError :message="errors[`shifts.${index}.start_time`]" class="mt-2" />
+          <JetInputError :message="errors[`shifts.${index}.end_time`]" class="mt-2" />
+        </div>
+        <div>
+          <JetLabel :for="`is-enabled-${fieldUnique}`" value="Enabled?" />
+          <PCheckbox binary
+                     :input-id="`is-enabled-${fieldUnique}`"
+                     v-model="shift.is_enabled"
+                     :value="true"
+                     class="mt-3" />
+        </div>
+        <div>
+          <JetLabel :for="`available-from-${fieldUnique}`" value="Available From" />
+          <PDatePicker :input-id="`available-from-${fieldUnique}`"
+                       show-button-bar
+                       icon-display="input"
+                       v-model="availableFrom"
+                       date-format="d M yy"
+                       @clearClick="availableFrom = undefined" />
+          <div class="text-xs text-gray-500">Optional</div>
+          <JetInputError :message="errors[`shifts.${index}.available_from`]" class="mt-2" />
+        </div>
+        <div>
+          <JetLabel :for="`available-to-${fieldUnique}`" value="Available To" />
+          <PDatePicker :input-id="`available-to-${fieldUnique}`"
+                       show-button-bar
+                       icon-display="input"
+                       v-model="availableTo"
+                       date-format="d M yy"
+                       @clearClick="availableTo = undefined" />
+          <div class="text-xs text-gray-500">Optional</div>
+          <JetInputError :message="errors[`shifts.${index}.available_to`]" class="mt-2" />
+        </div>
+      </div>
+
+      <div class="justify-self-end sm:self-center">
+        <PButton icon="iconify mdi--trash-can-outline" severity="warn" variant="outlined" @click="confirmDelete" />
       </div>
     </div>
-    <div class="sm:col-span-2">
-      <JetLabel :for="`shift-range-${fieldUnique}`" value="Shift Time From & To" />
-      <Datepicker time-picker
-                  range
-                  auto-apply
-                  v-model="shiftTimeRange"
-                  :id="`shift-range-${fieldUnique}`"
-                  :enable-seconds="false"
-                  :clearable="false"
-                  :minutes-increment="5"
-                  :dark="isDarkMode" />
-      <JetInputError :message="errors[`shifts.${index}.start_time`]" class="mt-2" />
-      <JetInputError :message="errors[`shifts.${index}.end_time`]" class="mt-2" />
-    </div>
-    <div>
-      <JetLabel :for="`is-enabled-${fieldUnique}`" value="Enabled?" />
-      <PCheckbox binary
-                 :input-id="`is-enabled-${fieldUnique}`"
-                 v-model="shift.is_enabled"
-                 :value="true"
-                 class="mt-3" />
-    </div>
-    <div class="sm:col-start-2">
-      <JetLabel :for="`available-from-${fieldUnique}`" value="Available From" />
-      <PDatePicker :input-id="`available-from-${fieldUnique}`"
-                   show-button-bar
-                   icon-display="input"
-                   v-model="availableFrom"
-                   date-format="d M yy"
-                   @clearClick="availableFrom = undefined" />
-      <div class="text-xs text-gray-500">Optional</div>
-      <JetInputError :message="errors[`shifts.${index}.available_from`]" class="mt-2" />
-    </div>
-    <div>
-      <JetLabel :for="`available-to-${fieldUnique}`" value="Available To" />
-      <PDatePicker :input-id="`available-to-${fieldUnique}`"
-                   show-button-bar
-                   icon-display="input"
-                   v-model="availableTo"
-                   date-format="d M yy"
-                   @clearClick="availableTo = undefined" />
-      <div class="text-xs text-gray-500">Optional</div>
-      <JetInputError :message="errors[`shifts.${index}.available_to`]" class="mt-2" />
-    </div>
-    <div class="self-center">
-      <PButton icon="iconify mdi--trash-can-outline" severity="warn" variant="outlined" @click="confirmDelete" />
-    </div>
-    <JetSectionBorder class="col-span-full" />
+    <JetSectionBorder />
   </template>
 
   <PConfirmPopup />

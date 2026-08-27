@@ -47,8 +47,10 @@ const removeShift = (index: number) => {
              @click="addShift" />
   </div>
 
+  <!-- A plain stack: each shift lays its own fields out now, so the four
+    columns that used to be shared here have gone with it. -->
   <div v-if="locationAdminDataForm.shifts && locationAdminDataForm.shifts.length"
-       class="col-span-full grid grid-cols-1 sm:grid-cols-[auto_1fr_1fr_auto] gap-3">
+       class="col-span-full grid grid-cols-1 gap-3">
     <template v-for="(shift, index) in locationAdminDataForm.shifts" :key="shift.id">
       <Shift v-model="locationAdminDataForm.shifts[index]"
              :index="index"
