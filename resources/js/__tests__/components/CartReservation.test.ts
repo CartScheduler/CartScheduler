@@ -180,10 +180,13 @@ describe("CartReservation", () => {
     // would only ever read back the height it last wrote.
     expect(track.className).toContain("max-sm:items-start");
 
-    // jsdom lays nothing out, so the two panes are given heights to be found at.
+    // jsdom lays nothing out, so the two panes are given heights to be found at,
+    // and the window a height for the track to be measured against. Both panes
+    // are taller than it, so this test is about the content and not the floor.
     const [calendarPane, listPane] = [...track.children] as HTMLElement[];
-    Object.defineProperty(calendarPane, "scrollHeight", { value: 400, configurable: true });
+    Object.defineProperty(calendarPane, "scrollHeight", { value: 800, configurable: true });
     Object.defineProperty(listPane, "scrollHeight", { value: 900, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
 
     const dots = getAllByRole("button", { name: dotLabel });
     dots[1]?.click();
@@ -193,7 +196,29 @@ describe("CartReservation", () => {
     dots[0]?.click();
     // Back to the shorter calendar, rather than leaving a screen of dead space
     // to scroll through — which is the whole point of measuring.
-    await vi.waitFor(() => expect(track.style.height).toBe("400px"));
+    await vi.waitFor(() => expect(track.style.height).toBe("800px"));
+  });
+
+  it("holds the track open to the bottom of the window when the view is short", async () => {
+    const { container, findByTestId, getAllByRole } = renderCartReservation();
+    const track = getTrack(container);
+    await findByTestId("calendar");
+    await findByTestId("timeline");
+
+    const [calendarPane, listPane] = [...track.children] as HTMLElement[];
+    Object.defineProperty(calendarPane, "scrollHeight", { value: 900, configurable: true });
+    Object.defineProperty(listPane, "scrollHeight", { value: 120, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 600, configurable: true });
+
+    const dots = getAllByRole("button", { name: dotLabel });
+    dots[1]?.click();
+
+    // A volunteer rostered onto nothing gets a timeline barely taller than its
+    // notice. The track is the only thing that answers a swipe, so left at that
+    // height the gesture would only work over the notice itself and the rest of
+    // the page would ignore it. jsdom lays nothing out, so the track starts at
+    // the top of the window and the whole of it is the space left below.
+    await vi.waitFor(() => expect(track.style.height).toBe("600px"));
   });
 
   it("keeps the view indicator at the bottom of the window, whatever the views do", async () => {

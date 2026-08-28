@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from "@inertiajs/vue3";
-import { breakpointsTailwind, useBreakpoints, useResizeObserver } from "@vueuse/core";
+import { breakpointsTailwind, useBreakpoints, useEventListener, useResizeObserver } from "@vueuse/core";
 import { isSameDay } from "date-fns";
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
@@ -136,7 +136,8 @@ const panes = {
 } as const;
 
 /**
- * Height of the pane on screen, applied to the track.
+ * Height of the pane on screen, applied to the track — or the space left to the
+ * bottom of the window, whichever is the greater.
  *
  * Both panes sit side by side in the track, so its natural height is the
  * taller of the two. Now that the page scrolls rather than the panes, that
@@ -146,18 +147,57 @@ const panes = {
  */
 const trackHeight = ref<number>();
 
+/** What the page holds below the track, in padding and borders on the way out. */
+const spaceBelowTrack = (el: HTMLElement) => {
+  let total = 0;
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    total += (Number.parseFloat(style.paddingBottom) || 0) + (Number.parseFloat(style.borderBottomWidth) || 0);
+  }
+  return total;
+};
+
 const measureTrack = () => {
   if (!isCarousel.value) {
     trackHeight.value = undefined;
     return;
   }
   const pane = panes[shiftView.value].value;
-  if (pane) {
-    trackHeight.value = pane.scrollHeight;
+  const el = track.value;
+  if (!pane || !el) {
+    return;
   }
+
+  // The track is the only thing you can swipe, so a view shorter than the
+  // window — a volunteer rostered onto nothing gets one — would leave the space
+  // below it outside the carousel, and the gesture would only answer over the
+  // notice itself. Filling the window keeps the whole page swipeable.
+  //
+  // Measured against the document rather than the viewport, so a scrolled page
+  // reads the same as an unscrolled one, and less what the page keeps below the
+  // track: the shell's pad that clears the indicator, and the layout's own
+  // edges. Reading those off the ancestors rather than off a document height —
+  // which never reports less than the window, so a short page would just read
+  // its own answer back — leaves a view that fits with nothing to scroll.
+  const documentTop = el.getBoundingClientRect().top + window.scrollY;
+  const toWindowBottom = window.innerHeight - documentTop - spaceBelowTrack(el);
+
+  trackHeight.value = Math.max(pane.scrollHeight, Math.round(toWindowBottom));
 };
 
 useResizeObserver([panes.calendar, panes.list], measureTrack);
+
+// Where the track starts is the other half of the sum, and nothing about the
+// panes says when that moves — the views above it can resize on their own, as
+// they do when the shift data lands. The page's own height is what changes when
+// they do. This settles in one further pass: the track's new height feeds back
+// here, and the floor it produces is the same one.
+useResizeObserver(document.body, measureTrack);
+
+// The panes are as wide as the window, so the observers above already catch a
+// change of width. A change of height — rotating, or the mobile URL bar sliding
+// away — moves the floor without touching either.
+useEventListener(window, "resize", measureTrack);
 
 // `post` so the incoming pane has been rendered before it is measured — on the
 // first switch to a view the carousel has only just built, it has no height yet.
