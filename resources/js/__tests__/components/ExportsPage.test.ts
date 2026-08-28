@@ -4,11 +4,25 @@ import Show from "@/Pages/Admin/Exports/Show.vue";
 
 const stubs = {
   PageHeader: { template: "<div><slot /></div>" },
+  PButton: {
+    props: ["label", "disabled"],
+    emits: ["click"],
+    template: "<button :disabled=\"disabled\" @click=\"$emit('click')\">{{ label }}</button>",
+  },
   DateRange: {
-    props: ["startDate", "endDate"],
+    props: {
+      startDate: { type: String, required: false },
+      endDate: { type: String, required: false },
+      allowPastDates: { type: [Boolean, String], default: false },
+      allowSameDayEnd: { type: [Boolean, String], default: false },
+    },
     emits: ["update:startDate", "update:endDate"],
     template: `
-      <div>
+      <div
+        data-testid="date-range"
+        :data-allow-past-dates="allowPastDates === true || allowPastDates === '' ? 'true' : 'false'"
+        :data-allow-same-day-end="allowSameDayEnd === true || allowSameDayEnd === '' ? 'true' : 'false'"
+      >
         <input aria-label="From" :value="startDate" @input="$emit('update:startDate', $event.target.value)" />
         <input aria-label="To" :value="endDate" @input="$emit('update:endDate', $event.target.value)" />
       </div>
@@ -64,6 +78,14 @@ describe("Exports page", () => {
     for (const title of ["Reports", "Shift assignments", "Shift counts", "User availabilities"]) {
       expect(screen.getByRole("heading", { name: title })).toBeTruthy();
     }
+  });
+
+  it("uses the shared date range picker with export-friendly constraints", () => {
+    const { getByTestId } = renderExports();
+    const dateRange = getByTestId("date-range");
+
+    expect(dateRange.getAttribute("data-allow-past-dates")).toBe("true");
+    expect(dateRange.getAttribute("data-allow-same-day-end")).toBe("true");
   });
 
   it("holds back the date-range exports until there is a date range", async () => {
