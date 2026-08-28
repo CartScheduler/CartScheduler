@@ -8,6 +8,8 @@ vi.mock("primevue", () => ({ useConfirm: () => ({ require: vi.fn() }) }));
 vi.mock("@/Composables/useToast", () => ({ default: () => ({ success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/Composables/useDarkMode", () => ({ useDarkMode: () => ({ isDarkMode: { value: false } }) }));
 
+const AVAILABILITY_FIELD = /^available-(from|to)-/;
+
 const days: { label: string; value: DayKey }[] = [
   { label: "Mo", value: "day_monday" },
   { label: "Tu", value: "day_tuesday" },
@@ -46,8 +48,8 @@ const stubs = {
   },
   PButton: { template: "<button type='button' />" },
   PDatePicker: {
-    props: ["inputId"],
-    template: "<input :id='inputId' />",
+    props: ["inputId", "inputClass"],
+    template: "<input :id='inputId' :class='inputClass' />",
   },
   PConfirmPopup: { template: "<div />" },
   Datepicker: {
@@ -75,16 +77,39 @@ describe("Shift day selectors", () => {
     const dayRow = layout.firstElementChild as HTMLElement;
 
     // The shift lays its own fields out, so the days are no longer squeezed
-    // into an `auto` track shared with three other columns.
-    expect(layout.className).toContain("sm:grid-cols-[auto_minmax(0,1fr)_auto]");
+    // into an `auto` track shared with three other columns. Side by side only
+    // at `xl`: the page keeps a sidebar, and narrower than that the days and
+    // the fields cannot both have their floor.
+    expect(layout.className).toContain("xl:grid-cols-[auto_minmax(11rem,1fr)_auto]");
 
     // `grid-cols-8` expands to `repeat(8, minmax(0, 1fr))`, whose tracks may
     // shrink below their content — Firefox did exactly that and the checkboxes
     // ran together. The floor is what stops it, in any browser.
-    expect(dayRow.className).toContain("grid-cols-[repeat(8,minmax(2.25rem,1fr))]");
+    expect(dayRow.className).toContain("grid-cols-[repeat(8,minmax(2rem,1fr))]");
     expect(dayRow.className).not.toContain("grid-cols-8");
 
     expect(dayRow.children).toHaveLength(days.length + 1);
+  });
+
+  it("gives the fields room for a date and lets them wrap when there is not", () => {
+    const { container } = renderShift();
+
+    const fields = (container.querySelector("div") as HTMLElement).children[1] as HTMLElement;
+
+    // A fixed column count squeezed the date inputs into tracks narrower than
+    // the inputs themselves, and one sat over the other. `auto-fit` asks the
+    // question a media query cannot: how wide is *this column*, and how many of
+    // these fit in it?
+    expect(fields.className).toContain("grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]");
+    expect(fields.className).not.toContain("grid-cols-3");
+
+    // The inputs are 207px wide left to themselves, whatever their track says.
+    const pickers = [...fields.querySelectorAll("input")]
+      .filter((input) => AVAILABILITY_FIELD.test(input.id));
+    expect(pickers).toHaveLength(2);
+    for (const picker of pickers) {
+      expect(picker.className).toContain("w-full");
+    }
   });
 
   it("gives every shift on the page its own 'All' checkbox id", () => {

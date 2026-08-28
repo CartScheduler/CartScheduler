@@ -122,12 +122,18 @@ const confirmDelete = (event: Event) => {
       `repeat(8, minmax(0, 1fr))` — is free to shrink below its content, so
       Firefox resolved that track narrower than Chrome and the checkboxes
       collided. Here the days take the room they need and the fields take what
-      is left, which they can afford to give.
+      is left.
+      The row only goes side by side at `xl`. The page keeps a sidebar, so the
+      form is around 500px narrower than the window: below that the days and the
+      fields cannot both have their floor, and the fields would be the ones to
+      give — which is how the date inputs came to sit on top of each other. The
+      floor on the middle track is the same one the fields use inside, so the row
+      can never hand them less than they asked for.
     -->
-    <div class="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start">
+    <div class="grid grid-cols-1 gap-x-4 gap-y-4 xl:grid-cols-[auto_minmax(11rem,1fr)_auto] xl:items-start">
       <!-- A floor under each day column too, so one can never end up narrower
         than its own label whatever the track above resolves to. -->
-      <div class="grid grid-cols-[repeat(8,minmax(2.25rem,1fr))] gap-x-2 sm:self-center">
+      <div class="grid grid-cols-[repeat(8,minmax(2rem,1fr))] gap-x-1 xl:self-center">
         <div class="text-center">
           <JetLabel :for="`all-${fieldUnique}`" value="All" />
           <PCheckbox binary
@@ -146,8 +152,14 @@ const confirmDelete = (event: Event) => {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-3">
-        <div class="sm:col-span-2">
+      <!--
+        `auto-fit` rather than a column count per breakpoint: what these fields
+        have to fit into is the width of their own column, and a media query can
+        only ask about the window. The floor is what the date inputs need; the
+        row count follows from however many of those the column can hold.
+      -->
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-4 gap-y-3">
+        <div>
           <JetLabel :for="`shift-range-${fieldUnique}`" value="Shift Time From &amp; To" />
           <Datepicker time-picker
                       range
@@ -172,6 +184,7 @@ const confirmDelete = (event: Event) => {
         <div>
           <JetLabel :for="`available-from-${fieldUnique}`" value="Available From" />
           <PDatePicker :input-id="`available-from-${fieldUnique}`"
+                       input-class="w-full"
                        show-button-bar
                        icon-display="input"
                        v-model="availableFrom"
@@ -183,6 +196,7 @@ const confirmDelete = (event: Event) => {
         <div>
           <JetLabel :for="`available-to-${fieldUnique}`" value="Available To" />
           <PDatePicker :input-id="`available-to-${fieldUnique}`"
+                       input-class="w-full"
                        show-button-bar
                        icon-display="input"
                        v-model="availableTo"
@@ -193,7 +207,7 @@ const confirmDelete = (event: Event) => {
         </div>
       </div>
 
-      <div class="justify-self-end sm:self-center">
+      <div class="justify-self-end xl:self-center">
         <PButton icon="iconify mdi--trash-can-outline" severity="warn" variant="outlined" @click="confirmDelete" />
       </div>
     </div>
