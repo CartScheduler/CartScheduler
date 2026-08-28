@@ -9,6 +9,7 @@ import useToast from "@/Composables/useToast";
 import FilledShiftsIndicator from "@/Pages/Admin/Dashboard/FilledShiftsIndicator.vue";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys";
+import { calcShiftPercentage, capFilledForDay } from "@/Utils/volunteerAvailability";
 import type { AssignVolunteerPayload } from "@/types/types";
 
 const props = defineProps({
@@ -172,13 +173,13 @@ const tableRows = computed(() => {
       saturday: volunteer.num_saturdays,
     };
     const daysAlreadyRostered = {
-      sunday: (volunteer.filled_sundays < daysAvailable.sunday ? volunteer.filled_sundays : daysAvailable.sunday) || 0,
-      monday: (volunteer.filled_mondays < daysAvailable.monday ? volunteer.filled_mondays : daysAvailable.monday) || 0,
-      tuesday: (volunteer.filled_tuesdays < daysAvailable.tuesday ? volunteer.filled_tuesdays : daysAvailable.tuesday) || 0,
-      wednesday: (volunteer.filled_wednesdays < daysAvailable.wednesday ? volunteer.filled_wednesdays : daysAvailable.wednesday) || 0,
-      thursday: (volunteer.filled_thursdays < daysAvailable.thursday ? volunteer.filled_thursdays : daysAvailable.thursday) || 0,
-      friday: (volunteer.filled_fridays < daysAvailable.friday ? volunteer.filled_fridays : daysAvailable.friday) || 0,
-      saturday: (volunteer.filled_saturdays < daysAvailable.saturday ? volunteer.filled_saturdays : daysAvailable.saturday) || 0,
+      sunday: capFilledForDay(volunteer.filled_sundays, daysAvailable.sunday),
+      monday: capFilledForDay(volunteer.filled_mondays, daysAvailable.monday),
+      tuesday: capFilledForDay(volunteer.filled_tuesdays, daysAvailable.tuesday),
+      wednesday: capFilledForDay(volunteer.filled_wednesdays, daysAvailable.wednesday),
+      thursday: capFilledForDay(volunteer.filled_thursdays, daysAvailable.thursday),
+      friday: capFilledForDay(volunteer.filled_fridays, daysAvailable.friday),
+      saturday: capFilledForDay(volunteer.filled_saturdays, daysAvailable.saturday),
     };
 
     const numDaysKey = `num_${shiftDayKey.value}s` as keyof App.Data.ExtendedUserData;
@@ -205,29 +206,6 @@ const tableRows = computed(() => {
     };
   });
 });
-
-const calcShiftPercentage = (daysRostered, daysAvailable) => {
-  if (!daysAvailable) {
-    return 0;
-  }
-  let sumOfDaysRostered = 0;
-  let sumOfDaysAvailable = 0;
-  for (const day in daysAvailable) {
-    if (!Object.hasOwn(daysAvailable, day) || !daysAvailable[day]) {
-      continue;
-    }
-    // Not using Array.reduce because we're only calculating based on the days a volunteer is available
-    sumOfDaysRostered += daysRostered[day];
-    sumOfDaysAvailable += daysAvailable[day];
-    if (sumOfDaysRostered > sumOfDaysAvailable) {
-      sumOfDaysRostered = sumOfDaysAvailable;
-    }
-  }
-  if (sumOfDaysAvailable === 0) {
-    return 0;
-  }
-  return Math.round((sumOfDaysRostered / sumOfDaysAvailable) * 100);
-};
 
 const assignVolunteer = (volunteerId, volunteerName) => {
   emit("assignVolunteer", { volunteerId, volunteerName, location: props.location, shift: props.shift });
