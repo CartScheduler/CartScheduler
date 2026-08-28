@@ -347,15 +347,24 @@ const onHintChoice = (keep: boolean) => {
       </button>
     </nav>
   </div>
-  <PDialog v-model:visible="showRemoveReservationModal"
-           modal
-           header="Confirmation"
-           pt:root="w-[calc(100vw-2rem)] max-w-lg">
-    <p class="dark:text-gray-100">{{ shiftRemoveConfirmMessage }}</p>
+  <!--
+    The app's own dialog rather than PrimeVue's. The shift detail sheet behind
+    this one is a native <dialog> opened with `showModal()`, which puts it in
+    the top layer — and nothing outside the top layer paints over that, at any
+    z-index. So a PrimeVue overlay asking to remove a reservation came up
+    *under* the sheet that asked for it. Two modal dialogs stack in the order
+    they were opened, which puts this one where it belongs.
+  -->
+  <Dialog v-model:visible="showRemoveReservationModal" class="w-[calc(100vw-2rem)] max-w-lg">
+    <template #header>
+      <h3 class="text-xl font-semibold">Confirmation</h3>
+    </template>
+
+    <p>{{ shiftRemoveConfirmMessage }}</p>
 
     <template #footer>
       <PButton label="Cancel" severity="secondary" outlined @click="cancelRemoveReservation" />
       <PButton label="Remove Reservation" @click="confirmRemoveReservation" />
     </template>
-  </PDialog>
+  </Dialog>
 </template>

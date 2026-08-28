@@ -1,6 +1,7 @@
 import { fireEvent, render } from "@testing-library/vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ref } from "vue";
+import Dialog from "@/Components/Dialog.vue";
 import CartReservation from "@/Pages/Components/Dashboard/CartReservation.vue";
 
 // Plain object, not a ref: hoisted factories run before the `vue` import.
@@ -85,10 +86,6 @@ const stubs = {
       + "<button data-testid='calendar-reserve'"
       + " @click=\"$emit('toggleReservation', 1, 2, true)\" /></div>",
   },
-  PDialog: {
-    props: ["visible"],
-    template: "<div v-if='visible' role='dialog'><slot /><slot name='footer' /></div>",
-  },
   PButton: {
     props: ["label"],
     template: "<button @click=\"$emit('click')\">{{ label }}</button>",
@@ -109,7 +106,10 @@ const setViewport = (isDesktop: boolean) => {
   }));
 };
 
-const renderCartReservation = () => render(CartReservation, { global: { stubs } });
+// The real dialog, not a stub: the confirmation has to reach the top layer to
+// clear the shift detail sheet, and only the component that calls `showModal()`
+// does that. A stub would assert the markup and miss the whole point.
+const renderCartReservation = () => render(CartReservation, { global: { stubs, components: { Dialog } } });
 
 const dotLabel = /Show the/;
 const hideLinkText = /Hide this button and swipe/;
@@ -465,6 +465,26 @@ describe("CartReservation", () => {
 
       expect(reservation.toggleReservation).not.toHaveBeenCalled();
       await vi.waitFor(() => expect(queryByRole("dialog")).toBeNull());
+    });
+
+    it("puts the prompt in the top layer, where it can clear the detail sheet", async () => {
+      settings.shiftRemoveConfirmMessage = MESSAGE;
+      const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+      const { findByTestId, findByRole } = renderCartReservation();
+
+      (await findByTestId("calendar-unreserve")).click();
+      const prompt = await findByRole("dialog") as HTMLDialogElement;
+
+      // The sheet the timeline opens is a native <dialog> shown with
+      // `showModal()`, which puts it in the top layer — and nothing outside the
+      // top layer paints over that, at any z-index. So the PrimeVue overlay
+      // this replaced came up *under* the very sheet that asked for it.
+      // `showModal`, not `show`: only the modal call reaches the top layer.
+      expect(prompt.tagName).toBe("DIALOG");
+      expect(prompt.open).toBe(true);
+      expect(showModal).toHaveBeenCalled();
+
+      showModal.mockRestore();
     });
 
     it("asks from the timeline too", async () => {
