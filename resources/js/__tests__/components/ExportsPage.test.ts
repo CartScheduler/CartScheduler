@@ -4,11 +4,15 @@ import Show from "@/Pages/Admin/Exports/Show.vue";
 
 const stubs = {
   PageHeader: { template: "<div><slot /></div>" },
-  /** The real one wraps PrimeVue's input, which is auto-imported and absent here. */
-  JetInput: {
-    props: ["modelValue"],
-    emits: ["update:modelValue"],
-    template: "<input :value=\"modelValue\" @input=\"$emit('update:modelValue', $event.target.value)\" />",
+  DateRange: {
+    props: ["startDate", "endDate"],
+    emits: ["update:startDate", "update:endDate"],
+    template: `
+      <div>
+        <input aria-label="From" :value="startDate" @input="$emit('update:startDate', $event.target.value)" />
+        <input aria-label="To" :value="endDate" @input="$emit('update:endDate', $event.target.value)" />
+      </div>
+    `,
   },
 };
 
@@ -31,8 +35,8 @@ const downloadButtonFor = (title: string) => {
 };
 
 const setDateRange = async () => {
-  await fireEvent.update(screen.getByLabelText("Start date"), "2026-01-01");
-  await fireEvent.update(screen.getByLabelText("End date"), "2026-01-31");
+  await fireEvent.update(screen.getByLabelText("From"), "2026-01-01");
+  await fireEvent.update(screen.getByLabelText("To"), "2026-01-31");
 };
 
 beforeEach(() => {

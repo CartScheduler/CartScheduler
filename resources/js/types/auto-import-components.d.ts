@@ -27,6 +27,7 @@ declare module 'vue' {
     DangerButton: typeof import('./../Components/Form/Buttons/DangerButton.vue')['default']
     DarkMode: typeof import('./../Layouts/Components/DarkMode.vue')['default']
     DataTable: typeof import('./../Components/DataTable.vue')['default']
+    DateRange: typeof import('./../Components/Form/DateRange.vue')['default']
     Dialog: typeof import('./../Components/Dialog.vue')['default']
     DragDrop: typeof import('./../Components/Icons/DragDrop.vue')['default']
     EmptySlot: typeof import('./../Components/Icons/EmptySlot.vue')['default']

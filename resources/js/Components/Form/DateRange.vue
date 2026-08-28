@@ -4,12 +4,19 @@ import { computed, watch, ref, useId } from "vue";
 import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   startDate?: string;
   endDate?: string;
   startError?: string;
   endError?: string;
-}>();
+  /** When true, dates before today can be selected (e.g. export date ranges). */
+  allowPastDates?: boolean;
+  /** When true, the end date may match the start date (e.g. single-day exports). */
+  allowSameDayEnd?: boolean;
+}>(), {
+  allowPastDates: false,
+  allowSameDayEnd: false,
+});
 
 const emit = defineEmits([
   "update:startDate",
@@ -46,9 +53,15 @@ watch(end, (value) => {
   }
 });
 
-const minDate = computed(() => start.value
-  ? addDays(start.value, 1)
-  : addDays(new Date(), 1));
+const startMinDate = computed(() => props.allowPastDates ? undefined : new Date());
+
+const endMinDate = computed(() => {
+  if (start.value) {
+    return props.allowSameDayEnd ? start.value : addDays(start.value, 1);
+  }
+
+  return props.allowPastDates ? undefined : addDays(new Date(), 1);
+});
 
 const maxDate = computed(() => end.value
   ? end.value
@@ -64,7 +77,7 @@ const id = useId();
 
       <PDatePicker :input-id="`${id}-start`"
                    v-model="start"
-                   :minDate="new Date()"
+                   :minDate="startMinDate"
                    :maxDate
                    :dateFormat="fieldFormat"
                    input-class="w-full"/>
@@ -75,7 +88,7 @@ const id = useId();
 
       <PDatePicker :input-id="`${id}-end`"
                    v-model="end"
-                   :minDate
+                   :minDate="endMinDate"
                    :dateFormat="fieldFormat"
                    input-class="w-full"/>
       <JetInputError :message="endError" />

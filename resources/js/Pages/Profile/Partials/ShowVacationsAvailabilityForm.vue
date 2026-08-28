@@ -9,7 +9,7 @@ import JetActionMessage from "@/Jetstream/ActionMessage.vue";
 import JetFormSection from "@/Jetstream/FormSection.vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
-import VacationDateRange from "@/Pages/Profile/Partials/VacationDateRange.vue";
+import DateRange from "@/Components/Form/DateRange.vue";
 import precognitiveForm from "@/Utils/precognitiveForm";
 
 const { vacations = [], userId } = defineProps<{
@@ -84,7 +84,7 @@ const deleteVacation = (idx: number) => form.deletedVacations = [...form.deleted
                      @click="deleteVacation(idx)">
               <CloseCircle />
             </PButton>
-            <vacation-date-range v-model:start-date="vacation.start_date"
+            <DateRange v-model:start-date="vacation.start_date"
                                  v-model:end-date="vacation.end_date"
                                  :start-error="form.errors[`vacations.${idx}.start_date`]"
                                  :end-error="form.errors[`vacations.${idx}.end_date`]" />
