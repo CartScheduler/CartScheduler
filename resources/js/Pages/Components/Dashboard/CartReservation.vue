@@ -317,6 +317,17 @@ const onHintChoice = (keep: boolean) => {
     </div>
 
     <!--
+      Marks the bottom of the window while the calendar runs past it, so the
+      page reads as continuing rather than ending. Sits above the indicator's
+      own strip, and fades itself out over the last 4rem of the scroll — at the
+      end of the page there is nothing left to point at. Only on the view that
+      was asked for, and only where the page is the scroller.
+    -->
+    <div v-if="shiftView === 'calendar'"
+         aria-hidden="true"
+         class="page-end-fade bottom-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:hidden" />
+
+    <!--
       Says which of the two views you are on, and that there is exactly one
       other to reach. The dot is small but its button is a full tap target.
 

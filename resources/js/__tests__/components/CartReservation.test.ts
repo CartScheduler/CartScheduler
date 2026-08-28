@@ -221,6 +221,25 @@ describe("CartReservation", () => {
     await vi.waitFor(() => expect(track.style.height).toBe("600px"));
   });
 
+  it("marks the bottom of the window while the calendar runs past it", async () => {
+    const { container, findByTestId, getAllByRole } = renderCartReservation();
+    await findByTestId("calendar");
+
+    const fade = container.querySelector(".page-end-fade") as HTMLElement;
+
+    // Decoration, and over the top of the content: it must not take a tap that
+    // was meant for the shift underneath it, or be read out as anything.
+    expect(fade.getAttribute("aria-hidden")).toBe("true");
+    expect(fade.className).toContain("sm:hidden");
+
+    // Above the calendar, below the indicator it stops short of.
+    expect(fade.className).toContain("bottom-[calc(env(safe-area-inset-bottom)+2.5rem)]");
+
+    // The timeline was not asked for, and an empty one does not overflow at all.
+    getAllByRole("button", { name: dotLabel })[1]?.click();
+    await vi.waitFor(() => expect(container.querySelector(".page-end-fade")).toBeNull());
+  });
+
   it("keeps the view indicator at the bottom of the window, whatever the views do", async () => {
     const { container, findByTestId } = renderCartReservation();
     await findByTestId("calendar");
