@@ -34,7 +34,7 @@ declare namespace App.Data {
   export type ExtendedUserData = {
     id: number;
     name: string;
-    gender?: male | female | undefined;
+    gender?: "male" | "female" | undefined;
     mobile_phone?: string;
     email?: string;
     marital_status?: App.Enums.MaritalStatus;
@@ -131,7 +131,7 @@ declare namespace App.Data {
     requests_count?: number;
     comments?: string;
     shift_was_cancelled: boolean;
-    tags: Array<{ id: int; name: { [lang: string]: string }; slug: { [lang: string]: string } }>;
+    tags: Array<{ id: number; name: { [lang: string]: string }; slug: { [lang: string]: string } }>;
     metadata?: App.Data.ReportMetadataData;
   };
   export type ShiftAdminData = {
@@ -169,7 +169,7 @@ declare namespace App.Data {
     name: string;
     email: string;
     role: string;
-    gender?: male | female | undefined;
+    gender?: "male" | "female" | undefined;
     mobile_phone?: string;
     year_of_birth?: number;
     appointment?: App.Enums.Appointment;

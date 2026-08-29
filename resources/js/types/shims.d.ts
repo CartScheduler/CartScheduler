@@ -2,15 +2,11 @@
 // noinspection JSUnusedGlobalSymbols
 
 import "vite/client";
-import { Page, PageProps as InertiaPageProps } from "@inertiajs/core";
+import { Page, Router, createHeadManager } from "@inertiajs/core";
 import type { Axios } from "axios";
-import type {
-  ComponentCustomOptions as VueComponentCustomOptions,
-  ComponentCustomProperties as VueComponentCustomProperties,
-  DefineComponent,
-} from "vue";
 import type { route as routeFn } from "ziggy-js";
 import type { AppPageProps } from "./laravel-request-helpers";
+import type { IsoDate as IsoDateString, TwentyFourHourTime as TwentyFourHourTimeString } from "./types";
 
 declare global {
   /**
@@ -28,19 +24,24 @@ declare global {
   interface Window {
     axios: Axios;
   }
+
+  /**
+   * The names `#[LiteralTypeScriptType]` writes into the generated
+   * `laravel.d.ts`. That file is a global script and so cannot import one, so
+   * every field annotated with either resolved to nothing until they were
+   * declared out here as well.
+   */
+  type IsoDate = IsoDateString;
+  type TwentyFourHourTime = TwentyFourHourTimeString;
 }
 
 declare module "vue" {
-  const component: DefineComponent;
-
   interface ComponentCustomProperties {
-    $inertia: typeof Router;
+    $inertia: Router;
     $headManager: ReturnType<typeof createHeadManager>;
   }
 
-  export function inject(key: "route"): RouteFn;
-
-  export default component;
+  export function inject(key: "route"): typeof routeFn;
 }
 
 declare module "@vue/runtime-core" {
@@ -49,21 +50,15 @@ declare module "@vue/runtime-core" {
     route: typeof routeFn;
     $page: Page<AppPageProps>;
   }
-
-  interface ComponentCustomProperties extends VueComponentCustomProperties {
-  }
-
-  interface ComponentCustomOptions extends VueComponentCustomOptions {
-  }
 }
 
 declare module "@inertiajs/core" {
-  interface PageProps extends InertiaPageProps, AppPageProps {
+  interface PageProps extends AppPageProps {
   }
 }
 
 declare module "@inertiajs/vue3" {
-  export declare function usePage<T extends AppPageProps>(): Page<T>;
+  export function usePage<T extends AppPageProps>(): Page<T>;
 }
 
 // Ignoring types from primevue/accordionpanel as they conflict with the local component

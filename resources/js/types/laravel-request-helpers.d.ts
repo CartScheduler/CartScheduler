@@ -62,6 +62,13 @@ export interface Jetstream {
   jetstream: JetstreamProps;
 }
 
+/**
+ * The shared props every Inertia page receives, plus whatever that page adds.
+ *
+ * `T` is an object rather than `object | unknown[]`: Inertia's own `PageProps`
+ * is an index signature, and a union that can be an array does not satisfy it,
+ * so `Page<AppPageProps>` had nothing valid to resolve to.
+ */
 export type AppPageProps<
-  T extends Record<string, unknown> | unknown[] = Record<string, unknown> | unknown[],
-> = InertiaProps & Jetstream & FlashMessage & T;
+  T extends Record<string, unknown> = Record<string, unknown>,
+> = InertiaProps & Jetstream & T;

@@ -1,5 +1,5 @@
 import type { Location, Shift } from "@/Composables/useLocationFilter";
-import type { Form as PrecognitiveForm } from "laravel-precognition-vue-inertia/dist/types";
+import type { FormDataConvertible, Form as PrecognitiveForm } from "laravel-precognition-vue-inertia/dist/types";
 
 type Digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 type NonZeroDigit = Exclude<Digit, "0">;
@@ -13,7 +13,12 @@ type SixtyCount = `${"0" | "1" | "2" | "3" | "4" | "5"}${Digit}`; // 00-59
 
 export type IsoDate = `${Year}-${Month}-${Day}`; // 20[2-4][0-9]-[01-12]-[01-31]
 export type TwentyFourHourTime = `${Hour}:${SixtyCount}:${SixtyCount}`; // [00-23]:[00-59]:[00-59]
-export type IsoDateTime = `${IsoDate}T${TwentyFourHourTime}`; // 20[2-4][0-9]-[01-12]-[01-31]T[00-23]:[00-59]:[00-59]
+/**
+ * The time is left open rather than crossed with the date. Multiplying the two
+ * unions out asks TypeScript to enumerate every second of every day it knows
+ * about — near a billion members, which it refuses to represent at all.
+ */
+export type IsoDateTime = `${IsoDate}T${string}`; // 20[2-4][0-9]-[01-12]-[01-31]T…
 
 export type ErrorBag = Record<string, string[]>
 
@@ -55,6 +60,14 @@ type DeepKeys<T> = T extends object
 
 export type FormErrors<T> = Record<DeepKeys<T>, string>;
 
-export interface Form<Data extends Record<string, unknown>> extends PrecognitiveForm<Data> {
-  errors: FormErrors<Data>;
-}
+/**
+ * The precognitive form with its own `errors` swapped out for ours, which names
+ * nested paths (`shifts.0.start_time`) the way Laravel returns them.
+ *
+ * `Omit` rather than `extends`: the property being replaced is narrower than the
+ * one it replaces, and an interface may only widen what it inherits. The
+ * constraint is the one the underlying form imposes — anything that can go into
+ * a `FormData` — rather than a looser `unknown`, which it would reject.
+ */
+export type Form<Data extends Record<string, FormDataConvertible>> =
+  Omit<PrecognitiveForm<Data>, "errors"> & { errors: FormErrors<Data> };

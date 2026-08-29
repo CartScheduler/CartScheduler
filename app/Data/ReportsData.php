@@ -18,9 +18,8 @@ class ReportsData extends Data
         public ?int $requests_count = null,
         public ?string $comments = null,
         public bool $shift_was_cancelled = false,
-        #[LiteralTypeScriptType('Array<{id: int, name: {[lang: string]: string}, slug: {[lang: string]: string}}>')]
+        #[LiteralTypeScriptType('Array<{id: number, name: {[lang: string]: string}, slug: {[lang: string]: string}}>')]
         public Collection $tags = new Collection,
         public ?ReportMetadataData $metadata = null,
-    ) {
-    }
+    ) {}
 }

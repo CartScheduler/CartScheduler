@@ -17,7 +17,7 @@ class ExtendedUserData extends Data
     public function __construct(
         public int $id,
         public string $name,
-        #[LiteralTypeScriptType('male | female | undefined')]
+        #[LiteralTypeScriptType("'male' | 'female' | undefined")]
         public string|Optional $gender,
         public string|Optional $mobile_phone,
         public string|Optional $email,
@@ -47,6 +47,5 @@ class ExtendedUserData extends Data
         public int|Optional $filled_saturdays,
         #[MapInputName('comments')]
         public string|Optional $availability_comments,
-    ) {
-    }
+    ) {}
 }
