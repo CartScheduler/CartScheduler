@@ -6,7 +6,7 @@
     "dev": "vite",
     "editor-bridge": "tools/host-editor-bridge.js --container-root=/var/www/html",
     "build": "vite build",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "typecheck": "vue-tsc --noEmit && vue-tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:snapshots": "vitest run -u",
@@ -86,7 +86,8 @@
     "unplugin-vue-components": "^28.5.0",
     "vite": "^6.3.5",
     "vitest": "^4.1.8",
-    "vitest-localstorage-mock": "^0.1.2"
+    "vitest-localstorage-mock": "^0.1.2",
+    "vue-tsc": "^3.3.11"
   },
   "web-types": "./web-types.json"
 }
