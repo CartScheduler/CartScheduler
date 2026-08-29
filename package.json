@@ -6,6 +6,7 @@
     "dev": "vite",
     "editor-bridge": "tools/host-editor-bridge.js --container-root=/var/www/html",
     "build": "vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:snapshots": "vitest run -u",

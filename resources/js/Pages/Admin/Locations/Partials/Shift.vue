@@ -9,10 +9,10 @@ import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import JetSectionBorder from "@/Jetstream/SectionBorder.vue";
 import dateStringToDateObject from "@/Utils/dateStringToDateObject";
+import type { DayKey } from "@/Pages/Admin/Locations/Partials/dayKeys";
 import type { FormErrors } from "@/types/types";
 // https://vue3datepicker.com/
 
-export type DayKey = Extract<keyof App.Data.ShiftAdminData, `day_${string}`>;
 const props = defineProps<{
   days: Array<{
     label: string;
@@ -133,7 +133,7 @@ const confirmDelete = (event: Event) => {
     <div class="grid grid-cols-1 gap-x-4 gap-y-4 xl:grid-cols-[auto_minmax(11rem,1fr)_auto] xl:items-start">
       <!-- A floor under each day column too, so one can never end up narrower
         than its own label whatever the track above resolves to. -->
-      <div class="grid grid-cols-[repeat(8,minmax(2rem,1fr))] gap-x-1 xl:self-center">
+      <div class="grid grid-cols-[repeat(8,minmax(2rem,1fr))] gap-x-1">
         <div class="text-center">
           <JetLabel :for="`all-${fieldUnique}`" value="All" />
           <PCheckbox binary
@@ -207,7 +207,7 @@ const confirmDelete = (event: Event) => {
         </div>
       </div>
 
-      <div class="justify-self-end xl:self-center">
+      <div class="justify-self-end">
         <PButton icon="iconify mdi--trash-can-outline" severity="warn" variant="outlined" @click="confirmDelete" />
       </div>
     </div>

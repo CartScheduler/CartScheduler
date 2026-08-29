@@ -2,7 +2,7 @@ import { render } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import Shift from "@/Pages/Admin/Locations/Partials/Shift.vue";
-import type { DayKey } from "@/Pages/Admin/Locations/Partials/Shift.vue";
+import type { DayKey } from "@/Pages/Admin/Locations/Partials/dayKeys";
 
 vi.mock("primevue", () => ({ useConfirm: () => ({ require: vi.fn() }) }));
 vi.mock("@/Composables/useToast", () => ({ default: () => ({ success: vi.fn(), error: vi.fn() }) }));

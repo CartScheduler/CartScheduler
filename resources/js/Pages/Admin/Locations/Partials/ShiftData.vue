@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Shift from "@/Pages/Admin/Locations/Partials/Shift.vue";
 import type { InertiaForm } from "@inertiajs/vue3";
-import type { DayKey } from "@/Pages/Admin/Locations/Partials/Shift.vue";
+import type { DayKey } from "@/Pages/Admin/Locations/Partials/dayKeys";
 // https://vue3datepicker.com/
 
 const locationAdminDataForm = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: true });

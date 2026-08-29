@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { nextTick } from "vue";
 import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
 import alignToScrollContainersImport from "@/Utils/alignToScrollContainers";
-import type { ShiftItem } from "@/Pages/Components/Dashboard/ShiftList.vue";
+import type { ShiftItem } from "@/Pages/Components/Dashboard/lib/getShiftItem";
 
 vi.mock("@inertiajs/vue3", () => ({
   usePage: () => ({

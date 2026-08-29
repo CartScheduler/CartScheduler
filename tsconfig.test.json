@@ -3,11 +3,12 @@
   "compilerOptions": {
     "module": "ES2022",
     "noEmit": true,
+    // No "types/vue": there is no such package, and naming it made the whole
+    // config fail to load before a single file was checked.
     "types": [
       "vitest/globals",
       "chai",
-      "node",
-      "types/vue"
+      "node"
     ]
   },
   // The root config excludes the test directory; this config exists to check
