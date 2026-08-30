@@ -127,7 +127,17 @@ export default defineConfigWithVueTs([
       // `var(--width)` on a pseudo-element — none of which this rule can
       // resolve, and 0.9.0 has no option to let it pass.
       "css/no-invalid-properties": "off",
-      "css/use-baseline": "warn",
+      // Off, deliberately: every property it flags here is progressive
+      // enhancement that already carries its own fallback. The scroll-driven
+      // gradients sit behind `@supports (animation-timeline: scroll())` over a
+      // base of `opacity-0`; `scrollbar-width` is paired with
+      // `-ms-overflow-style`; `backdrop-filter` degrades to an unblurred mask;
+      // and `interpolate-size` degrades to a height that snaps rather than
+      // animates. The rule cannot see a `@supports` guard, and the four
+      // `nesting` reports are PostCSS nesting that never reaches a browser as
+      // nesting at all. Leaving it on meant thirteen findings that were all
+      // intended, which is how a lint run stops being read.
+      "css/use-baseline": "off",
     },
   },
   {
