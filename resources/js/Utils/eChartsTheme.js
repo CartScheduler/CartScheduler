@@ -3,8 +3,9 @@ import { computed } from "vue";
 import tailwindConfig from "@@/tailwind.config.js";
 
 const twConfig = resolveConfig(tailwindConfig);
-const twColors = twConfig.theme.colors;
+const twColors = twConfig.theme["colors"];
 
+/** @param {import("vue").Ref<boolean>} isDark */
 export default function EChartsTheme(isDark) {
 
   return computed(() => {

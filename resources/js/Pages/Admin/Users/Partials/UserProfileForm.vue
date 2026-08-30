@@ -11,7 +11,10 @@ import blockNavigation from "@/Utils/blockNavigation";
 import precognitiveForm from "@/Utils/precognitiveForm.js";
 
 const props = defineProps<{
-  user: App.Data.UserAdminData;
+  // Adding a user starts from nothing but the three fields the page defaults,
+  // so everything the edit form arrives with is optional here.
+  user: Partial<App.Data.UserAdminData>
+    & Pick<App.Data.UserAdminData, "role" | "is_enabled" | "is_unrestricted">;
   action: "edit" | "add";
 }>();
 
@@ -206,7 +209,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
           <!-- Birth Year -->
           <div class="flex flex-col">
             <JetLabel for="birth-year" value="Birth Year" :form error-key="year_of_birth" />
-            <PInputNumber id="birth-year"
+            <PInputNumber input-id="birth-year"
                           v-model="form.year_of_birth"
                           :use-grouping="false"
                           :maxFractionDigits="0"

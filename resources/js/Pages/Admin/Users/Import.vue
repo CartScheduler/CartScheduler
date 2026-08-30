@@ -38,7 +38,7 @@ watch(() => page.props.jetstream, () => {
 
   flash(
     page.props.jetstream,
-    page.props.jetstream.flash.bannerTitle || "Success!",
+    page.props.jetstream.flash.title || "Success!",
     page.props.jetstream.flash.bannerStyle || undefined,
   );
 }, { deep: true });
@@ -94,7 +94,7 @@ const label = computed(() => {
         with the spreadsheet you uploaded:
       </h4>
       <ul class="formatted-list">
-        <li v-for="error in validationErrors" :key="error">
+        <li v-for="(error, index) in validationErrors" :key="index">
           {{ error }}
         </li>
       </ul>
@@ -170,7 +170,7 @@ const label = computed(() => {
         <div class="flex justify-end mt-3 w-full">
           <SubmitButton type="submit"
                         :label
-                        :icon="isReadyForUpload ? undefined : 'iconify mdi--arrow-up fade-out-up'"
+                        v-bind="isReadyForUpload ? {} : { icon: 'iconify mdi--arrow-up fade-out-up' }"
                         :disabled="!form.file"
                         :processing="form.processing"
                         :success="form.recentlySuccessful"
@@ -178,7 +178,7 @@ const label = computed(() => {
                         :errors="form.errors" />
         </div>
         <div class="w-full">
-          <progress v-if="form.progress" :value="form.progress.percentage" max="100">
+          <progress v-if="form.progress" :value="form.progress.percentage ?? 0" max="100">
             {{ form.progress.percentage }}%
           </progress>
         </div>

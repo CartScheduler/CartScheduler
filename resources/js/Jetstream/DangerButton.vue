@@ -1,10 +1,8 @@
-<script setup>
-defineProps({
-  type: {
-    type: String,
-    default: "button",
-  },
-});
+<script setup lang="ts">
+// `String` widened this to any string, which `<button type>` will not take.
+const { type = "button" } = defineProps<{
+  type?: "button" | "reset" | "submit";
+}>();
 </script>
 
 <template>

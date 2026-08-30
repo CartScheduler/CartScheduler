@@ -5,10 +5,10 @@ import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 
 const props = defineProps<{
-  startDate?: string;
-  endDate?: string;
-  startError?: string;
-  endError?: string;
+  startDate?: string | undefined;
+  endDate?: string | undefined;
+  startError?: string | undefined;
+  endError?: string | undefined;
 }>();
 
 const emit = defineEmits([

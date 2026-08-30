@@ -3,6 +3,30 @@ import colors from "tailwindcss/colors";
 import defaultTheme from "tailwindcss/defaultTheme";
 import { formatColor, parseColor } from "tailwindcss/lib/util/color";
 
+/**
+ * NOTE: the first three are `import()` calls, so each is a Promise rather than
+ * a plugin. Tailwind takes them without complaint and applies none of them —
+ * the built CSS carries no `@tailwindcss/forms`, flowbite or primeui output.
+ *
+ * Left as it stands on purpose: awaiting them would drop three sets of base
+ * styles onto every page at once, which is a change to make deliberately and
+ * look at, not a side effect of a type fix.
+ *
+ * @type {NonNullable<import("tailwindcss").Config["plugins"]>}
+ */
+const plugins = [
+  // @ts-expect-error -- a Promise, not a plugin. See above.
+  import("@tailwindcss/forms"),
+  // @ts-expect-error -- a Promise, not a plugin. See above.
+  import("flowbite/plugin"),
+  // @ts-expect-error -- a Promise, not a plugin. See above.
+  import("tailwindcss-primeui"),
+  addIconSelectors({
+    prefixes: ["mdi"],
+    scale: 1.25,
+  }),
+];
+
 // noinspection JSUnusedGlobalSymbols
 /** @type {import("tailwindcss").Config} */
 export default {
@@ -95,13 +119,5 @@ export default {
 
   },
 
-  plugins: [
-    import("@tailwindcss/forms"),
-    import("flowbite/plugin"),
-    import("tailwindcss-primeui"),
-    addIconSelectors({
-      prefixes: ["mdi"],
-      scale: 1.25,
-    }),
-  ],
+  plugins,
 };

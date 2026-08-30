@@ -7,9 +7,11 @@ const { item } = defineProps<{
   item: MenuItem;
 }>();
 
+// Neither carries a payload; typed as one, `$emit("command")` was a call with
+// a missing argument.
 defineEmits<{
-  "click": Event;
-  "command": Event;
+  click: [];
+  command: [];
 }>();
 
 const { isCurrent } = useCurrentPageInfo();

@@ -174,7 +174,7 @@ const onDragEnd = (event: PointerEvent) => {
         `pt-5` keeps the pinned footer clear of content clipped behind it, and
         the rule marks where that content is cut off rather than ended.
       -->
-      <footer v-if="$slots.footer"
+      <footer v-if="$slots['footer']"
               class="flex shrink-0 justify-end gap-2 border-t border-neutral-200 px-5 pt-5 pb-5
                      dark:border-neutral-700">
         <slot name="footer" />

@@ -1,7 +1,10 @@
 /**
  * @deprecated This should be removed after Vue3 Easy Data Table has been removed
  */
-export default [
+// Named, then exported: a JSDoc block sitting directly on `export default` in a
+// `.js` file is parsed as an export assignment, and `default` then reads as a
+// modifier on it.
+const userDataTableHeaders = [
   {
     text: "ID",
     value: "id",
@@ -51,3 +54,5 @@ export default [
     width: "20%",
   },
 ];
+
+export default userDataTableHeaders;

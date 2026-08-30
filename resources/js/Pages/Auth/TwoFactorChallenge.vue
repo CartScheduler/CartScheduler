@@ -16,15 +16,17 @@ const recoveryCodeInput = useTemplateRef("recoveryCodeInput");
 const codeInput = useTemplateRef("codeInput");
 
 const toggleRecovery = async () => {
-  recovery.value ^= true;
+  // `^=` coerced the ref to 1 or 0 on every toggle; it only ever read as a
+  // boolean because both are truthy in the right places.
+  recovery.value = !recovery.value;
 
   await nextTick();
 
   if (recovery.value) {
-    recoveryCodeInput.value.focus();
+    recoveryCodeInput.value?.focus();
     form.code = "";
   } else {
-    codeInput.value.focus();
+    codeInput.value?.focus();
     form.recovery_code = "";
   }
 };

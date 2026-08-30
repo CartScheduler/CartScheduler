@@ -5,7 +5,7 @@ import type { ValidRouteName } from "ziggy-js";
 
 export interface Settings {
   routeName: ValidRouteName;
-  id?: string | number | null;
+  id?: string | number | null | undefined;
   method?: "post" | "put" | "patch" | "delete";
 }
 

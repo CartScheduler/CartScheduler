@@ -5,25 +5,28 @@ namespace App\Http\Controllers;
 use App\Actions\IsAdminForUpdateOfUserAction;
 use App\Http\Requests\UserLocationChoicesRequest;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Redirect;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UpdateUserLocationsChoicesController extends Controller
 {
-    public function __construct(private readonly IsAdminForUpdateOfUserAction $isAdminForUpdateOfUserAction)
-    {
-    }
+    public function __construct(private readonly IsAdminForUpdateOfUserAction $isAdminForUpdateOfUserAction) {}
 
     /**
-     * @param \App\Http\Requests\UserLocationChoicesRequest $request
-     * @return \Illuminate\Http\RedirectResponse
-     * @throws \Illuminate\Auth\Access\AuthorizationException
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     * @return RedirectResponse
+     *
+     * @throws AuthorizationException
+     * @throws ModelNotFoundException
+     * @throws HttpException
+     * @throws NotFoundHttpException
      */
     public function __invoke(UserLocationChoicesRequest $request)
     {
-        /** @var user $user */
+        /** @var User $user */
         $user = $request->user();
         $this->authorize('update', $user);
 
@@ -34,11 +37,12 @@ class UpdateUserLocationsChoicesController extends Controller
         $user->rosterLocations()->sync($locationIds);
 
         session()->flash('flash.banner', $isAdminEdit ? 'volunteer preferred locations have been updated.' : 'your preferred locations have been updated.');
-        session()->flash('flash.bannerstyle', 'success');
+        session()->flash('flash.bannerStyle', 'success');
 
         if ($isAdminEdit) {
-            return redirect::route('admin.users.edit', $user);
+            return Redirect::route('admin.users.edit', $user);
         }
-        return redirect::route('user.availability');
+
+        return Redirect::route('user.availability');
     }
 }

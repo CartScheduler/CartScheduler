@@ -26,7 +26,7 @@ onMounted(() => {
   if (bugsnagKey) {
     const user = page.props.auth.user;
     if (user?.id) {
-      Bugsnag.setUser(user.id, user.email, user.name);
+      Bugsnag.setUser(String(user.id), user.email, user.name);
     }
   }
 });

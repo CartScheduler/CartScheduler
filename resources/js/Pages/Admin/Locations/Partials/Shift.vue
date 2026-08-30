@@ -41,8 +41,13 @@ const prefixTime = (time: number) => {
   return "" + time;
 };
 
-const shiftTimeRange = computed({
-  get: () =>
+/** What the range picker hands back for each end of the shift. */
+type TimeOfDay = { hours: number; minutes: number };
+
+// Typed as a pair rather than left to infer an array: read as an array, each end
+// of the range is only possibly there.
+const shiftTimeRange = computed<[TimeOfDay, TimeOfDay]>({
+  get: (): [TimeOfDay, TimeOfDay] =>
     [
       {
         hours: parseInt(shift.value.start_time?.substring(0, 2)) || 0,
@@ -53,7 +58,7 @@ const shiftTimeRange = computed({
         minutes: parseInt(shift.value.end_time?.substring(3, 5)) || 0,
       },
     ],
-  set: (value) => {
+  set: (value: [TimeOfDay, TimeOfDay]) => {
     shift.value.start_time = prefixTime(value[0].hours) + ":" + prefixTime(value[0].minutes) + ":00";
     shift.value.end_time = prefixTime(value[1].hours) + ":" + prefixTime(value[1].minutes) + ":00";
   },

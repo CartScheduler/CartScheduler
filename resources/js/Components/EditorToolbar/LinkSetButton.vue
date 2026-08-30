@@ -50,8 +50,8 @@ watch(hasLink, async (val) => {
 const toggleShow = () => {
   doShowPopup.value = !doShowPopup.value;
 
-  if (doShowPopup.value && editor?.value?.getAttributes("link").href) {
-    url.value = editor?.value?.getAttributes("link").href;
+  if (doShowPopup.value && editor?.value?.getAttributes("link")["href"]) {
+    url.value = editor?.value?.getAttributes("link")["href"];
   } else {
     url.value = "";
   }
@@ -76,14 +76,14 @@ onKeyStroke("Escape", async () => {
 
 const autoShowPopup = () => {
   editor?.value?.on("selectionUpdate", (e) => {
-    const href = e.editor.getAttributes("link").href;
+    const href = e.editor.getAttributes("link")["href"];
 
     if (href) {
       const { from, to } = e.editor.state.selection;
       const $from = e.editor.state.doc.resolve(from);
 
       // Find the link mark range
-      const linkMark = e.editor.schema.marks.link;
+      const linkMark = e.editor.schema.marks["link"];
       let linkStart, linkEnd = from;
 
       // Find the link node containing the cursor
@@ -135,11 +135,9 @@ onUnmounted(() => {
   if (!editor?.value) throw new Error("Editor has not been initialized. Please report this error to the developer.");
   // these are here to prevent orphaned event listeners because of hot reloading during development
   editor?.value?.off("selectionUpdate");
-  editor?.value?.setOptions({
-    editorProps: {
-      handleClickOn: undefined,
-    },
-  });
+  // An empty set rather than the one handler set to `undefined`: the option is
+  // declared as absent-or-a-function, and there is nothing else in here to keep.
+  editor?.value?.setOptions({ editorProps: {} });
 });
 </script>
 

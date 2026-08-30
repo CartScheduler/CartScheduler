@@ -18,7 +18,7 @@ const submit = () => {
     onFinish: () => {
       form.reset();
 
-      passwordInput.value.focus();
+      passwordInput.value?.focus();
     },
   });
 };

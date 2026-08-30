@@ -19,9 +19,11 @@ const { availability, userId = undefined } = defineProps<{
 const page = usePage();
 const toast = useToast();
 
+// The two settings come across as plain numbers; the slider works in the hours
+// the enum names.
 const ranges = computed<{ start: App.Enums.AvailabilityHours; end: App.Enums.AvailabilityHours }>(() => ({
-  start: page.props.shiftAvailability.systemShiftStartHour,
-  end: page.props.shiftAvailability.systemShiftEndHour,
+  start: page.props.shiftAvailability.systemShiftStartHour as App.Enums.AvailabilityHours,
+  end: page.props.shiftAvailability.systemShiftEndHour as App.Enums.AvailabilityHours,
 }));
 
 const form = useForm({

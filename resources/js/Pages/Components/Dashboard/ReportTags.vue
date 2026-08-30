@@ -9,7 +9,10 @@ const tags = inject(ReportTags);
 
 const enabledTags = ref<number[]>([]);
 
-const handleToggle = (tagId: number, isEnabled: boolean) => {
+const handleToggle = (tagId: number | undefined, isEnabled: boolean) => {
+  if (tagId === undefined) {
+    return;
+  }
   if (isEnabled) {
     enabledTags.value.push(tagId);
   } else {
@@ -22,6 +25,6 @@ const handleToggle = (tagId: number, isEnabled: boolean) => {
 
 <template>
   <div class="inline-flex flex-wrap">
-    <ReportTagButton v-for="tag in tags" :key="tag.id" :name="tag.name" @toggled="handleToggle(tag.id, $event)"/>
+    <ReportTagButton v-for="tag in tags" :key="tag.name" :name="tag.name" @toggled="handleToggle(tag.id, $event)"/>
   </div>
 </template>

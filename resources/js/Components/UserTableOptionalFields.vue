@@ -29,12 +29,9 @@ const label = computed(() => {
   if (!model.value.length) {
     return "0 selected";
   }
-  let count = 0;
-  for (const key in model.value) {
-    if (model.value[key].value) {
-      count++;
-    }
-  }
+  // `for…in` walked the array by string index, so each lookup came back as
+  // possibly absent. The count is over the entries themselves.
+  const count = model.value.filter((option) => option.value).length;
   return `${count} selected`;
 });
 

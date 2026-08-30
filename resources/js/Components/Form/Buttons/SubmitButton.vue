@@ -4,10 +4,11 @@ import { computed } from "vue";
 const { action, label, icon, success = false, failure = false, errors, processing = false } = defineProps<{
   action?: "edit" | "add";
   label?: string;
-  icon?: string;
-  success?: boolean;
-  failure?: boolean;
-  errors?: string | string[] | Record<string, string>;
+  icon?: string | undefined;
+  // Neither is known while a save is still in flight.
+  success?: boolean | undefined;
+  failure?: boolean | undefined;
+  errors?: string | string[] | Record<string, string | undefined> | undefined;
   processing?: boolean;
 }>();
 

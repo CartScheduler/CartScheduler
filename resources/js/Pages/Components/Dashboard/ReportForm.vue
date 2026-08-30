@@ -9,36 +9,40 @@ import JetLabel from "@/Jetstream/Label.vue";
 import ReportTags from "@/Pages/Components/Dashboard/ReportTags.vue";
 import { ReportTags as ReportTagsKey } from "@/Utils/provide-inject-keys";
 import type { AxiosError } from "axios";
-import type { ErrorBag, LaravelValidationResponse, TwentyFourHourTime } from "@/types/types";
-
-type ReportData = App.Data.OutstandingReportsData & {
-  shift_was_cancelled: boolean;
-  placements_count: number;
-  videos_count: number;
-  requests_count: number;
-  comments: string;
-  tags: number[];
-};
+import type { ErrorBag, IsoDate, LaravelValidationResponse, TwentyFourHourTime } from "@/types/types";
 
 // TODO How easy would it be be to convert component to an Inertia compatible component?
 const { report } = defineProps<{
-  report: ReportData;
+  report: App.Data.OutstandingReportsData;
 }>();
 
 const emit = defineEmits(["saved"]);
 
 const tags = inject(ReportTagsKey);
 
-const formData = reactive({
+/** What this form collects on top of the shift it is reporting on. */
+type ReportFormData = {
+  shift_id: number;
+  shift_date: IsoDate;
+  start_time: TwentyFourHourTime;
+  shift_was_cancelled: boolean;
+  placements_count: number | undefined;
+  videos_count: number | undefined;
+  requests_count: number | undefined;
+  comments: string | undefined;
+  tags: number[] | undefined;
+};
+
+const formData = reactive<ReportFormData>({
   shift_id: report.shift_id,
   shift_date: report.shift_date,
   start_time: report.start_time,
-  shift_was_cancelled: report.shift_was_cancelled,
-  placements_count: report.placements_count,
-  videos_count: report.videos_count,
-  requests_count: report.requests_count,
-  comments: report.comments,
-  tags: report.tags,
+  shift_was_cancelled: false,
+  placements_count: undefined,
+  videos_count: undefined,
+  requests_count: undefined,
+  comments: undefined,
+  tags: undefined,
 });
 
 const errors = ref<ErrorBag>({});
@@ -98,7 +102,8 @@ const saveReport = async () => {
   }
 };
 
-const formatDate = (date: Date) => {
+/** The shift date arrives as an ISO string, not a `Date`. */
+const formatDate = (date: IsoDate) => {
   return format(new Date(date), "E, do MMMM yyyy");
 };
 
@@ -152,7 +157,7 @@ const uId = useId();
                     type="number"
                     class="disabled:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     :disabled="disableFields" />
-      <JetInputError :message="errorMessages.placements_count" class="mt-2" />
+      <JetInputError :message="errorMessages['placements_count']" class="mt-2" />
     </div>
     <div class="flex flex-col gap-1">
       <JetLabel :for="`${uId}-videos`" value="Videos" :is-disabled="disableFields" />
@@ -162,7 +167,7 @@ const uId = useId();
                     type="number"
                     class="disabled:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     :disabled="disableFields" />
-      <JetInputError :message="errorMessages.videos_count" class="mt-2" />
+      <JetInputError :message="errorMessages['videos_count']" class="mt-2" />
     </div>
     <div class="flex flex-col gap-1">
       <JetLabel :for="`${uId}-requests`" value="Requests" :is-disabled="disableFields" />
@@ -173,7 +178,7 @@ const uId = useId();
                     class="disabled:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     :disabled="disableFields" />
       <div class="text-sm italic">Requests for studies, literature, follow-up, etc.</div>
-      <JetInputError :message="errorMessages.requests_count" class="mt-2" />
+      <JetInputError :message="errorMessages['requests_count']" class="mt-2" />
     </div>
     <div class="sm:col-span-2 md:col-span-3">
       <JetLabel :for="`${uId}-comments`" value="Comments" />
@@ -182,7 +187,7 @@ const uId = useId();
                  class="rounded-md shadow-sm w-full min-h-32"
                  v-model="formData.comments" />
       <div class="text-sm">{{ commentsRemainingCharacters }} characters remaining</div>
-      <JetInputError :message="errorMessages.comments" class="mt-2" />
+      <JetInputError :message="errorMessages['comments']" class="mt-2" />
     </div>
 
     <div class="flex justify-center">

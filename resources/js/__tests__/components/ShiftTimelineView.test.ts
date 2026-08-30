@@ -37,7 +37,8 @@ const renderView = (
     isNotMobile: true,
     isShiftDataResolved: true,
     date: new Date("2025-09-15T09:00:00"),
-    user: { uuid: "u1" },
+    // Only the uuid is read, but the prop is the whole shared user.
+    user: { id: 1, uuid: "u1", name: "Volunteer", email: "v@example.test", gender: "male", two_factor_enabled: false },
     userShiftLocations: new Set<number>([7]),
     ...props,
   },

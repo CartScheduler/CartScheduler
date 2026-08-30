@@ -58,7 +58,11 @@ type DeepKeys<T> = T extends object
   }[keyof T] // This maps the type to a union of all its property types
   : never; // If T is not an object (e.g., string, number), there are no keys to extract.
 
-export type FormErrors<T> = Record<DeepKeys<T>, string>;
+/**
+ * Sparse: a validation response names only the fields that failed, so every
+ * path here is a key that may or may not be present.
+ */
+export type FormErrors<T> = Partial<Record<DeepKeys<T>, string>>;
 
 /**
  * The precognitive form with its own `errors` swapped out for ours, which names

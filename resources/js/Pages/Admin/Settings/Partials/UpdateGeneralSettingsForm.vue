@@ -69,7 +69,7 @@ const endHour = useTemplateRef<{ $el: HTMLElement }>("systemShiftEndHour");
 
     <template #form>
       <div class="col-span-6 sm:col-span-4 mb-3">
-        <JetLabel for="site-name" value="Site Name" :form :error-key="form.errors.siteName" />
+        <JetLabel for="site-name" value="Site Name" :form error-key="siteName" />
         <PInputText id="site-name" v-model="form.siteName" type="text" class="mt-1 block w-full" />
         <div class="mt-1 ml-1 max-w-xl text-sm text-gray-600 dark:text-gray-300">
           This will set the name of the site in the browser title bar.

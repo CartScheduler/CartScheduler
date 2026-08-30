@@ -136,7 +136,7 @@ declare namespace App.Data {
   };
   export type ShiftAdminData = {
     id?: number;
-    location_id: number;
+    location_id?: number;
     start_time: string;
     end_time: string;
     day_monday: boolean;

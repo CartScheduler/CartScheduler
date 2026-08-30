@@ -1,19 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { onBeforeMount } from "vue";
 
-const props = defineProps({
-  status: {
-    type: String,
-    validator: (value) => ["male", "female", "reserved"].includes(value),
-  },
-});
+// The three states were a runtime validator over a plain `String`; naming them
+// in the type checks the callers instead of the values.
+const { status } = defineProps<{
+  status?: "male" | "female" | "reserved";
+}>();
+
 let fill = "#79B9ED";
 
 onBeforeMount(() => {
-  if (props.status === "female") {
+  if (status === "female") {
     fill = "#FBBBFC";
   }
-  if (props.status === "reserved") {
+  if (status === "reserved") {
     fill = "#24C26A";
   }
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useForm } from "@inertiajs/vue3";
-import { onMounted, ref } from "vue";
+import { useForm, usePage } from "@inertiajs/vue3";
+import { computed, onMounted, ref } from "vue";
 import SubmitButton from "@/Components/Form/Buttons/SubmitButton.vue";
 import useToast from "@/Composables/useToast";
 import JetActionMessage from "@/Jetstream/ActionMessage.vue";
@@ -9,13 +9,19 @@ import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 
 const { selectedLocations, userId = null } = defineProps<{
-  selectedLocations?: { [key: number]: number };
+  selectedLocations?: { [key: number]: number } | undefined;
   userId?: number | null;
 }>();
 
 const form = useForm({
   selectedLocations: selectedLocations || [],
 });
+
+/**
+ * Raised by the request when location choices are switched off altogether, so
+ * it names no field on this form and Inertia's own `errors` cannot see it.
+ */
+const featureDisabledError = computed(() => usePage().props.errors["featureDisabled"]);
 
 const toast = useToast();
 
@@ -79,7 +85,7 @@ onMounted(async () => {
                     class="select-none" />
         </div>
       </div>
-      <JetInputError :message="form.errors.featureDisabled" class="col-span-6 mt-2" />
+      <JetInputError :message="featureDisabledError" class="col-span-6 mt-2" />
     </template>
 
     <template #actions>

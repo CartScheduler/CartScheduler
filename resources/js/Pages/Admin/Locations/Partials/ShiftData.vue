@@ -2,9 +2,10 @@
 import Shift from "@/Pages/Admin/Locations/Partials/Shift.vue";
 import type { InertiaForm } from "@inertiajs/vue3";
 import type { DayKey } from "@/Pages/Admin/Locations/Partials/dayKeys";
+import type { LocationFormData } from "@/Pages/Admin/Locations/Partials/locationFormData";
 // https://vue3datepicker.com/
 
-const locationAdminDataForm = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: true });
+const locationAdminDataForm = defineModel<InertiaForm<LocationFormData>>({ required: true });
 
 const days: { label: string; value: DayKey }[] = [
   { label: "Mo", value: "day_monday" },
@@ -17,8 +18,14 @@ const days: { label: string; value: DayKey }[] = [
 ];
 
 const addShift = () => {
+  const locationId = locationAdminDataForm.value.id;
+
   locationAdminDataForm.value.shifts.unshift({
-    location_id: locationAdminDataForm.value?.id,
+    // A shift added to a location that has not been saved yet has nothing to
+    // point at; the controller fills it in from the row it creates. The two
+    // availability dates are left out for the same reason — the payload treats
+    // an absent key and one holding `undefined` differently.
+    ...(locationId === undefined ? {} : { location_id: locationId }),
     day_monday: false,
     day_tuesday: false,
     day_wednesday: false,
@@ -28,8 +35,6 @@ const addShift = () => {
     day_sunday: false,
     start_time: "00:00:00",
     end_time: "20:00:00",
-    available_from: undefined,
-    available_to: undefined,
     is_enabled: false,
   });
 };
@@ -51,8 +56,8 @@ const removeShift = (index: number) => {
     columns that used to be shared here have gone with it. -->
   <div v-if="locationAdminDataForm.shifts && locationAdminDataForm.shifts.length"
        class="col-span-full grid grid-cols-1 gap-3">
-    <template v-for="(shift, index) in locationAdminDataForm.shifts" :key="shift.id">
-      <Shift v-model="locationAdminDataForm.shifts[index]"
+    <template v-for="(shift, index) in locationAdminDataForm.shifts" :key="shift.id ?? `new-${index}`">
+      <Shift v-model="locationAdminDataForm.shifts[index]!"
              :index="index"
              :days="days"
              :errors="locationAdminDataForm.errors"

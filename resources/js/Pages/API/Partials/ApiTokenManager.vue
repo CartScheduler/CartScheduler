@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useForm } from "@inertiajs/vue3";
 import { ref } from "vue";
 import JetActionMessage from "@/Jetstream/ActionMessage.vue";
@@ -14,26 +14,37 @@ import JetLabel from "@/Jetstream/Label.vue";
 import JetSecondaryButton from "@/Jetstream/SecondaryButton.vue";
 import JetSectionBorder from "@/Jetstream/SectionBorder.vue";
 
-const props = defineProps({
-  tokens: Array,
-  availablePermissions: Array,
-  defaultPermissions: Array,
-});
+/** A Sanctum personal access token, as Jetstream's controller hands it over. */
+export type ApiToken = {
+  id: number;
+  name: string;
+  abilities: string[];
+  last_used_ago?: string;
+};
+
+// Spelled `| undefined` rather than left to the `?`: under
+// `exactOptionalPropertyTypes` those are different, and the page above forwards
+// props it may not have been given.
+const { tokens = [], availablePermissions = [], defaultPermissions = [] } = defineProps<{
+  tokens?: ApiToken[] | undefined;
+  availablePermissions?: string[] | undefined;
+  defaultPermissions?: string[] | undefined;
+}>();
 
 const createApiTokenForm = useForm({
   name: "",
-  permissions: props.defaultPermissions,
+  permissions: defaultPermissions,
 });
 
-const updateApiTokenForm = useForm({
+const updateApiTokenForm = useForm<{ permissions: string[] }>({
   permissions: [],
 });
 
-const deleteApiTokenForm = useForm();
+const deleteApiTokenForm = useForm({});
 
 const displayingToken = ref(false);
-const managingPermissionsFor = ref(null);
-const apiTokenBeingDeleted = ref(null);
+const managingPermissionsFor = ref<ApiToken | null>(null);
+const apiTokenBeingDeleted = ref<ApiToken | null>(null);
 
 const createApiToken = () => {
   createApiTokenForm.post(route("api-tokens.store"), {
@@ -45,25 +56,31 @@ const createApiToken = () => {
   });
 };
 
-const manageApiTokenPermissions = (token) => {
+const manageApiTokenPermissions = (token: ApiToken) => {
   updateApiTokenForm.permissions = token.abilities;
   managingPermissionsFor.value = token;
 };
 
 const updateApiToken = () => {
-  updateApiTokenForm.put(route("api-tokens.update", managingPermissionsFor.value), {
+  if (!managingPermissionsFor.value) {
+    return;
+  }
+  updateApiTokenForm.put(route("api-tokens.update", managingPermissionsFor.value.id), {
     preserveScroll: true,
     preserveState: true,
     onSuccess: () => (managingPermissionsFor.value = null),
   });
 };
 
-const confirmApiTokenDeletion = (token) => {
+const confirmApiTokenDeletion = (token: ApiToken) => {
   apiTokenBeingDeleted.value = token;
 };
 
 const deleteApiToken = () => {
-  deleteApiTokenForm.delete(route("api-tokens.destroy", apiTokenBeingDeleted.value), {
+  if (!apiTokenBeingDeleted.value) {
+    return;
+  }
+  deleteApiTokenForm.delete(route("api-tokens.destroy", apiTokenBeingDeleted.value.id), {
     preserveScroll: true,
     preserveState: true,
     onSuccess: () => (apiTokenBeingDeleted.value = null),

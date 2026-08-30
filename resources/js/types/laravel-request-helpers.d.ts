@@ -7,6 +7,9 @@ export type AuthUser = {
   name: string;
   email: string;
   gender: string;
+  /** Jetstream adds both of these on the way out; they are not model columns. */
+  two_factor_enabled: boolean;
+  profile_photo_url?: string;
 };
 
 export type InertiaProps = {
@@ -38,6 +41,10 @@ export interface Flash {
   title?: string;
   message?: string | undefined;
   position?: "top" | "bottom" | "center";
+  /** Set by `SetUserPasswordController`, read on the login page. */
+  setPassword?: string;
+  /** Jetstream hands the plain-text API token back exactly once, here. */
+  token?: string;
   /* @deprecated - Use message instead */
   banner?: string;
   /* @deprecated - Only use for 'success' messages */
@@ -53,6 +60,7 @@ export interface JetstreamProps {
   hasAccountDeletionFeatures: boolean;
   hasApiFeatures: boolean;
   hasTeamFeatures: boolean;
+  hasTermsAndPrivacyPolicyFeature: boolean;
   managesProfilePhotos: boolean;
   hasEmailVerification: boolean;
 }

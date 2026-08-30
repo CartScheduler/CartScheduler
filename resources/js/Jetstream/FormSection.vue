@@ -5,7 +5,7 @@ import JetSectionTitle from "./SectionTitle.vue";
 
 defineEmits(["submitted"]);
 
-const hasActions = computed(() => !!useSlots().actions);
+const hasActions = computed(() => !!useSlots()["actions"]);
 
 /** True where the surrounding page already names this section, e.g. a panel header. */
 const isTitledByParent = inject(SectionTitleProvidedByParent, false);

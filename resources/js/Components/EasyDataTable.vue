@@ -1,23 +1,42 @@
-<script setup>
+<!--
+  Not `DataTable`: PrimeVue declares a global component of that name whatever
+  prefix the resolver is given, so the two collided. The auto-import resolved to
+  this file and the types described PrimeVue's, which is why the slots below
+  read as missing. Named for what it wraps instead.
+-->
+<script setup lang="ts">
 import { computed } from "vue";
+// The package ships types for its rows, headers and filters but never declares
+// the component they belong to, so its own documented default import does not
+// exist as far as the checker is concerned.
+// @ts-expect-error -- no declaration for the component itself
 import EasyDataTable from "vue3-easy-data-table";
+import type { FilterOption, Header, Item } from "vue3-easy-data-table";
 
-const props = defineProps({
-  headers: Array,
-  items: Array,
-  filterOptions: Array,
-  searchField: String,
-  searchValue: String,
-  showHover: {
-    type: Boolean,
-    default: true,
-  },
-});
+/**
+ * The package types a column's `width` as a number, but the table takes the CSS
+ * width its callers pass — every header in this project is a percentage string.
+ */
+type TableHeader = Omit<Header, "width"> & { width?: number | string };
 
-defineEmits(["click-row"]);
+const { showHover = true } = defineProps<{
+  headers?: TableHeader[];
+  items?: Item[];
+  filterOptions?: FilterOption[];
+  searchField?: string;
+  searchValue?: string;
+  showHover?: boolean;
+}>();
 
-const cursor = computed(() => props.showHover ? "pointer" : "default");
-const rowHoverColor = computed(() => props.showHover ? "var(--tw-bg-200)" : "transparent");
+defineEmits<{ "click-row": [row: Item] }>();
+
+// Every slot is handed straight through to the table, so what they are named is
+// the caller's business — `item-email`, `item-is_enabled` and so on, one per
+// column. Naming them individually here would mean editing this file for each.
+defineSlots<Record<string, (props: Item) => unknown>>();
+
+const cursor = computed(() => showHover ? "pointer" : "default");
+const rowHoverColor = computed(() => showHover ? "var(--tw-bg-200)" : "transparent");
 </script>
 
 <template>
@@ -31,7 +50,7 @@ const rowHoverColor = computed(() => props.showHover ? "var(--tw-bg-200)" : "tra
                  table-class-name="data-table"
                  body-row-class-name="data-table-row"
                  @click-row="$emit('click-row', $event)">
-    <template v-for="(slot, index) of Object.keys($slots)" :key="index" v-slot:[slot]="data">
+    <template v-for="slot of Object.keys($slots)" :key="slot" v-slot:[slot]="data">
       <slot :name="slot" v-bind="data"></slot>
     </template>
   </EasyDataTable>

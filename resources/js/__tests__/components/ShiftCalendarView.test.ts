@@ -41,7 +41,8 @@ const renderView = (
     markerDates: undefined,
     expandedPanel: undefined,
     isRestricted: false,
-    user: { uuid: "u1" },
+    // Only the uuid is read, but the prop is the whole shared user.
+    user: { id: 1, uuid: "u1", name: "Volunteer", email: "v@example.test", gender: "male", two_factor_enabled: false },
     userShiftLocations: new Set<number>(),
     ...props,
   },

@@ -13,8 +13,8 @@ import VacationDateRange from "@/Pages/Profile/Partials/VacationDateRange.vue";
 import precognitiveForm from "@/Utils/precognitiveForm";
 
 const { vacations = [], userId } = defineProps<{
-  vacations?: Array<App.Data.UserVacationData>;
-  userId?: number;
+  vacations?: Array<App.Data.UserVacationData> | undefined;
+  userId?: number | undefined;
 }>();
 
 const toast = useToast();
@@ -59,7 +59,13 @@ const resetForm = () => {
 
 const addVacation = () => form.vacations = [...form.vacations, { start_date: "", end_date: "", description: "" }];
 
-const deleteVacation = (idx: number) => form.deletedVacations = [...form.deletedVacations, form.vacations.splice(idx, 1)[0]];
+const deleteVacation = (idx: number) => {
+  const [removed] = form.vacations.splice(idx, 1);
+  if (!removed) {
+    return;
+  }
+  form.deletedVacations = [...form.deletedVacations, removed];
+};
 </script>
 
 <template>
@@ -76,7 +82,7 @@ const deleteVacation = (idx: number) => form.deletedVacations = [...form.deleted
       <div class="col-span-6 text-gray-700 dark:text-gray-100">
         <div v-if="form.vacations?.length">
           <div v-for="(vacation, idx) in form.vacations"
-               :key="vacation.id"
+               :key="vacation.id ?? `new-${idx}`"
                class="grid grid-cols-[auto_minmax(0,_1fr)] sm:grid-cols-[auto_minmax(0,_2fr)] gap-y-px gap-x-3 rounded p-3 items-center mb-3 bg-sub-panel dark:bg-sub-panel-dark shadow">
             <PButton severity=""
                      type="button"

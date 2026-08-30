@@ -10,7 +10,7 @@ class ShiftAdminData extends Data
 {
     public function __construct(
         public ?int $id,
-        public int $location_id,
+        public ?int $location_id,
         public string $start_time,
         public string $end_time,
         public bool $day_monday = false,
@@ -23,6 +23,5 @@ class ShiftAdminData extends Data
         public ?string $available_from = null,
         public ?string $available_to = null,
         public bool $is_enabled = true,
-    ) {
-    }
+    ) {}
 }

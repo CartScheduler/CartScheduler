@@ -15,6 +15,9 @@
   // it, so the exclusion is lifted here.
   "exclude": [],
   "include": [
+    // The root config's own declaration files, which the shims at the project
+    // root live in.
+    "./*.ts",
     "./vitest.config.ts",
     "./resources/js/**/*.ts",
     "./resources/js/**/*.tsx",
