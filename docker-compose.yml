@@ -1,5 +1,13 @@
+include:
+  - .devcontainer/socket-proxy.yml
+
 # For more information: https://laravel.com/docs/sail
 services:
+#    socket-proxy:
+#        depends_on:
+#        - serviceB #use serviceB directly as if it was declared in this Compose file
+
+
     laravel.test:
         build:
             context: ./docker/8.3
@@ -33,6 +41,7 @@ services:
             - sail
         depends_on:
             - mysql
+            - socket-proxy
         dns_opt:
             - use-vc # use tCP-IP DNS Resolution to fix timeouts
 

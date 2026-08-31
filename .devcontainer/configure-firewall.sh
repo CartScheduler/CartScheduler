@@ -279,6 +279,12 @@ read_cidrs() {
     jq -r 'if type == "array" then [] else (.cidrs // []) end | .[]' "$WHITELIST_FILE"
 }
 
+# TCP ports on the host itself that the container may dial. Empty by default; see
+# the host_ports section of README.md before adding any.
+read_host_ports() {
+    jq -r 'if type == "array" then [] else (.host_ports // []) end | .[]' "$WHITELIST_FILE"
+}
+
 github_enabled() {
     local enabled
     enabled=$(jq -r 'if type == "array" then true else (.github_meta.enabled // false) end' "$WHITELIST_FILE")
@@ -292,6 +298,7 @@ read_github_sections() {
 is_ipv4_cidr() { [[ "$1" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; }
 is_ipv4()      { [[ "$1" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; }
 is_hostname()  { [[ "$1" =~ ^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$ ]]; }
+is_port()      { [[ "$1" =~ ^[0-9]{1,5}$ ]] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
 
 # ---------------------------------------------------------------------------
 # Building the allow-list
@@ -510,6 +517,7 @@ do_reload() {
 
     log "Reloading allow-list from $WHITELIST_FILE"
     build_allowed_set
+    warn_missing_host_ports
 
     if [ "$FLUSH_CONNTRACK" = "1" ]; then
         if command -v conntrack >/dev/null 2>&1; then
@@ -521,6 +529,71 @@ do_reload() {
     fi
 
     log "Reload complete"
+}
+
+# The address that reaches the host itself, as opposed to the container's own
+# bridge network.
+#
+# On Docker Desktop the two differ: the default route points at the bridge gateway
+# (172.17.0.1), while host.docker.internal is a separate address (192.168.65.254)
+# that the VM forwards to the host's loopback — which is where anything bound to
+# 127.0.0.1 on the host is listening, and so the only one of the two that is any
+# use for reaching a service on your machine.
+#
+# On plain Linux Docker the name does not exist unless the container was started
+# with --add-host=host.docker.internal:host-gateway, and there it resolves to the
+# bridge gateway anyway — so falling back to the default route gives the same
+# address the name would have, and the rules below land inside the host network
+# that is already allowed. Harmless either way, which is why an unresolvable name
+# is not an error.
+detect_host_gateway() {
+    local fallback="$1" addr
+    addr=$(getent hosts host.docker.internal 2>/dev/null | awk 'NR == 1 {print $1}')
+    if [ -n "$addr" ] && is_ipv4 "$addr"; then
+        printf '%s' "$addr"
+    else
+        printf '%s' "$fallback"
+    fi
+}
+
+# Open specific TCP ports on the host, opt-in through host_ports in the whitelist.
+#
+# One address and one port per rule, rather than an entry in `cidrs`: the ipset is
+# address-only, so allow-listing the gateway there would open every port the host
+# has listening on loopback — on a workstation, a great many, and none of them
+# expecting a caller from outside the machine.
+#
+# This reads the same whitelist as everything else, which is bind-mounted read-only
+# and cannot be edited from inside the container. So it widens egress no further
+# than `domains` already does, even though `node` can reach this script via sudo.
+add_host_port_rules() {
+    local gateway="$1" port count=0
+
+    while read -r port; do
+        [ -n "$port" ] || continue
+        is_port "$port" || die "invalid port in $WHITELIST_FILE: $port"
+        log "Allowing tcp/$port on the host at $gateway"
+        iptables -A OUTPUT -d "$gateway" -p tcp --dport "$port" -j ACCEPT
+        count=$((count + 1))
+    done < <(read_host_ports)
+
+    [ "$count" -eq 0 ] || log "Host ports allowed: $count"
+}
+
+# host_ports become iptables rules, and --reload only rebuilds the ipset. Adding a
+# port and reloading therefore looks like it worked while changing nothing, which
+# is a confusing way to spend an afternoon.
+warn_missing_host_ports() {
+    local port rules missing=0
+    rules=$(iptables -S OUTPUT 2>/dev/null) || return 0
+
+    while read -r port; do
+        [ -n "$port" ] || continue
+        is_port "$port" || continue
+        printf '%s\n' "$rules" | grep -q -- "--dport ${port} -j ACCEPT" || missing=1
+    done < <(read_host_ports)
+
+    [ "$missing" -eq 0 ] || log "WARNING: host_ports are iptables rules, not allow-list entries, and at least one is not installed. Run --init (firewall-ctl.sh init) rather than --reload."
 }
 
 install_firewall() {
@@ -588,6 +661,10 @@ install_firewall() {
     # Set up remaining iptables rules
     iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
     iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
+
+    HOST_GATEWAY=$(detect_host_gateway "$HOST_IP")
+    log "Host gateway detected as: $HOST_GATEWAY"
+    add_host_port_rules "$HOST_GATEWAY"
 
     # Set default policies to DROP first
     iptables -P INPUT DROP

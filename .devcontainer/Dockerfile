@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   iptables \
   ipset \
   iproute2 \
+  socat \
   conntrack \
   dnsutils \
   aggregate \
@@ -127,9 +128,10 @@ RUN curl -fsSL https://bun.com/install | bash
 # root and nothing else, so a compromised agent can't sudo its way out.
 USER root
 COPY configure-firewall.sh /usr/local/bin/
+COPY host-port-relay.sh /usr/local/bin/
 COPY firewall/firewall-whitelist-domains.json /etc/firewall/
 COPY firewall-warning.sh /etc/firewall-warning.sh
-RUN chmod +x /usr/local/bin/configure-firewall.sh && \
+RUN chmod +x /usr/local/bin/configure-firewall.sh /usr/local/bin/host-port-relay.sh && \
     chmod 644 /etc/firewall/firewall-whitelist-domains.json /etc/firewall-warning.sh && \
     echo "node ALL=(root) NOPASSWD: /usr/local/bin/configure-firewall.sh" > /etc/sudoers.d/node-firewall && \
     chmod 0440 /etc/sudoers.d/node-firewall

@@ -1,5 +1,5 @@
 {
-  "$comment": "Domains and CIDRs allowed through the outbound firewall. Edit, then run `.devcontainer/firewall-ctl.sh reload` from the host.",
+  "$comment": "What may be reached through the outbound firewall. Edit, then run `.devcontainer/firewall-ctl.sh reload` from the host — except host_ports, which are iptables rules and need `init`.",
   "domains": [
     "registry.npmjs.org",
     "bun.com",
@@ -14,9 +14,14 @@
     "packagist.org",
     "repo.packagist.org",
     "codeload.github.com",
-    "codepen.io"
+    "codepen.io",
+    "pestphp.com",
+    "cdn.playwright.dev"
   ],
   "cidrs": [],
+  "host_ports": [
+    9222
+  ],
   "github_meta": {
     "enabled": true,
     "sections": [

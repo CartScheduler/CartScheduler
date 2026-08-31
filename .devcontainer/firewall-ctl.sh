@@ -23,6 +23,7 @@ CONTAINER_WHITELIST_CANDIDATES=(
 ENGINE="auto"            # auto | docker | devcontainer
 CONTAINER_ID=""
 EXTRA_ARGS=()
+FLUSH_CONNTRACK=0
 WATCH_INTERVAL=2
 NO_PUSH=0
 
@@ -99,7 +100,7 @@ while [ $# -gt 0 ]; do
         --container)           CONTAINER_ID="${2:-}"; shift 2 ;;
         --container-file)      CONTAINER_WHITELIST="${2:-}"; shift 2 ;;
         --strict)              EXTRA_ARGS+=("--strict"); shift ;;
-        --flush-conntrack)     EXTRA_ARGS+=("--flush-conntrack"); shift ;;
+        --flush-conntrack)     EXTRA_ARGS+=("--flush-conntrack"); FLUSH_CONNTRACK=1; shift ;;
         --no-push)             NO_PUSH=1; shift ;;
         --interval)            WATCH_INTERVAL="${2:-}"; shift 2 ;;
         -h|--help)             usage; exit 0 ;;

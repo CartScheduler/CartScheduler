@@ -1,6 +1,7 @@
 // Claude Sandbox — see ./README.md in the repo root of this template for details.
 // The outbound firewall is default-deny; edit ./firewall/firewall-whitelist-domains.json
 // to allow more hosts, then run `./.devcontainer/firewall-ctl.sh reload` from the host.
+// host_ports is the exception: those are iptables rules, so use `init`, not `reload`.
 {
   "name": "Claude Sandbox",
   "build": {
@@ -34,15 +35,6 @@
       "moby": true,
       "dockerDashComposeVersion": "v2",
       "installDockerBuildx": false
-    }
-  },
-
-  // Chrome Remote Debugging
-  "forwardPorts": [9222],
-  "portsAttributes": {
-    "9222": {
-      "label": "Chrome Remote Debugging",
-      "onAutoForward": "notify"
     }
   },
 
@@ -205,10 +197,18 @@
   "workspaceFolder": "/workspaces/cart-scheduler",
 
   "initializeCommand": "mkdir -p \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/commands\" \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/agents\" \"${localEnv:HOME}/${localEnv:CLAUDE_CLIPDROP_DIR:.clipdrop}\"",
-  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  // `~/.gitconfig` sits on the container's own filesystem — only `.claude` and
+  // `.config` are volumes — so anything written to it is gone on the next
+  // rebuild. `gh auth setup-git` puts the credential helper back; the token it
+  // reads lives in `~/.config/gh`, which does persist. Without this, a push
+  // fails with "could not read Username for 'https://github.com'".
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && gh auth setup-git",
 
   // iptables rules live in the container's network namespace, not the image, so
   // they have to be rebuilt on every start rather than once at create time.
-  "postStartCommand": "sudo /usr/local/bin/configure-firewall.sh --init",
+  // The relay runs after the firewall, and only ever widens where a permitted
+  // port answers — never what is permitted. It exits 0 whatever happens, because
+  // waitFor below means a failure here would fail container start.
+  "postStartCommand": "sudo /usr/local/bin/configure-firewall.sh --init && /usr/local/bin/host-port-relay.sh",
   "waitFor": "postStartCommand"
 }
