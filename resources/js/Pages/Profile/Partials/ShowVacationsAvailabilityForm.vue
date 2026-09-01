@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Dropdown as VDropdown } from "floating-vue";
 import SubmitButton from "@/Components/Form/Buttons/SubmitButton.vue";
+import DateRange from "@/Components/Form/DateRange.vue";
 import CloseCircle from "@/Components/Icons/CloseCircle.vue";
 import QuestionCircle from "@/Components/Icons/QuestionCircle.vue";
 import InputTextEIPField from "@/Components/InputTextEIPField.vue";
@@ -9,7 +10,6 @@ import JetActionMessage from "@/Jetstream/ActionMessage.vue";
 import JetFormSection from "@/Jetstream/FormSection.vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
-import VacationDateRange from "@/Pages/Profile/Partials/VacationDateRange.vue";
 import precognitiveForm from "@/Utils/precognitiveForm";
 
 const { vacations = [], userId } = defineProps<{
@@ -90,10 +90,10 @@ const deleteVacation = (idx: number) => {
                      @click="deleteVacation(idx)">
               <CloseCircle />
             </PButton>
-            <vacation-date-range v-model:start-date="vacation.start_date"
-                                 v-model:end-date="vacation.end_date"
-                                 :start-error="form.errors[`vacations.${idx}.start_date`]"
-                                 :end-error="form.errors[`vacations.${idx}.end_date`]" />
+            <DateRange v-model:start-date="vacation.start_date"
+                       v-model:end-date="vacation.end_date"
+                       :start-error="form.errors[`vacations.${idx}.start_date`]"
+                       :end-error="form.errors[`vacations.${idx}.end_date`]" />
             <div class="mt-2 sm:mt-0">
               <div class="flex items-center">
                 <span class="font-bold">Comment</span>
