@@ -50,11 +50,12 @@ jobs:
             /*node_modules/*
             /*vendor/*
             /*.claude/*
+            /*.ai/*
             /*.devcontainer/*
             /*tools/*
             boost.json
             CLAUDE.md
-            tailwind.config.d.ts
+            tailwind-color-util.d.ts
             .editorconfig
             .env.ci
             .env
