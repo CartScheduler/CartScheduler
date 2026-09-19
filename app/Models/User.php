@@ -53,6 +53,7 @@ class User extends Authenticatable
     protected static function booted(): void
     {
         static::created(static fn(self $user) => self::sendWelcomeEmail($user));
+        static::saving(static fn(self $user) => self::clearSpouseUnlessMarried($user));
         static::saved(static fn(self $user) => self::attachSpouse($user));
         static::updating(static fn(self $user) => self::detachSpouse($user));
         static::updated(static fn(self $user) => self::revokePrivilegedAccess($user));

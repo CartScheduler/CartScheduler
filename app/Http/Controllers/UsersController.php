@@ -45,6 +45,14 @@ class UsersController extends Controller
         return Redirect::route('admin.users.edit', $user);
     }
 
+    /**
+     * A read-only view of a user's details, used when viewing a spouse from another user's record.
+     */
+    public function show(User $user): UserAdminData
+    {
+        return UserAdminData::from($user->load('spouse'));
+    }
+
     public function edit(User $user): Response
     {
         UserAvailability::where('user_id', $user->id)
