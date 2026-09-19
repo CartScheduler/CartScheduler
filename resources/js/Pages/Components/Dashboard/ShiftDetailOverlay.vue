@@ -54,7 +54,7 @@ const isVisible = computed({
     </div>
 
     <template #footer>
-      <CloseButton class="border border-info-light" @click="emit('close')" />
+      <CloseButton class="border-info-light border" @click="emit('close')" />
     </template>
   </Dialog>
 </template>
