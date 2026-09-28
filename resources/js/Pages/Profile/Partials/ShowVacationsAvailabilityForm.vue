@@ -61,7 +61,7 @@ const addVacation = () => form.vacations = [...form.vacations, { start_date: "",
 
 const deleteVacation = (idx: number) => {
   const [removed] = form.vacations.splice(idx, 1);
-  if (!removed) {
+  if (!removed?.id) {
     return;
   }
   form.deletedVacations = [...form.deletedVacations, removed];
