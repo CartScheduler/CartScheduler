@@ -72,6 +72,50 @@ test('user can add update delete vacations', function () {
     expect($user->vacations[0]->description)->toBe('Testing 2');
 });
 
+test('user can delete a newly added vacation and save another in the same request', function () {
+    $user = User::factory()->enabled()->create();
+    $existing = UserVacation::factory()
+        ->for($user)
+        ->create([
+            'start_date' => '2023-01-01',
+            'end_date' => '2023-01-15',
+            'description' => 'Existing',
+        ]);
+
+    // Add a New Vacation, delete that unsaved row, add another, then Save.
+    // The removed row may still be posted in deletedVacations without an id.
+    $this->actingAs($user)
+        ->putJson('/user/vacations', [
+            'vacations' => [
+                [
+                    'id' => $existing->id,
+                    'start_date' => $existing->start_date,
+                    'end_date' => $existing->end_date,
+                    'description' => $existing->description,
+                ],
+                [
+                    'start_date' => '2023-03-01',
+                    'end_date' => '2023-03-15',
+                    'description' => 'Second vacation',
+                ],
+            ],
+            'deletedVacations' => [
+                [
+                    'start_date' => '2023-02-01',
+                    'end_date' => '2023-02-15',
+                    'description' => 'Unsaved vacation that was removed',
+                ],
+            ],
+        ])
+        ->assertRedirect('/user/availability');
+
+    $user->refresh()->load(['vacations']);
+    expect($user->vacations)->toHaveCount(2);
+    expect($user->vacations->pluck('description')->all())
+        ->toContain('Existing')
+        ->toContain('Second vacation');
+});
+
 test('admin can maintain his own vacations', function () {
     $admin = User::factory()->enabled()->adminRoleUser()->create();
 
