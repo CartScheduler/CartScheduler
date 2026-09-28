@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\UserVacation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -26,7 +27,7 @@ class UserVacationRequest extends FormRequest
                             return $row;
                         }
 
-                        if (! $this->hasPersistedVacationId($row['id'] ?? null)) {
+                        if (! $this->vacationExists($row['id'] ?? null)) {
                             unset($row['id']);
                         }
 
@@ -91,5 +92,11 @@ class UserVacationRequest extends FormRequest
     private function hasPersistedVacationId(mixed $id): bool
     {
         return is_numeric($id) && (int) $id > 0;
+    }
+
+    private function vacationExists(mixed $id): bool
+    {
+        return $this->hasPersistedVacationId($id)
+            && UserVacation::query()->whereKey((int) $id)->exists();
     }
 }
