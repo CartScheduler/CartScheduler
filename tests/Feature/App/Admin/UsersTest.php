@@ -571,6 +571,7 @@ test('does detach spouse', function () {
     expect($male->id)->toBe($female->spouse_id);
 
     $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['spouse_id'] = null;
 
     $this->actingAs($admin)
         ->putJson("/admin/users/{$male->getKey()}", $maleData)
@@ -584,6 +585,34 @@ test('does detach spouse', function () {
 
     expect($female->spouse_id)->toBeNull();
     expect($female->spouse)->toBeNull();
+});
+
+test('updating a user does not break the spouse link', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create();
+    $female = User::factory()->enabled()->female()->create();
+
+    $male->update(['spouse_id' => $female->getKey()]);
+    $female = $female->fresh();
+
+    expect($female->id)->toBe($male->spouse_id);
+    expect($male->id)->toBe($female->spouse_id);
+
+    $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['name'] = 'Updated Name';
+
+    $this->actingAs($admin)
+        ->putJson("/admin/users/{$male->getKey()}", $maleData)
+        ->assertRedirect();
+
+    $male = $male->fresh('spouse');
+    $female = $female->fresh('spouse');
+
+    expect($male->name)->toBe('Updated Name');
+    expect($male->spouse_id)->toBe($female->id);
+    expect($male->spouse->getKey())->toBe($female->id);
+    expect($female->spouse_id)->toBe($male->id);
+    expect($female->spouse->getKey())->toBe($male->id);
 });
 
 test('cannot attach user who is already a spouse', function () {
