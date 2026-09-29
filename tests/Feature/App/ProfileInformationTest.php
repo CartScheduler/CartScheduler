@@ -72,6 +72,110 @@ test('user can add update delete vacations', function () {
     expect($user->vacations[0]->description)->toBe('Testing 2');
 });
 
+test('user can delete a newly added vacation and save another in the same request', function () {
+    $user = User::factory()->enabled()->create();
+    $existing = UserVacation::factory()
+        ->for($user)
+        ->create([
+            'start_date' => '2023-01-01',
+            'end_date' => '2023-01-15',
+            'description' => 'Existing',
+        ]);
+
+    // Add a New Vacation, delete that unsaved row, add another, then Save.
+    // The removed row may still be posted in deletedVacations without an id.
+    $this->actingAs($user)
+        ->putJson('/user/vacations', [
+            'vacations' => [
+                [
+                    'id' => $existing->id,
+                    'start_date' => $existing->start_date,
+                    'end_date' => $existing->end_date,
+                    'description' => $existing->description,
+                ],
+                [
+                    'start_date' => '2023-03-01',
+                    'end_date' => '2023-03-15',
+                    'description' => 'Second vacation',
+                ],
+            ],
+            'deletedVacations' => [
+                [
+                    'start_date' => '2023-02-01',
+                    'end_date' => '2023-02-15',
+                    'description' => 'Unsaved vacation that was removed',
+                ],
+            ],
+        ])
+        ->assertRedirect('/user/availability');
+
+    $user->refresh()->load(['vacations']);
+    expect($user->vacations)->toHaveCount(2);
+    expect($user->vacations->pluck('description')->all())
+        ->toContain('Existing')
+        ->toContain('Second vacation');
+});
+
+test('user can replace the first vacation after deleting the original, saving a new one, then swapping that row', function () {
+    $user = User::factory()->enabled()->create();
+    $original = UserVacation::factory()
+        ->for($user)
+        ->create([
+            'start_date' => '2023-01-01',
+            'end_date' => '2023-01-15',
+            'description' => 'Original',
+        ]);
+
+    $this->actingAs($user)
+        ->putJson('/user/vacations', [
+            'vacations' => [],
+            'deletedVacations' => [['id' => $original->id]],
+        ])
+        ->assertRedirect('/user/availability');
+
+    $this->actingAs($user)
+        ->putJson('/user/vacations', [
+            'vacations' => [
+                [
+                    'start_date' => '2024-06-01',
+                    'end_date' => '2024-06-10',
+                    'description' => 'Recreated',
+                ],
+            ],
+        ])
+        ->assertRedirect('/user/availability');
+
+    $recreated = $user->fresh()->vacations()->sole();
+
+    // PUT preserveState keeps the form mounted. The first row is still index 0,
+    // so the replacement is posted with the original vacation's id — already
+    // deleted two saves ago — while the recreated row goes in deletedVacations.
+    $this->actingAs($user)
+        ->putJson('/user/vacations', [
+            'vacations' => [
+                [
+                    'id' => $original->id,
+                    'start_date' => '2024-07-01',
+                    'end_date' => '2024-07-15',
+                    'description' => 'Replacement',
+                ],
+            ],
+            'deletedVacations' => [
+                [
+                    'id' => $recreated->id,
+                    'start_date' => $recreated->start_date,
+                    'end_date' => $recreated->end_date,
+                    'description' => $recreated->description,
+                ],
+            ],
+        ])
+        ->assertRedirect('/user/availability');
+
+    $user->refresh()->load(['vacations']);
+    expect($user->vacations)->toHaveCount(1);
+    expect($user->vacations[0]->description)->toBe('Replacement');
+});
+
 test('admin can maintain his own vacations', function () {
     $admin = User::factory()->enabled()->adminRoleUser()->create();
 

@@ -56,9 +56,6 @@ class GetUserValidationUtils
         if (!isset($data['marital_status'])) {
             $data['marital_status'] = null;
         }
-        if (!isset($data['spouse_id'])) {
-            $data['spouse_id'] = null;
-        }
 
         $this->tidyBoolean($data, 'responsible_brother');
         $this->tidyBoolean($data, 'is_unrestricted');
