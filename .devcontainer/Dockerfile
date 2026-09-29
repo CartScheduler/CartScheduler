@@ -71,10 +71,16 @@ ENV DEVCONTAINER=true
 # into a per-project subfolder named at template-apply time, so the image cannot
 # know the leaf name.
 #
-# .config must exist and be owned by node before the named volume is mounted over
-# it. Docker creates a missing mountpoint as root:root, and the volume it seeds
-# from an absent directory is empty — so without this, ~/.config comes up
+# .claude and .config must exist and be owned by node before anything is mounted
+# over them: Docker creates a missing mountpoint as root:root, leaving it
 # unwritable by the only user that ever runs anything here.
+#
+# Both are host binds now rather than named volumes, which changes where ownership
+# comes from. A volume mounted over an existing directory inherits that directory's
+# ownership; a bind carries the host's. On Docker Desktop that is remapped to the
+# container user and this is moot, but on plain Linux Docker the host uid shows
+# through — if yours is not 1000, `node` cannot write to its own config, and the
+# mkdir below will not save you. See the host-settings section of README.md.
 RUN mkdir -p /workspaces /home/node/.claude /home/node/.config && \
   chown -R node:node /workspaces /home/node/.claude /home/node/.config
 

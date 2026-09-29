@@ -47,17 +47,12 @@ declare module 'ziggy-js' {
     "save.report": [],
     "get.report-tags": [],
     "set.viewed-availability": [],
+    "user.preferences": [],
     "user.availability": [],
     "update.user.availability": [],
     "update.user.vacations": [],
     "user.location-choices": [],
-    "update.user.location-choices": [],
-    "storage.local": [
-        {
-            "name": "path",
-            "required": true
-        }
-    ]
+    "update.user.location-choices": []
 }
 }
 export {};

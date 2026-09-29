@@ -1,0 +1,36 @@
+# Manual and scheduled OSV scan of the whole tree.
+#
+# osv-scanner-pr.yml can only run on a pull request: the reusable workflow it
+# calls checks out GITHUB_BASE_REF to diff the base branch against the head, so
+# it has nothing to compare on a workflow_dispatch. This calls the non-PR
+# reusable workflow instead, which scans the current checkout outright.
+#
+# A failing run here means vulnerabilities were found, not that the workflow is
+# broken - fail-on-vuln defaults to true.
+name: OSV-Scanner
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or commit to scan (defaults to the default branch)"
+        type: string
+        required: false
+        default: ""
+  schedule:
+    # Mondays, 19:00 UTC - Tuesday morning in Australia/Melbourne.
+    - cron: "0 19 * * 1"
+
+permissions:
+  # Required to upload SARIF file to CodeQL. See: https://github.com/github/codeql-action/issues/2117
+  actions: read
+  # Require writing security events to upload SARIF file to security tab
+  security-events: write
+  # Only need to read contents
+  contents: read
+
+jobs:
+  scan:
+    uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.3"
+    with:
+      ref: ${{ inputs.ref || '' }}

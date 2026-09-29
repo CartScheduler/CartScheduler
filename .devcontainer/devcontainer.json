@@ -80,16 +80,36 @@
     // Shell history survives rebuilds, per workspace.
     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
 
-    // Claude's own config (including your login) is shared by every container
-    // built from this template, so you authenticate once rather than per project.
-    "source=claude-code-devcontainer-config,target=/home/node/.claude,type=volume",
+    // Claude's own config, including your login. On the host rather than in a named
+    // volume, so you can read and edit it from your machine. Both this and the XDG
+    // config below live under one configurable root — ~/.claude-devcontainer by
+    // default; set CLAUDE_DEVCONTAINER_DIR (relative to $HOME, like the other host
+    // paths here) to put it elsewhere.
+    //
+    // The path deliberately has no ${devcontainerId} in it, and that is what makes
+    // the settings shared: every container built from this template sees the same
+    // directory, so you authenticate once rather than once per project.
+    //
+    // Equally deliberately, it is not your host ~/.claude. The sandbox keeps its own
+    // settings, its own login and its own session history; the only thing it borrows
+    // from your personal config is the read-only pair mounted below.
+    "type=bind,source=${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/claude,target=/home/node/.claude",
+
+    // Plugins stay in a named volume, nested inside the bind above. They are
+    // machine-managed, there is nothing in there worth hand-editing, and the tree
+    // runs to hundreds of megabytes that are read at every start. Docker Desktop's
+    // virtiofs is roughly an order of magnitude slower than a volume for many small
+    // files, which is precisely this workload — measured on one Mac at 931ms against
+    // 60ms to write 3000 small files. Everything you would actually want to look at
+    // is on the host; this is the one part that gains nothing from being there.
+    "source=claude-code-devcontainer-plugins,target=/home/node/.claude/plugins,type=volume",
 
     // Everything else that follows the XDG convention — gh's login, git-credential
     // caches, tool state — lands in ~/.config, which is otherwise thrown away on
     // rebuild. Shared across every container from this template for the same reason
-    // the volume above is: authenticate once, not once per project. See the security
+    // the bind above is: authenticate once, not once per project. See the security
     // note in README.md before putting a token in here.
-    "source=claude-code-devcontainer-user-config,target=/home/node/.config,type=volume",
+    "type=bind,source=${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/config,target=/home/node/.config",
 
     // Your host slash-commands and subagents, read-only. Set CLAUDE_HOST_CONFIG_DIR
     // on the host to point somewhere other than ~/.claude (the value is relative to
@@ -196,7 +216,7 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cart-scheduler,type=bind,consistency=delegated",
   "workspaceFolder": "/workspaces/cart-scheduler",
 
-  "initializeCommand": "mkdir -p \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/commands\" \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/agents\" \"${localEnv:HOME}/${localEnv:CLAUDE_CLIPDROP_DIR:.clipdrop}\"",
+  "initializeCommand": "mkdir -p \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/commands\" \"${localEnv:HOME}/${localEnv:CLAUDE_HOST_CONFIG_DIR:.claude}/agents\" \"${localEnv:HOME}/${localEnv:CLAUDE_CLIPDROP_DIR:.clipdrop}\" \"${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/claude/commands\" \"${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/claude/agents\" \"${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/claude/plugins\" \"${localEnv:HOME}/${localEnv:CLAUDE_DEVCONTAINER_DIR:.claude-devcontainer}/config\"",
   // `~/.gitconfig` sits on the container's own filesystem — only `.claude` and
   // `.config` are volumes — so anything written to it is gone on the next
   // rebuild. `gh auth setup-git` puts the credential helper back; the token it

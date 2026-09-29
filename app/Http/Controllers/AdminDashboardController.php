@@ -16,25 +16,25 @@ class AdminDashboardController extends Controller
     public function __invoke(GetShiftFilledData $shiftFilledData, GetOutstandingReportCount $getOutstandingReportCount)
     {
         return Inertia::render('Admin/Dashboard', [
-            'totalUsers'         => Cache::flexibleWithEnum(
+            'totalUsers' => Cache::flexible(
                 key: CacheKey::TotalUsers,
                 ttl: [7200, 10800],
-                callback: static fn() => User::all()->count()
+                callback: static fn () => User::all()->count()
             ),
-            'totalLocations'     => Cache::flexibleWithEnum(
+            'totalLocations' => Cache::flexible(
                 key: CacheKey::TotalLocations,
                 ttl: [60, 300],
-                callback: static fn() => Location::all()->count()
+                callback: static fn () => Location::all()->count()
             ),
-            'shiftFilledData'    => Cache::flexibleWithEnum(
+            'shiftFilledData' => Cache::flexible(
                 key: CacheKey::ShiftFilledData,
                 ttl: [7200, 10800],
-                callback: static fn() => FilledShiftData::collect($shiftFilledData->execute('fortnight'))
+                callback: static fn () => FilledShiftData::collect($shiftFilledData->execute('fortnight'))
             ),
-            'outstandingReports' => Cache::flexibleWithEnum(
+            'outstandingReports' => Cache::flexible(
                 key: CacheKey::OutstandingReports,
                 ttl: [7200, 10800],
-                callback: static fn() => $getOutstandingReportCount->execute()
+                callback: static fn () => $getOutstandingReportCount->execute()
             ),
         ]);
     }

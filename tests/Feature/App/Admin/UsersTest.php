@@ -285,12 +285,18 @@ test('resend welcome email is correct', function () {
 });
 
 test('welcome email is correct', function () {
-    $user = User::factory()->enabled()->state(['password' => null])->create();
+    // The name is pinned rather than faked. Blade escapes the apostrophe to
+    // &#039;, then the Markdown mailable's CommonMark pass decodes it back to
+    // a bare apostrophe - CommonMark re-escapes &, < and > on output, but not
+    // quotes. assertSeeInHtml escapes its expectation by default, so it would
+    // look for &#039; and not find it. Faker only sometimes produces a name
+    // with an apostrophe, which made this fail intermittently on CI.
+    $user = User::factory()->enabled()->state(['name' => "Prof. Reina O'Connell", 'password' => null])->create();
 
     $textMatch = "Dear $user->name, an account has been created for you on the ".config('app.name').' Public Witnessing web application.';
     $mailable = (new UserAccountCreated($user))
         ->assertHasSubject(config('app.name').' Account Activation')
-        ->assertSeeInHtml($textMatch)
+        ->assertSeeInHtml($textMatch, escape: false)
         ->assertSeeInText($textMatch);
 
     $render = $mailable->render();
@@ -618,4 +624,48 @@ test('can only attach user of opposite gender', function () {
     $this->actingAs($admin)
         ->putJson("/admin/users/{$male->getKey()}", $userData)
         ->assertInvalid(['spouse_id' => 'The spouse id needs a user who is not male']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Escaping in the welcome email
+|--------------------------------------------------------------------------
+|
+| The mailable is Markdown, so a name passes through two stages: Blade's
+| e() escapes it, then CommonMark parses the result. CommonMark decodes the
+| entities Blade produced and re-escapes only &, < and > on its way out, so
+| quotes arrive at the recipient as literal characters. That is safe in text
+| content, but it is easy to assume otherwise - assertSeeInHtml escapes its
+| expectation by default, which is what made the apostrophe case fail.
+|
+*/
+
+dataset('specialCharacterNameProvider', function () {
+    return [
+        'apostrophe stays literal' => ["Reina O'Connell", "Reina O'Connell"],
+        'double quote stays literal' => ['Ann "Annie" Lee', 'Ann "Annie" Lee'],
+        'ampersand becomes an entity' => ['Tom & Jerry', 'Tom &amp; Jerry'],
+        'angle brackets become entities' => ['a < b > c', 'a &lt; b &gt; c'],
+        'an entity in the name is escaped again' => ['AT&amp;T', 'AT&amp;amp;T'],
+        'accented characters are left alone' => ['Renée Müller', 'Renée Müller'],
+    ];
+});
+
+test('the welcome email escapes the characters that matter in a name', function (string $name, string $expected) {
+    $user = User::factory()->enabled()->state(['name' => $name, 'password' => null])->create();
+
+    // escape: false, because $expected is already written as the HTML we want
+    // to find. Letting the assertion escape it would re-encode the quotes that
+    // CommonMark deliberately leaves bare.
+    (new UserAccountCreated($user))->assertSeeInHtml("Dear $expected, an account has been created for you", escape: false);
+})->with('specialCharacterNameProvider');
+
+test('a script tag in a name cannot reach the welcome email as markup', function () {
+    $user = User::factory()->enabled()->state(['name' => '<script>alert(1)</script>', 'password' => null])->create();
+
+    $html = (new UserAccountCreated($user))->render();
+
+    expect($html)->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+        ->and(stripos($html, '<script'))->toBeFalse()
+        ->and(stripos($html, 'javascript:'))->toBeFalse();
 });

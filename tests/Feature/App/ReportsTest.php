@@ -368,3 +368,39 @@ test('user can retrieve all tags', function () {
         ->assertJsonPath('4.name', $tags[4]->name)
         ->assertJsonPath('4.order_column', 5);
 });
+
+test('a sister with a mix of brother only and open shifts gets a JSON array', function () {
+    $user = User::factory()->enabled()->female()->create();
+
+    $brotherOnly = Shift::factory()
+        ->everyDay9am()
+        ->for(Location::factory()->requiresBrother())
+        ->create();
+
+    $openToAll = Shift::factory()
+        ->everyDay9am()
+        ->for(Location::factory()->allPublishers())
+        ->create();
+
+    // Interleaved by date, so filtering the brother-only shifts out leaves
+    // gaps in the middle of the collection rather than at the end.
+    foreach (['2023-01-01' => $brotherOnly, '2023-01-02' => $openToAll, '2023-01-03' => $brotherOnly, '2023-01-04' => $openToAll] as $date => $shift) {
+        ShiftUser::factory()
+            ->state(['shift_date' => $date])
+            ->for($shift, 'shift')
+            ->for($user, 'user')
+            ->create();
+    }
+
+    $this->travelTo(CarbonImmutable::createFromTimeString('2023-01-24 12:00:00'));
+
+    $response = $this->actingAs($user)->getJson('/outstanding-reports')->assertOk();
+
+    // The client reads `.length`, which is undefined on a JSON object, so a
+    // keyed collection here hides every report the sister still owes.
+    expect(array_is_list($response->json()))->toBeTrue();
+
+    $response->assertJsonCount(2)
+        ->assertJsonPath('0.shift_date', '2023-01-02')
+        ->assertJsonPath('1.shift_date', '2023-01-04');
+});
