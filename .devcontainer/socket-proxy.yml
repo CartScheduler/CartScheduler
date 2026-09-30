@@ -1,0 +1,70 @@
+# A filtered Docker socket for the sandbox. Runs on the HOST, not inside the container.
+#
+#   docker compose -f .devcontainer/socket-proxy.yml up -d
+#
+# Then point the container at it by applying the template with
+# dockerHost=unix:///var/run/docker-proxy/docker.sock, leaving dockerSocket at
+# /dev/null so the real socket is never mounted. See the Docker section of
+# README.md for the whole picture.
+#
+# The two sides meet in a named volume rather than a host directory: the proxy
+# chmods the socket it creates, and Docker Desktop's virtiofs rejects chmod on a
+# bind-mounted socket, which kills the proxy on start-up. A volume is a real
+# filesystem inside the VM, so it does not have that problem.
+
+name: claude-sandbox-socket-proxy
+
+services:
+  socket-proxy:
+    image: wollomatic/socket-proxy:1.13.1
+    restart: unless-stopped
+
+    # Root, but only just: from-scratch image, no shell, no capabilities, read-only
+    # root filesystem. It needs uid 0 because on Docker Desktop the daemon socket
+    # presents as root:root 0660, and it needs gid 1000 because that is `node` in
+    # the sandbox — the socket it creates is 0660, so the group is what grants
+    # access. If your container's user has a different gid, change it here.
+    user: "0:1000"
+    read_only: true
+    mem_limit: 64M
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - socket:/run/proxy
+
+    command:
+      - '-loglevel=info'
+      - '-proxysocketendpoint=/run/proxy/docker.sock'
+      - '-proxysocketendpointfilemode=0660'
+
+      # If the daemon socket breaks under the proxy — a Docker engine update will
+      # do it — stop, and let `restart: unless-stopped` bring it back.
+      - '-watchdoginterval=3600'
+      - '-stoponwatchdog'
+      - '-shutdowngracetime=5'
+
+      # Everything below is denied by default; these are the requests `docker ps`,
+      # `docker logs` and `docker compose exec` (and so `sail artisan`, `sail
+      # composer`, `sail test`, `sail shell`) actually make. Determined by running
+      # the proxy at -loglevel=debug with everything allowed and reading the log,
+      # not by guesswork — if a command hangs or 403s, do the same and add what it
+      # asks for. `-allowGET=/v1\.[0-9]{1,3}/events.*` is the usual next one.
+      #
+      # Note what is absent: POST /containers/create. That is the endpoint that
+      # makes `docker run -v /:/host` an escape, and without it the whole class is
+      # gone, along with image pulls, volume and network creation.
+      - '-allowHEAD=/_ping'
+      - '-allowGET=/_ping'
+      - '-allowGET=/v1\.[0-9]{1,3}/(version|info)'
+      - '-allowGET=/v1\.[0-9]{1,3}/containers/json.*'
+      - '-allowGET=/v1\.[0-9]{1,3}/containers/[a-zA-Z0-9_.-]+/(json|logs|top|stats).*'
+      - '-allowGET=/v1\.[0-9]{1,3}/exec/[a-zA-Z0-9]+/json'
+      - '-allowPOST=/v1\.[0-9]{1,3}/containers/[a-zA-Z0-9_.-]+/exec'
+      - '-allowPOST=/v1\.[0-9]{1,3}/exec/[a-zA-Z0-9]+/(start|resize)'
+
+volumes:
+  socket:
+    # Fixed name: devcontainer.json mounts this same volume at /var/run/docker-proxy.
+    name: claude-sandbox-docker-proxy

@@ -2,7 +2,7 @@
 import { computed, ref } from "vue";
 
 const { modelValue, inputClass, maxlength, emptyValue="" } = defineProps<{
-  modelValue: App.Data.UserVacationData["description"];
+  modelValue: App.Data.UserVacationData["description"] | undefined;
   inputClass: string;
   maxlength?: number;
   emptyValue: string;
@@ -31,7 +31,7 @@ const hideDescription = () => doEditDescription.value = false;
   <PInputText v-else
               v-model="myModel"
               autofocus
-              :maxlength
+              v-bind="maxlength === undefined ? {} : { maxlength }"
               class="px-2 py-1"
               :class="inputClass"
               @blur="hideDescription"

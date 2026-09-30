@@ -37,7 +37,7 @@ onMounted(() => {
   void getData();
 });
 
-const reportSaved = () => setTimeout(() => getData(), 1000);
+const reportSaved = () => setTimeout(getData, 1000);
 </script>
 
 <template>

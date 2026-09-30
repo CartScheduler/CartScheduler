@@ -34,7 +34,7 @@ declare namespace App.Data {
   export type ExtendedUserData = {
     id: number;
     name: string;
-    gender?: male | female | undefined;
+    gender?: "male" | "female" | undefined;
     mobile_phone?: string;
     email?: string;
     marital_status?: App.Enums.MaritalStatus;
@@ -46,6 +46,7 @@ declare namespace App.Data {
     shift_date?: string;
     last_shift_date?: string;
     last_shift_start_time?: string;
+    last_location_name?: string;
     num_sundays?: number;
     num_mondays?: number;
     num_tuesdays?: number;
@@ -130,12 +131,12 @@ declare namespace App.Data {
     requests_count?: number;
     comments?: string;
     shift_was_cancelled: boolean;
-    tags: Array<{ id: int; name: { [lang: string]: string }; slug: { [lang: string]: string } }>;
+    tags: Array<{ id: number; name: { [lang: string]: string }; slug: { [lang: string]: string } }>;
     metadata?: App.Data.ReportMetadataData;
   };
   export type ShiftAdminData = {
     id?: number;
-    location_id: number;
+    location_id?: number;
     start_time: string;
     end_time: string;
     day_monday: boolean;
@@ -168,7 +169,7 @@ declare namespace App.Data {
     name: string;
     email: string;
     role: string;
-    gender?: male | female | undefined;
+    gender?: "male" | "female" | undefined;
     mobile_phone?: string;
     year_of_birth?: number;
     appointment?: App.Enums.Appointment;
@@ -194,13 +195,14 @@ declare namespace App.Data {
     shift_date?: string;
     is_unrestricted?: boolean;
     last_shift_date?: string;
-    last_shift_start_time?: string;
+    last_shift_start_time?: TwentyFourHourTime;
   };
   export type UserShiftData = {
     volunteer_id: number;
     location_id: number;
     location_name: string;
-    start_time: string;
+    start_time: TwentyFourHourTime;
+    end_time: TwentyFourHourTime;
     max_volunteers: number;
     available_from?: string;
     available_to?: string;
@@ -230,5 +232,7 @@ declare namespace App.Settings {
     systemShiftEndHour: number;
     enableUserAvailability: boolean;
     enableUserLocationChoices: boolean;
+    enableShiftRemoveConfirm: boolean;
+    shiftRemoveConfirmMessage: string;
   };
 }

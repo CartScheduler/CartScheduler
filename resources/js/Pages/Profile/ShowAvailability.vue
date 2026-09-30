@@ -15,7 +15,7 @@ defineProps<{
 const canChooseLocations = !!usePage().props.enableUserLocationChoices;
 
 onMounted(() => {
-  axios.post(route("set.viewed-availability"));
+  void axios.post(route("set.viewed-availability"));
 });
 </script>
 

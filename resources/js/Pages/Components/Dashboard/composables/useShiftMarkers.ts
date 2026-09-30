@@ -1,5 +1,5 @@
 import { usePage } from "@inertiajs/vue3";
-import { utcToZonedTime } from "date-fns-tz";
+import { parseISO } from "date-fns";
 import { computed, ref, watchEffect } from "vue";
 import type { ShallowRef } from "vue";
 import type { DateMark } from "@/types/types";
@@ -23,15 +23,20 @@ export default function(serverDates: ShallowRef<App.Data.AvailableShiftsData["sh
 
       let isoDate = undefined;
       for (const shiftId in shiftDateGroup) {
-        if (!Object.prototype.hasOwnProperty.call(shiftDateGroup, shiftId)) {
+        if (!Object.hasOwn(shiftDateGroup, shiftId)) {
           continue;
         }
 
-        const shifts = shiftDateGroup[shiftId];
+        const shifts = shiftDateGroup[shiftId] || [];
         for (let shiftCount = 0; shiftCount < shifts.length; shiftCount++) {
           const shift = shifts[shiftCount];
+          if (!shift) continue;
+
           if (!isoDate) {
-            isoDate = utcToZonedTime(date, page.props.shiftAvailability.timezone);
+            // `date` is a plain calendar date string (Y-m-d) in the app timezone, so parse it
+            // as a local date. Running it through utcToZonedTime would treat it as a UTC instant
+            // and shift the marker onto the previous day.
+            isoDate = parseISO(date);
           }
 
           if (shift.volunteer_id === user.value?.id) {

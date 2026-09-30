@@ -16,7 +16,7 @@ import StrikethroughButton from "@/Components/EditorToolbar/StrikethroughButton.
 import { HtmlEditor } from "@/Utils/provide-inject-keys";
 
 const { modelValue = "" } = defineProps<{
-  modelValue: string;
+  modelValue?: string | undefined;
 }>();
 
 const emit = defineEmits(["update:modelValue"]);

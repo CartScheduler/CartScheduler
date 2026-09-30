@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import DataTable from "@/Components/DataTable.vue";
 import Filter from "@/Components/Icons/Filter.vue";
 import JetHelpText from "@/Jetstream/HelpText.vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import headers from "./Lib/ReportsDataTableHeaders.js";
+import type { FilterOption } from "vue3-easy-data-table";
 
 const props = defineProps<{
   reports: Array<App.Data.ReportsData>;
@@ -36,7 +36,7 @@ const showLocationFilter = ref(false);
 const locationFilter = ref(0);
 
 const filter = computed(() => {
-  const filters = [];
+  const filters: FilterOption[] = [];
   if (locationFilter.value) {
     filters.push({ field: "locationId", comparison: "=", criteria: locationFilter.value });
   }
@@ -58,11 +58,11 @@ const filter = computed(() => {
     </div>
 
     <div class="bg-panel dark:bg-panel-dark border border-neutral-300/75 dark:border-neutral-800 sm:rounded-lg sm:p-6">
-      <data-table :headers="headers"
-                  :items="reportData"
-                  :search-value="userSearch"
-                  :filter-options="filter"
-                  :show-hover="false">
+      <easy-data-table :headers="headers"
+                       :items="reportData"
+                       :search-value="userSearch"
+                       :filter-options="filter"
+                       :show-hover="false">
         <template #header-location="{ text }">
           <div class="relative flex items-center">
             <div class="p-2 mr-2 cursor-pointer inline-block hover:bg-gray-200 hover:bg-opacity-50 rounded"
@@ -122,7 +122,7 @@ const filter = computed(() => {
             </div>
           </div>
         </template>
-      </data-table>
+      </easy-data-table>
     </div>
   </div>
 </template>

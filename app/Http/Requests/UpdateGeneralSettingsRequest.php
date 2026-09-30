@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateGeneralSettingsRequest extends FormRequest
 {
@@ -18,6 +19,13 @@ class UpdateGeneralSettingsRequest extends FormRequest
             // TODO: add test for lt and gt rules
             'systemShiftStartHour' => ['required', 'integer', 'min:0', 'max:23', 'lt:systemShiftEndHour'],
             'systemShiftEndHour' => ['required', 'integer', 'min:0', 'max:23', 'gt:systemShiftStartHour'],
+            'enableShiftRemoveConfirm' => ['required', 'boolean'],
+            'shiftRemoveConfirmMessage' => [
+                Rule::requiredIf($this->boolean('enableShiftRemoveConfirm')),
+                'nullable',
+                'string',
+                'max:200',
+            ],
         ];
     }
 

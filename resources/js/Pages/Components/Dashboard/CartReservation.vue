@@ -1,30 +1,31 @@
 <script setup lang="ts">
 import { usePage } from "@inertiajs/vue3";
-import { breakpointsTailwind, computedWithControl, debouncedWatch, useBreakpoints } from "@vueuse/core";
-import { isAxiosError } from "axios";
-import { format, isSameDay, parse } from "date-fns";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { breakpointsTailwind, useBreakpoints, useEventListener, useResizeObserver } from "@vueuse/core";
+import { isSameDay } from "date-fns";
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from "vue";
 import useLocationFilter from "@/Composables/useLocationFilter";
-import useToast from "@/Composables/useToast";
+import useViewCarousel from "@/Composables/useViewCarousel";
+import useViewSwitchButton from "@/Composables/useViewSwitchButton";
+import useReservation from "@/Pages/Components/Dashboard/composables/useReservation";
+import useRosteredLocations from "@/Pages/Components/Dashboard/composables/useRosteredLocations";
 import useShiftMarkers from "@/Pages/Components/Dashboard/composables/useShiftMarkers";
-import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
-import ShiftList from "@/Pages/Components/Dashboard/ShiftList.vue";
+import ShiftCalendarView from "@/Pages/Components/Dashboard/ShiftCalendarView.vue";
+import ShiftTimelineView from "@/Pages/Components/Dashboard/ShiftTimelineView.vue";
+import ViewSwitchHint from "@/Pages/Components/Dashboard/ViewSwitchHint.vue";
 import { useGlobalState } from "@/store";
-import relativeDateToNow from "@/Utils/relativeDateToNow";
-import type { Location } from "@/Composables/useLocationFilter";
-import type { LocationsOnDate } from "@/Pages/Components/Dashboard/DatePicker.vue";
-import type { ShiftItem as SelectedShift } from "@/Pages/Components/Dashboard/ShiftList.vue";
 
 const page = usePage();
-const toast = useToast();
+
+const shiftRemoveConfirmMessage = computed(() => page.props.shiftRemoveConfirmMessage);
 
 const user = computed(() => page.props.auth.user);
-const timezone = computed(() => usePage().props.shiftAvailability.timezone);
+const timezone = computed(() => page.props.shiftAvailability.timezone);
 
 const {
   date,
   freeShifts,
   isLoading,
+  loadedDate,
   locations,
   maxReservationDate,
   serverDates,
@@ -35,404 +36,346 @@ const shiftMarkers = useShiftMarkers(serverDates);
 
 const state = useGlobalState();
 const shiftView = computed({
-  get() {
-    return state.value.shiftView;
-  },
-  set(value) {
+  get: () => state.value.shiftView,
+  set: (value) => {
     state.value.shiftView = value;
   },
 });
 
-const gridCols = {
-  // See tailwind.config.js
-  1: "grid-cols-sm-reservation-1 sm:grid-cols-reservation-1",
-  2: "grid-cols-sm-reservation-2 sm:grid-cols-reservation-2",
-  3: "grid-cols-sm-reservation-3 sm:grid-cols-reservation-3",
-  4: "grid-cols-sm-reservation-4 sm:grid-cols-reservation-4",
-  5: "grid-cols-sm-reservation-5 sm:grid-cols-reservation-5",
-};
+const {
+  selectedShift,
+  expandedAccordionPanelIndex,
+  userShiftLocations,
+  reservationWatch,
+} = useRosteredLocations({ locations, date, serverDates, shiftMarkers, shiftView });
 
-const isReserving = ref(false);
-const toggleReservation = async (locationId: number, shiftId: number, toggleOn: boolean) => {
-  if (isReserving.value) {
+const { toggleReservation } = useReservation({ date, isLoading, getShifts, reservationWatch });
+
+const showRemoveReservationModal = ref(false);
+const pendingRemoval = ref<{ locationId: number; shiftId: number } | null>(null);
+
+/**
+ * Reserving is immediate; un-reserving asks first, when an admin has set a
+ * confirmation message.
+ *
+ * Both views emit through here rather than each owning a prompt of its own —
+ * the timeline reached the same action by a different route, and the setting
+ * has to hold on whichever one the volunteer happens to be looking at.
+ */
+const requestToggleReservation = (locationId: number, shiftId: number, toggleOn: boolean) => {
+  if (toggleOn || !shiftRemoveConfirmMessage.value) {
+    void toggleReservation(locationId, shiftId, toggleOn);
     return;
   }
-  const timeoutId = setTimeout(() => isLoading.value = true, 1000);
 
-  try {
-    reservationWatch.pause();
-    isReserving.value = true;
+  pendingRemoval.value = { locationId, shiftId };
+  showRemoveReservationModal.value = true;
+};
 
-    const response = await axios.post<string>(route("reserve.shift"), {
-      location: locationId,
-      shift: shiftId,
-      do_reserve: toggleOn,
-      date: format(date.value, "yyyy-MM-dd"),
-    });
-    if (toggleOn) {
-      toast.success(response.data);
-    } else {
-      toast.warning(response.data);
-    }
-    await getShifts(false);
-  } catch (e) {
-    if (!isAxiosError(e) || !e.response?.data) {
-      throw e;
-    }
-    toast.error(e.response.data.message, "Error!", { timeout: 4000 });
-    if (e.response.data.error_code === 100) {
-      await getShifts(false);
-    }
-  } finally {
-    isReserving.value = false;
-    clearTimeout(timeoutId);
-    isLoading.value = false;
-    reservationWatch.resume();
+const cancelRemoveReservation = () => {
+  showRemoveReservationModal.value = false;
+  pendingRemoval.value = null;
+};
+
+const confirmRemoveReservation = () => {
+  if (pendingRemoval.value) {
+    void toggleReservation(pendingRemoval.value.locationId, pendingRemoval.value.shiftId, false);
   }
+  cancelRemoveReservation();
 };
 
-const locationsOnDates = ref<LocationsOnDate[]>([]);
-const locationsForSelectedDate = computedWithControl(
-  // Only execute when shiftMarkers changes, otherwise 'date' will also execute this, causing a race conditional problem
-  () => shiftMarkers.value,
-  () => shiftMarkers.value.map(
-    (marker) => ({
-      locations: marker.locations,
-      date: marker.date,
-    }),
-  ).filter((item) => isSameDay(item.date, date.value)),
-);
+const isRestricted = computed(() => !page.props.isUnrestricted);
 
-const setLocationMarkers = (locations: LocationsOnDate[]) => {
-  locationsOnDates.value = locations;
-};
-const hasShift = (location: App.Data.LocationData) => locationsForSelectedDate.value?.findIndex(
-  (date) => date?.locations.includes(location.id),
-) >= 0;
-
-const today = new Date();
-const formatTime = (time: string) => format(parse(time, "HH:mm:ss", today), "h:mm a");
-
-const isRestricted = computed(() => !usePage().props.isUnrestricted);
-const userShiftLocations = reactive<Set<Location["id"]>>(new Set());
-const firstReservationForUser = ref<number | undefined>();
-const expandedAccordionPanelIndex = ref<number | undefined>();
-
-const markRosteredLocations = () => {
-  firstReservationForUser.value = undefined;
-  userShiftLocations.clear();
-
-  for (const location of locations.value) {
-    if (!hasShift(location)) {
-      continue;
-    }
-
-    userShiftLocations.add(location.id);
-    if (!firstReservationForUser.value) {
-      firstReservationForUser.value = selectedShift.value?.locationId || location.id;
-    }
-  }
-
-};
-
-const setOpenedPanel = () => {
-  if (expandedAccordionPanelIndex.value) {
-    if (!firstReservationForUser.value) {
-      firstReservationForUser.value = expandedAccordionPanelIndex.value;
-      return;
-    }
-
-    if (!userShiftLocations.has(expandedAccordionPanelIndex.value)) {
-      expandedAccordionPanelIndex.value = firstReservationForUser.value;
-    }
-  }
-};
-
-watch(locationsForSelectedDate, () => {
-  markRosteredLocations();
-  setOpenedPanel();
-});
-
-const reservationWatch = watch(firstReservationForUser, (val) => {
-  // If the first reservation for the user is removed, retain the existing accordionExpandIndex
-  if (!val && expandedAccordionPanelIndex.value) return;
-
-  expandedAccordionPanelIndex.value = val;
-});
-
-const selectedShift = ref<SelectedShift | undefined>();
-watch(selectedShift, (val) => {
-  if (!val) return;
-  expandedAccordionPanelIndex.value = val.locationId;
-  date.value = val.date;
-});
-
-const locationRefs = ref<Record<App.Data.LocationData["id"], HTMLElement>>({});
-const setLocationRef = (id: App.Data.LocationData["id"], el: HTMLElement) => {
-  locationRefs.value[id] = el;
-};
+/**
+ * True, once the loaded shift data matches the selected date — distinguishes
+ * "still fetching" (spinner) from "genuinely unavailable" (fallback message)
+ * in the shift detail views.
+ */
+const isShiftDataResolved = computed(() => isSameDay(loadedDate.value, date.value));
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isNotMobile = breakpoints.greaterOrEqual("sm");
 
-const scrollToLocation = async (itemKey: App.Data.LocationData["id"]) => {
-  if (isNotMobile.value) {
-    return;
-  }
-  const element = locationRefs.value[itemKey];
-
-  element.scrollIntoView({ behavior: "smooth" });
-};
-
-let prefersReducedMotion: boolean;
 onMounted(() => {
-  prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
   void getShifts();
 });
 
-const transitionContainerHeight = ref<string>("auto");
+/**
+ * Pane order, left to right. The index doubles as the carousel's scroll page,
+ * so this is the single source of truth for where each view sits.
+ *
+ * The calendar leads because it is also the default in `store.ts`: landing on
+ * the first pane means a first visit opens with no scroll offset to apply, and
+ * the one direction available to swipe is the one that goes somewhere.
+ */
+const VIEWS = ["calendar", "list"] as const;
 
-const beforeEnter = (el: Element) => {
-  const wrapper = el as HTMLElement;
-  wrapper.style.opacity = "0";
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(110%)";
-  }
+/** Names the page indicator's dots for screen readers. */
+const VIEW_LABELS: Record<typeof VIEWS[number], string> = {
+  calendar: "calendar view",
+  list: "timeline view",
 };
 
-const enter = (el: Element, done: () => void) => {
-  const wrapper = el as HTMLElement;
-  transitionContainerHeight.value = `${wrapper.scrollHeight}px`;
-  wrapper.style.opacity = "1";
+const track = useTemplateRef<HTMLElement>("track");
+const isCarousel = computed(() => !isNotMobile.value);
 
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(0)";
-  }
-  done();
-};
-
-let cancelTimeout = 0;
-const afterEnter = (_: Element) => {
-  clearTimeout(cancelTimeout as number);
-  cancelTimeout = window.setTimeout(() => {
-    transitionContainerHeight.value = "auto";
-  }, 1000);
-};
-
-const beforeLeave = async (el: Element) => {
-
-  const wrapper = el as HTMLElement;
-  transitionContainerHeight.value = `${wrapper.scrollHeight}px`;
-
-  wrapper.style.transitionDelay = "50ms";
-  wrapper.style.opacity = "0";
-
-  if (!prefersReducedMotion) {
-    wrapper.style.transform = "translateX(-110%)";
-  }
-  wrapper.style.height = `${wrapper.scrollHeight}px`;
-};
-
-const hasInitialised = computed(() => locations.value.length > 0);
-
-const shiftDate = ref(date.value);
-
-debouncedWatch(locations, () => {
-  shiftDate.value = date.value;
-}, {
-  debounce: 500,
+const { isBuilt } = useViewCarousel({
+  views: VIEWS,
+  active: shiftView,
+  track,
+  isEnabled: isCarousel,
 });
+
+/** On mobile a view is rendered once built; on desktop only the active one is. */
+const isViewRendered = (view: typeof VIEWS[number]) =>
+  isCarousel.value ? isBuilt(view) : shiftView.value === view;
+
+const panes = {
+  calendar: useTemplateRef<HTMLElement>("calendarPane"),
+  list: useTemplateRef<HTMLElement>("listPane"),
+} as const;
+
+/**
+ * Height of the pane on screen, applied to the track — or the space left to the
+ * bottom of the window, whichever is the greater.
+ *
+ * Both panes sit side by side in the track, so its natural height is the
+ * taller of the two. Now that the page scrolls rather than the panes, that
+ * would leave the shorter view trailing a screen of dead space to scroll
+ * through. `items-start` keeps each pane at its own content height, and this
+ * sizes the track to whichever one you are actually looking at.
+ */
+const trackHeight = ref<number>();
+
+/** What the page holds below the track, in padding and borders on the way out. */
+const spaceBelowTrack = (el: HTMLElement) => {
+  let total = 0;
+  for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    total += (Number.parseFloat(style.paddingBottom) || 0) + (Number.parseFloat(style.borderBottomWidth) || 0);
+  }
+  return total;
+};
+
+const measureTrack = () => {
+  if (!isCarousel.value) {
+    trackHeight.value = undefined;
+    return;
+  }
+  const pane = panes[shiftView.value].value;
+  const el = track.value;
+  if (!pane || !el) {
+    return;
+  }
+
+  // The track is the only thing you can swipe, so a view shorter than the
+  // window — a volunteer rostered onto nothing gets one — would leave the space
+  // below it outside the carousel, and the gesture would only answer over the
+  // notice itself. Filling the window keeps the whole page swipeable.
+  //
+  // Measured against the document rather than the viewport, so a scrolled page
+  // reads the same as an unscrolled one, and less what the page keeps below the
+  // track: the shell's pad that clears the indicator, and the layout's own
+  // edges. Reading those off the ancestors rather than off a document height —
+  // which never reports less than the window, so a short page would just read
+  // its own answer back — leaves a view that fits with nothing to scroll.
+  const documentTop = el.getBoundingClientRect().top + window.scrollY;
+  const toWindowBottom = window.innerHeight - documentTop - spaceBelowTrack(el);
+
+  trackHeight.value = Math.max(pane.scrollHeight, Math.round(toWindowBottom));
+};
+
+useResizeObserver([panes.calendar, panes.list], measureTrack);
+
+// Where the track starts is the other half of the sum, and nothing about the
+// panes says when that moves — the views above it can resize on their own, as
+// they do when the shift data lands. The page's own height is what changes when
+// they do. This settles in one further pass: the track's new height feeds back
+// here, and the floor it produces is the same one.
+useResizeObserver(document.body, measureTrack);
+
+// The panes are as wide as the window, so the observers above already catch a
+// change of width. A change of height — rotating, or the mobile URL bar sliding
+// away — moves the floor without touching either.
+useEventListener(window, "resize", measureTrack);
+
+// `post` so the incoming pane has been rendered before it is measured — on the
+// first switch to a view the carousel has only just built, it has no height yet.
+watch([shiftView, isCarousel], () => void nextTick(measureTrack), { immediate: true, flush: "post" });
+
+const { isSwitchButtonShown, hasChosen, setSwitchButtonShown } = useViewSwitchButton();
+
+// Desktop has no carousel to swipe, so there the button is the only way across
+// and the stored preference must not be allowed to take it away.
+const showSwitchButton = computed(() => isNotMobile.value || isSwitchButtonShown.value);
+
+/** The offer stands until it is answered, and only where swiping is possible. */
+const isNoticeOffered = computed(() => isCarousel.value && !hasChosen.value);
+
+/** True while the notice is open, so the view can lift the button out of the
+  blur behind it. */
+const isHintOpen = ref(false);
+
+/**
+ * Either answer settles the question, which is what takes the notice away.
+ * The reset matters: answering unmounts the notice along with its link, and a
+ * flag left true would leave the button lifted and inert for the session.
+ */
+const onHintChoice = (keep: boolean) => {
+  setSwitchButtonShown(keep);
+  isHintOpen.value = false;
+};
 </script>
 
 <template>
-  <div class="flex-1 grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:grid-rows-1 sm:min-h-full">
-    <ComponentSpinner ref="transitionContainer"
-                      :show="!locations"
-                      class="transition-container flex flex-col sm:h-0 sm:min-h-full">
-      <Transition mode="out-in"
-                  @before-enter="beforeEnter"
-                  @enter="enter"
-                  @after-enter="afterEnter"
-                  @before-leave="beforeLeave">
-        <div v-if="shiftView === 'list'"
-             class="grid grid-cols-1 grid-rows-[auto_1fr] gap-2 sm:h-0 sm:min-h-full"
-             key="list">
-          <PButton size="small"
-                   class="shadow-sm"
-                   variant="outlined"
-                   severity="info"
-                   @click="shiftView = 'calendar'">
-            <span class="iconify mdi--calendar-month-outline" />
-            Switch to Calendar view
-          </PButton>
-          <ShiftList v-model="selectedShift"
-                     :marker-dates="serverDates"
-                     @clicked="scrollToLocation($event.locationId)" />
-        </div>
-        <div v-else class="grid grid-cols-1 gap-2" key="calendar">
-          <PButton size="small"
-                   class="shadow-sm"
-                   variant="outlined"
-                   severity="info"
-                   @click="shiftView = 'list'">
-            <span class="iconify mdi--timeline-text-outline" />
-            Switch to Timeline view
-          </PButton>
-          <DatePicker v-model:date="date"
-                      :shiftMarkers
-                      :max-date="maxReservationDate"
-                      :free-shifts="freeShifts"
-                      :marker-dates="serverDates"
-                      @locations-for-day="setLocationMarkers" />
-        </div>
-      </Transition>
-    </ComponentSpinner>
-    <ComponentSpinner :show="isLoading" class="min-h-56 sm:h-auto sm:min-h-full">
-      <Accordion v-model="expandedAccordionPanelIndex"
-                 :hasInitialised
-                 class="border std-border rounded border-b-0">
-        <AccordionPanel v-for="location in locations"
-                        :key="location.id"
-                        :unique-id="location.id"
-                        :contentTrigger="`${location.id}-${shiftDate}`">
-          <template #title>
-            <div :ref="(el) => setLocationRef(location.id,el as HTMLElement)"
-                 class="flex items-center text-base font-bold p-2">
-              <span class="location-name"
-                    :class="[
-                      userShiftLocations.has(location.id)
-                        ? 'text-green-800 dark:text-green-300 border-b-2 border-green-500'
-                        : 'dark:text-gray-200'
-                    ]"
-                    v-tooltip="userShiftLocations.has(location.id) ? 'You have at least one shift' : undefined">
-                {{ location.name }}
-              </span>
-              <div class="flex items-center py-1.5 ml-2 group"
-                   v-if="!isRestricted && location.freeShifts">
-                <div class="mr-3 ml-1 w-2 h-2 bg-amber-500 rounded-full transition-colors group-hover:bg-amber-600 group-hover:dark:bg-amber-200"></div>
-                <div class="hidden min-w-5 sm:block">
-                  <div class="overflow-x-hidden w-0 text-sm text-gray-600 whitespace-nowrap transition-[width] group-hover:w-full dark:text-gray-400">
-                    shifts still available
-                  </div>
-                </div>
-              </div>
-            </div>
+  <!-- Collapses on desktop so the track is the page's direct child, as before. -->
+  <!-- The bottom pad clears the fixed view indicator, which is out of flow and
+    would otherwise sit over the end of whichever view is on screen. -->
+  <div class="max-sm:flex max-sm:flex-col max-sm:gap-2 max-sm:pb-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:contents">
+    <!--
+      Mobile: a snap carousel, so the two views can be swiped between. The browser
+      owns the gesture, the axis locking and the momentum; all this component does
+      is settle the state afterwards. `overflow-y-hidden` is required — setting
+      one axis to `auto` makes the other compute to `auto` too, which would give
+      the track a scroller of its own and take the scrolling off the page again.
+      It also clips the off-screen pane when it is the taller of the two.
+
+      `items-start` stops the panes stretching to the track, so each keeps its own
+      content height and can be measured; the height below is then the active
+      pane's. Without it the two would size to each other and the measurement
+      would just read back whatever it last wrote.
+
+      `-mx-4` hands the shell's page margin to the panes: the track spans the full
+      width, so each pane does too, and each lays that margin back inside itself.
+      Mid-swipe the two margins meet and read as the same gutter a `gap` used to
+      draw, and — the point of the exercise — a pane's own scroller can now reach
+      the window edge, where its scrollbar belongs. Reaching from inside a pane
+      instead would put the bar past the scrollport, which simply hides it.
+
+      Desktop: the panes collapse to `contents` and the track is the same
+      single-cell grid as before, where `grid-rows-1` is minmax(0, 1fr) so the
+      active view gets exactly the available height rather than being sized by its
+      own content.
+    -->
+    <div ref="track"
+         data-scroll-align-boundary
+         :style="trackHeight ? { height: `${trackHeight}px` } : undefined"
+         class="no-scrollbar max-sm:-mx-4 max-sm:flex max-sm:snap-x max-sm:snap-mandatory max-sm:items-start max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:overscroll-x-contain max-sm:transition-[height] max-sm:duration-300 sm:grid sm:min-h-full sm:flex-1 sm:grid-cols-1 sm:grid-rows-1">
+      <div ref="calendarPane"
+           class="max-sm:grid max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 sm:contents">
+        <ShiftCalendarView v-if="isViewRendered('calendar')"
+                           v-model:date="date"
+                           v-model:expanded-panel="expandedAccordionPanelIndex"
+                           :show-switch-button="showSwitchButton"
+                           :is-hint-open="isHintOpen"
+                           :shift-markers="shiftMarkers"
+                           :locations="locations"
+                           :is-loading="isLoading"
+                           :max-reservation-date="maxReservationDate"
+                           :free-shifts="freeShifts"
+                           :marker-dates="serverDates"
+                           :is-restricted="isRestricted"
+                           :user="user"
+                           :user-shift-locations="userShiftLocations"
+                           @switch-view="shiftView = 'list'"
+                           @toggle-reservation="requestToggleReservation">
+          <!--
+            Handed to the pane on screen rather than to both, so there is one
+            link and one dialog in the document however many views are built.
+            Only where there is a carousel: on desktop the button is the only
+            way across, so there is nothing to offer to swipe instead. And only
+            until the user answers — the notice is an offer, not a fixture.
+          -->
+          <template v-if="isNoticeOffered && shiftView === 'calendar'" #switch-hint>
+            <ViewSwitchHint v-model:open="isHintOpen" @choose="onHintChoice" />
           </template>
+        </ShiftCalendarView>
+      </div>
 
-          <div class="w-full">
-            <div v-if="!isRestricted && location.freeShifts" class="flex mb-2 ml-3 sm:hidden group">
-              <div class="flex items-center px-2 py-0.5 rounded-full border border-amber-500 dark:border-amber-600">
-                <div class="mr-1 w-2 h-2 bg-amber-500 rounded-full"></div>
-                <div class="text-sm text-amber-600 dark:text-amber-500">
-                  free shifts still available at this location
-                </div>
-              </div>
-            </div>
+      <div ref="listPane"
+           class="max-sm:grid max-sm:w-full max-sm:shrink-0 max-sm:snap-center max-sm:grid-cols-1 sm:contents">
+        <ShiftTimelineView v-if="isViewRendered('list')"
+                           v-model="selectedShift"
+                           :is-active="shiftView === 'list'"
+                           :show-switch-button="showSwitchButton"
+                           :is-hint-open="isHintOpen"
+                           :locations="locations"
+                           :marker-dates="serverDates"
+                           :is-restricted="isRestricted"
+                           :is-not-mobile="isNotMobile"
+                           :is-shift-data-resolved="isShiftDataResolved"
+                           :date="date"
+                           :user="user"
+                           :user-shift-locations="userShiftLocations"
+                           @switch-view="shiftView = 'calendar'"
+                           @toggle-reservation="requestToggleReservation">
+          <template v-if="isNoticeOffered && shiftView === 'list'" #switch-hint>
+            <ViewSwitchHint v-model:open="isHintOpen" @choose="onHintChoice" />
+          </template>
+        </ShiftTimelineView>
+      </div>
+    </div>
 
-            <div v-html="location.description"
-                 class="p-3 pt-0 w-full description dark:text-gray-100"></div>
-            <div class="grid gap-x-2 gap-y-2 w-full sm:gap-y-4"
-                 :class="gridCols[location.max_volunteers as keyof typeof gridCols]">
-              <template v-for="shift in location.filterShifts" :key="shift.id">
-                <div class="self-center pt-4 pl-3 sm:pr-4 dark:text-gray-100 flex flex-col">
-                  <span>{{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }}</span>
-                  <span class="text-xs">{{ relativeDateToNow(date, new Date()) }}</span>
-                </div>
-                <div v-for="(volunteer, index) in shift.volunteers"
-                     :key="index"
-                     class="justify-self-center self-center pt-4">
-                  <template v-if="volunteer">
-                    <template v-if="user.uuid && volunteer.uuid === user.uuid">
-                      <button v-if="!isRestricted"
-                              type="button"
-                              class="block"
-                              @click="toggleReservation(location.id, shift.id, false)">
-                        <User status="reserved" v-tooltip="`${volunteer.name}: Tap to un-reserve this shift`" />
-                      </button>
-                      <User status="reserved" v-else />
-                    </template>
+    <!--
+      Marks the bottom of the window while the calendar runs past it, so the
+      page reads as continuing rather than ending. Sits above the indicator's
+      own strip, and fades itself out over the last 4rem of the scroll — at the
+      end of the page there is nothing left to point at. Only on the view that
+      was asked for, and only where the page is the scroller.
+    -->
+    <div v-if="shiftView === 'calendar'"
+         aria-hidden="true"
+         class="page-end-fade bottom-[calc(env(safe-area-inset-bottom)+2.5rem)] sm:hidden" />
 
-                    <User status="male" v-else-if="volunteer.gender === 'male'" v-tooltip="volunteer.name" />
-                    <User status="female"
-                          v-else-if="volunteer.gender === 'female'"
-                          v-tooltip="volunteer.name" />
-                  </template>
+    <!--
+      Says which of the two views you are on, and that there is exactly one
+      other to reach. The dot is small but its button is a full tap target.
 
-                  <EmptySlot v-else-if="isRestricted" v-tooltip="'You cannot reserve a shift'" />
-                  <EmptySlot v-else-if="index === shift.volunteers.length - 1 && shift.maxedFemales && user.gender === 'female'"
-                             color="#79B9ED"
-                             v-tooltip="'This slot can only be reserved by a brother'" />
-                  <button v-else
-                          type="button"
-                          class="block"
-                          @click="toggleReservation(location.id, shift.id, true)">
-                    <EmptySlot v-tooltip="'Tap to reserve this shift'" />
-                  </button>
-                </div>
-                <div class="col-span-full px-3 rounded bg-surface-200 dark:bg-surface-800 dark:text-gray-50 sm:py-2">
-                  <ul>
-                    <li v-for="(volunteer, index) in shift.volunteers"
-                        :key="index"
-                        class="flex justify-between py-2 border-b border-gray-400 last:border-b-0">
-                      <template v-if="volunteer">
-                        <div>{{ volunteer.name }}</div>
-                        <div>
-                          Ph:
-                          <a :href="`tel:${volunteer.mobile_phone}`">{{ volunteer.mobile_phone }}</a>
-                        </div>
-                      </template>
+      `fixed` rather than `sticky`: the indicator has to sit at the bottom of the
+      window whatever the views are doing. A volunteer rostered onto nothing gets
+      a short timeline, and `sticky` would let the dots ride up to the end of
+      that content — they are how you leave the view, so they cannot go
+      wandering with it. The page is padded out from under them below.
 
-                      <template v-else>
-                        <div>—</div>
-                      </template>
-                    </li>
-                  </ul>
-                </div>
-              </template>
-            </div>
-          </div>
-        </AccordionPanel>
-      </Accordion>
-    </ComponentSpinner>
+      The safe-area padding matters here: pinned to the bottom of the window,
+      without it these sit under the home indicator on a notched phone.
+    -->
+    <nav class="bg-panel/75 dark:bg-panel-dark/75 flex items-center justify-center py-1 backdrop-blur-sm max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:hidden"
+         aria-label="Dashboard views">
+      <button v-for="view in VIEWS"
+              :key="view"
+              type="button"
+              class="flex size-6 cursor-pointer items-center justify-center"
+              :aria-label="`Show the ${VIEW_LABELS[view]}`"
+              :aria-current="view === shiftView ? 'true' : 'false'"
+              @click="shiftView = view">
+        <!-- The inactive dot still has to read as a place you can go, so it is
+          only a step down in weight from the active one, not a hint of one. -->
+        <span class="size-2 rounded-full transition-colors"
+              :class="view === shiftView
+                ? 'bg-neutral-600 dark:bg-neutral-200'
+                : 'bg-neutral-400 dark:bg-neutral-500'" />
+      </button>
+    </nav>
   </div>
+  <!--
+    The app's own dialog rather than PrimeVue's. The shift detail sheet behind
+    this one is a native <dialog> opened with `showModal()`, which puts it in
+    the top layer — and nothing outside the top layer paints over that, at any
+    z-index. So a PrimeVue overlay asking to remove a reservation came up
+    *under* the sheet that asked for it. Two modal dialogs stack in the order
+    they were opened, which puts this one where it belongs.
+  -->
+  <Dialog v-model:visible="showRemoveReservationModal" class="w-[calc(100vw-2rem)] max-w-lg">
+    <template #header>
+      <h3 class="text-xl font-semibold">Confirmation</h3>
+    </template>
+
+    <p>{{ shiftRemoveConfirmMessage }}</p>
+
+    <template #footer>
+      <PButton label="Cancel" severity="secondary" outlined @click="cancelRemoveReservation" />
+      <PButton label="Remove Reservation" @click="confirmRemoveReservation" />
+    </template>
+  </Dialog>
 </template>
-
-<!--suppress CssUnusedSymbol -->
-<style scoped>
-.transition-container {
-    --timing: 150ms;
-    height: v-bind(transitionContainerHeight);
-    transition: height var(--timing) ease-in-out;
-}
-
-.transition-container > div {
-    transition: transform var(--timing) ease-out, opacity var(--timing) ease-out;
-}
-
-.description {
-    p {
-        @apply mb-3;
-    }
-
-    ul, ol {
-        @apply pl-5;
-
-        li p {
-            @apply mb-0.5;
-        }
-    }
-
-    ul {
-        @apply list-disc;
-    }
-
-    ol {
-        @apply list-decimal;
-    }
-
-    strong {
-        @apply font-bold
-    }
-}
-</style>

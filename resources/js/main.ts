@@ -36,8 +36,17 @@ if (bugsnagKey) {
 void createInertiaApp({
   title: (title) => `${title} - ${appName}`,
   resolve: (name) => {
-    const pages = import.meta.glob<DefineComponent>("./Pages/**/*.vue", { eager: true });
+    // `layout` is an Inertia option rather than one of Vue's, so it has to be
+    // named here; otherwise it resolves through an index signature.
+    const pages = import.meta.glob<{ default: DefineComponent & { layout?: unknown } }>(
+      "./Pages/**/*.vue",
+      { eager: true },
+    );
     const page = pages[`./Pages/${name}.vue`];
+    if (!page) {
+      // Reaching `.default` on a missing page threw anyway, just less legibly.
+      throw new Error(`No Inertia page component for "${name}".`);
+    }
     page.default.layout = name.startsWith("Auth/") ? AuthLayout : AppLayout;
     return page;
   },

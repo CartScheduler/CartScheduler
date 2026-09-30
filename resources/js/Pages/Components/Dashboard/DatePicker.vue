@@ -6,7 +6,7 @@ import {
   endOfMonth,
   isAfter,
   isBefore,
-  lastDayOfMonth,
+  isSameDay,
   parseISO,
   set,
   setHours,
@@ -14,7 +14,7 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
-import { computed } from "vue";
+import { computed, nextTick, useTemplateRef } from "vue";
 import type { DatePickerDateSlotOptions, DatePickerMonthChangeEvent } from "primevue";
 import type { DateMark } from "@/types/types";
 
@@ -29,13 +29,23 @@ const {
   shiftMarkers = [],
   freeShifts,
   canViewHistorical = false,
+  isReady = true,
 } = defineProps<{
   date: Date;
-  maxDate?: Date;
+  maxDate?: Date | undefined;
   shiftMarkers?: DateMark[];
-  markerDates?: App.Data.AvailableShiftsData["shifts"];
-  freeShifts?: App.Data.AvailableShiftsData["freeShifts"];
+  markerDates?: App.Data.AvailableShiftsData["shifts"] | undefined;
+  freeShifts?: App.Data.AvailableShiftsData["freeShifts"] | undefined;
   canViewHistorical?: boolean;
+  /**
+   * Covers the picker until the data behind it has arrived, so the markers do
+   * not appear a beat after the dates they belong to.
+   *
+   * Defaults to ready. A caller that says nothing gets a calendar it can use;
+   * the alternative is a spinner that never lifts, which is what an omitted
+   * prop used to buy on the admin dashboard.
+   */
+  isReady?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -68,10 +78,10 @@ const highlights = computed(() => {
   if (!freeShifts) return highlighted;
 
   for (const key in freeShifts) {
-    if (!Object.prototype.hasOwnProperty.call(freeShifts, key)) {
+    if (!Object.hasOwn(freeShifts, key)) {
       continue;
     }
-    if (!freeShifts[key].has_availability) {
+    if (!freeShifts[key]?.has_availability) {
       continue;
     }
     highlighted.push(parseISO(key));
@@ -95,7 +105,10 @@ const restrictedDates = computed(() => {
   const restricted: Date[] = [];
 
   for (const date of paddedDates) {
-    if (!shiftMarkers.some((m) => m.date.getDate() === date.getDate())) {
+    // Whole date, not day-of-month. Comparing `getDate()` alone let a marker on
+    // the 5th of any month leave the 5th of every other month selectable for a
+    // restricted user — `hasMarker` below already compares all three parts.
+    if (!shiftMarkers.some((m) => isSameDay(m.date, date))) {
       restricted.push(date);
     }
   }
@@ -105,42 +118,55 @@ const restrictedDates = computed(() => {
   return restricted;
 });
 
+// Template ref to the PrimeVue DatePicker so we can keep its displayed month/year
+// in sync after we programmatically change the selected date (see syncView).
+const datePicker = useTemplateRef<{ currentMonth: number; currentYear: number }>("datePicker");
+
 /**
- * Used to set the date when the user changes month (or year). This ensures that the next month's values are loaded.
+ * PrimeVue re-derives its displayed month/year from a stale internal value whenever the
+ * v-model changes externally (its `modelValue` watcher calls `updateCurrentMetaData()`
+ * before refreshing `rawValue`). That causes the calendar to snap back to the previous
+ * month after navigation. Re-assert the view on the next tick, once the model has settled.
  */
-const updateMonthYear = ({ month, year }: DatePickerMonthChangeEvent) => {
-  // PrimeVue DatePickerMonthChangeEvent `month` event is 1 indexed (1 = January) instead of JS 0 indexed (0 = January)`
-  month--;
-  // Setting the 'day of month' to 0, sets the day to the previous month's last day
-  const lastDay = lastDayOfMonth(new Date(year, month, 1, 12));
-  const currentDate = selectedDate.value;
-
-  // Going back in time
-  if (isAfter(currentDate, lastDay)) {
-    if (!canViewHistorical) {
-      if (isBefore(lastDay, notBefore)) {
-        selectedDate.value = notBefore;
-        return;
-      }
-    }
-
-    // set the date to the last day of the previous month
-    selectedDate.value = new Date(year, month, lastDay.getDate());
-    return;
-  }
-
-  // Going forward in time
-
-  // If cannotViewHistorical (non-admin dashboard), make sure they cannot go further than the maximum allowed date
-  if (!canViewHistorical && notAfter.value) {
-    if (isAfter(lastDay, notAfter.value)) {
-      // Not allowed, set the date to the maximum allowed date
-      selectedDate.value = notAfter.value;
+const syncView = (date: Date) => {
+  void nextTick(() => {
+    if (!datePicker.value) {
       return;
     }
+    datePicker.value.currentMonth = date.getMonth();
+    datePicker.value.currentYear = date.getFullYear();
+  });
+};
+
+/**
+ * Used to set the date when the user changes month (or year). This ensures that the next month's values are loaded.
+ *
+ * Navigating forward selects the first day of the new month, navigating back selects the last day,
+ * rather than carrying the previously selected day across months.
+ */
+const updateMonthYear = ({ month, year }: DatePickerMonthChangeEvent) => {
+  // PrimeVue DatePickerMonthChangeEvent `month` event is 1 indexed (1 = January) instead of JS 0 indexed (0 = January)
+  month--;
+
+  const currentDate = selectedDate.value;
+  const goingForward = year > currentDate.getFullYear()
+    || (year === currentDate.getFullYear() && month > currentDate.getMonth());
+
+  // Forward -> first day of the new month; back -> last day of the new month
+  // (day 0 of the following month resolves to the last day of the target month).
+  let newDate = goingForward
+    ? new Date(year, month, 1, 12)
+    : new Date(year, month + 1, 0, 12);
+
+  // Keep the selection within the allowed range.
+  if (isBefore(newDate, notBefore)) {
+    newDate = notBefore;
+  } else if (notAfter.value && isAfter(newDate, notAfter.value)) {
+    newDate = notAfter.value;
   }
 
-  selectedDate.value = new Date(year, month, 1, 12);
+  selectedDate.value = newDate;
+  syncView(newDate);
 };
 
 // Function to check if a date is highlighted (has free shifts)
@@ -184,45 +210,60 @@ const canGoForward = computed(() => {
 </script>
 
 <template>
-  <div>
-    <PDatePicker v-model="selectedDate"
-                 inline
-                 selectOtherMonths
-                 :minDate="notBefore"
-                 :maxDate="notAfter"
-                 :disabled="false"
-                 :showIcon="false"
-                 :showButtonBar="false"
-                 :manualInput="false"
-                 :dateFormat="'mm/dd/yy'"
-                 :disabledDates="restrictedDates"
-                 @month-change="updateMonthYear"
-                 @year-change="updateMonthYear">
-      <template #prevbutton="{ actionCallback }">
-        <button v-if="canGoBack"
-                @click="actionCallback"
-                class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
-        <div v-else class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
-      </template>
+  <!--
+    No height policy of its own: the picker fills whatever box the caller hands
+    it. The dashboard's calendar column is a `1fr` track that has to be allowed
+    to be shorter than a month, so it passes `sm:h-0 sm:min-h-full` to keep the
+    calendar from setting the track's height. The admin dashboard's row is
+    content-sized, so it passes nothing and the calendar sizes the row.
 
-      <template #nextbutton="{ actionCallback }">
-        <button v-if="canGoForward"
-                @click="actionCallback"
-                class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
-        <div v-else
-             class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
-      </template>
+    Collapsing here instead would apply the first case to both: the admin
+    calendar would contribute no height, the row would be sized by the shorter
+    accordion beside it, and the calendar would spill over the panel below.
+  -->
+  <div class="flex flex-col">
+    <ComponentSpinner :show="!isReady"
+                      class="flex flex-1 flex-col min-h-0">
+      <PDatePicker ref="datePicker"
+                   v-model="selectedDate"
+                   inline
+                   selectOtherMonths
+                   :minDate="notBefore"
+                   :maxDate="notAfter"
+                   :disabled="false"
+                   :showIcon="false"
+                   :showButtonBar="false"
+                   :manualInput="false"
+                   :dateFormat="'mm/dd/yy'"
+                   :disabledDates="restrictedDates"
+                   @month-change="updateMonthYear"
+                   @year-change="updateMonthYear">
+        <template #prevbutton="{ actionCallback }">
+          <button v-if="canGoBack"
+                  @click="actionCallback"
+                  class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
+          <div v-else class="iconify mdi--chevron-left-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
+        </template>
 
-      <template #date="{ date }">
-        <span class="formatted-date"
-              :class="{
-                'highlighted-date': isDateHighlighted(date),
-                'marker-date': hasMarker(date)
-              }">
-          {{ date.day }}
-        </span>
-      </template>
-    </PDatePicker>
-    <div v-if="freeShifts" class="text-sm text-center text-gray-500">Blue squares indicate free shifts</div>
+        <template #nextbutton="{ actionCallback }">
+          <button v-if="canGoForward"
+                  @click="actionCallback"
+                  class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-300"></button>
+          <div v-else
+               class="iconify mdi--chevron-right-circle-outline text-lg text-neutral-200 dark:text-neutral-700"></div>
+        </template>
+
+        <template #date="{ date }">
+          <span class="formatted-date"
+                :class="{
+                  'highlighted-date': isDateHighlighted(date),
+                  'marker-date': hasMarker(date)
+                }">
+            {{ date.day }}
+          </span>
+        </template>
+      </PDatePicker>
+      <div v-if="freeShifts" class="text-sm text-center text-gray-500">Blue squares indicate free shifts</div>
+    </ComponentSpinner>
   </div>
 </template>

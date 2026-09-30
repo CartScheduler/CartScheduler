@@ -6,6 +6,7 @@ import JetHelpText from "@/Jetstream/HelpText.vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetLabel from "@/Jetstream/Label.vue";
 import headers from "./Lib/UserDataTableHeaders";
+import type { Item } from "vue3-easy-data-table";
 
 const { users } = defineProps<{
   users: App.Data.UserAdminData[];
@@ -28,8 +29,9 @@ const onDownloadUsers = async () => {
   window.location.href = route("admin.users-as-spreadsheet");
 };
 
-const handleSelection = (selection: { id: number }) => {
-  router.visit(route("admin.users.edit", selection.id));
+// The table hands back whichever row was clicked, typed only as a record.
+const handleSelection = (selection: Item) => {
+  router.visit(route("admin.users.edit", selection["id"] as number));
 };
 
 onMounted(() => {
@@ -37,7 +39,7 @@ onMounted(() => {
 
   flash(
     page.props.jetstream,
-    page.props.jetstream.flash.bannerTitle || undefined,
+    page.props.jetstream.flash.title || undefined,
     page.props.jetstream.flash.bannerStyle || "success",
   );
 });
@@ -76,10 +78,10 @@ onMounted(() => {
 
     <div class="">
       <div class="bg-panel dark:bg-panel-dark">
-        <data-table :headers="headers"
-                    :items="users"
-                    :search-value="userSearch"
-                    @click-row="handleSelection">
+        <easy-data-table :headers="headers"
+                         :items="users"
+                         :search-value="userSearch"
+                         @click-row="handleSelection">
           <template #item-email="{ email }">
             <a :href="`mailto:${email}`">{{ email }}</a>
           </template>
@@ -97,7 +99,7 @@ onMounted(() => {
             <div v-if="!is_unrestricted" class="text-red-600 dark:text-red-400">Yes</div>
             <div v-else>No</div>
           </template>
-        </data-table>
+        </easy-data-table>
       </div>
     </div>
   </div>

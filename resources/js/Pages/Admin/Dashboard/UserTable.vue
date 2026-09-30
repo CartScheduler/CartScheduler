@@ -2,45 +2,36 @@
 import { format, parse } from "date-fns";
 import { Menu as VMenu } from "floating-vue";
 import { computed, inject, ref, watchEffect } from "vue";
-import DataTable from "@/Components/DataTable.vue";
 import QuestionCircle from "@/Components/Icons/QuestionCircle.vue";
+import { numberOfWeeks } from "@/Composables/useAvailabilityActions";
 import useToast from "@/Composables/useToast";
 import FilledShiftsIndicator from "@/Pages/Admin/Dashboard/FilledShiftsIndicator.vue";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys";
+import type { Location, Shift } from "@/Composables/useLocationFilter";
 import type { AssignVolunteerPayload } from "@/types/types";
 
-const props = defineProps({
-  shift: {
-    type: Object,
-    required: true,
-  },
-  location: {
-    type: Object,
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: true,
-  },
-  isVisible: {
-    type: Boolean,
-    required: false,
-    default: false,
-  },
-  textFilter: {
-    type: String,
-    required: false,
-    default: "",
-  },
+/** The seven day counts a volunteer's availability is expressed in. */
+type DayName = "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday";
+type DayCounts = Record<DayName, number>;
+
+const props = withDefaults(defineProps<{
+  // Both come from the modal's own selection, which starts empty.
+  shift: Shift | undefined;
+  location: Location | undefined;
+  date: Date;
+  isVisible?: boolean;
+  textFilter?: string;
   mainFilters: {
-    type: Object,
-    required: true,
-  },
-  // columnFilters: {
-  //   type: Object,
-  //   required: true,
-  // },
+    doShowFilteredVolunteers: boolean;
+    doShowOnlyResponsibleBros: boolean;
+    doHidePublishers: boolean;
+    doShowOnlyElders: boolean;
+    doShowOnlyMinisterialServants: boolean;
+  };
+}>(), {
+  isVisible: false,
+  textFilter: "",
 });
 
 const emit = defineEmits<{
@@ -51,6 +42,8 @@ const state = useGlobalState();
 const columnFilters = computed(() => state.value["columnFilters"]);
 const enableUserAvailability = inject(EnableUserAvailability);
 const volunteers = ref<App.Data.ExtendedUserData[]>([]);
+
+const shiftDayKey = computed(() => format(props.date, "EEEE").toLowerCase());
 
 const tableHeaders = computed(() => {
   const headers = [
@@ -120,6 +113,27 @@ const tableHeaders = computed(() => {
     value: "lastShift",
     sortable: true,
   });
+  if (columnFilters.value.lastLocation.value) {
+    headers.push({
+      text: "Last Location",
+      value: "lastLocation",
+      sortable: true,
+    });
+  }
+  if (columnFilters.value.comments.value) {
+    headers.push({
+      text: "Comments",
+      value: "comments",
+      sortable: true,
+    });
+  }
+  if (enableUserAvailability && columnFilters.value.weeksPerMonth.value) {
+    headers.push({
+      text: "Weeks/Month",
+      value: "weeksPerMonth",
+      sortable: true,
+    });
+  }
   if (enableUserAvailability) {
     headers.push({
       text: "Availability",
@@ -138,53 +152,59 @@ const tableHeaders = computed(() => {
 const tableRows = computed(() => {
   return volunteers.value.map((volunteer) => {
     const prefix = volunteer.gender === "male" ? "Bro" : "Sis";
-    const daysAvailable = {
-      sunday: volunteer.num_sundays,
-      monday: volunteer.num_mondays,
-      tuesday: volunteer.num_tuesdays,
-      wednesday: volunteer.num_wednesdays,
-      thursday: volunteer.num_thursdays,
-      friday: volunteer.num_fridays,
-      saturday: volunteer.num_saturdays,
+    // A day the volunteer never answered for comes back absent rather than zero.
+    const daysAvailable: DayCounts = {
+      sunday: volunteer.num_sundays ?? 0,
+      monday: volunteer.num_mondays ?? 0,
+      tuesday: volunteer.num_tuesdays ?? 0,
+      wednesday: volunteer.num_wednesdays ?? 0,
+      thursday: volunteer.num_thursdays ?? 0,
+      friday: volunteer.num_fridays ?? 0,
+      saturday: volunteer.num_saturdays ?? 0,
     };
-    const daysAlreadyRostered = {
-      sunday: (volunteer.filled_sundays < daysAvailable.sunday ? volunteer.filled_sundays : daysAvailable.sunday) || 0,
-      monday: (volunteer.filled_mondays < daysAvailable.monday ? volunteer.filled_mondays : daysAvailable.monday) || 0,
-      tuesday: (volunteer.filled_tuesdays < daysAvailable.tuesday ? volunteer.filled_tuesdays : daysAvailable.tuesday) || 0,
-      wednesday: (volunteer.filled_wednesdays < daysAvailable.wednesday ? volunteer.filled_wednesdays : daysAvailable.wednesday) || 0,
-      thursday: (volunteer.filled_thursdays < daysAvailable.thursday ? volunteer.filled_thursdays : daysAvailable.thursday) || 0,
-      friday: (volunteer.filled_fridays < daysAvailable.friday ? volunteer.filled_fridays : daysAvailable.friday) || 0,
-      saturday: (volunteer.filled_saturdays < daysAvailable.saturday ? volunteer.filled_saturdays : daysAvailable.saturday) || 0,
+    const daysAlreadyRostered: DayCounts = {
+      sunday: Math.min(volunteer.filled_sundays ?? 0, daysAvailable.sunday),
+      monday: Math.min(volunteer.filled_mondays ?? 0, daysAvailable.monday),
+      tuesday: Math.min(volunteer.filled_tuesdays ?? 0, daysAvailable.tuesday),
+      wednesday: Math.min(volunteer.filled_wednesdays ?? 0, daysAvailable.wednesday),
+      thursday: Math.min(volunteer.filled_thursdays ?? 0, daysAvailable.thursday),
+      friday: Math.min(volunteer.filled_fridays ?? 0, daysAvailable.friday),
+      saturday: Math.min(volunteer.filled_saturdays ?? 0, daysAvailable.saturday),
     };
+
+    const numDaysKey = `num_${shiftDayKey.value}s` as keyof App.Data.ExtendedUserData;
+    const weeksPerMonth = (volunteer[numDaysKey] as number | undefined) ?? 0;
 
     return {
       id: volunteer.id,
       name: `${prefix} ${volunteer.name}`,
       gender: volunteer.gender,
-      comment: volunteer.availability_comments,
+      comments: volunteer.availability_comments,
       lastShift: volunteer.last_shift_date ? volunteer.last_shift_date : null,
       lastShiftTime: volunteer.last_shift_start_time ? volunteer.last_shift_start_time : null,
       filledShifts: calcShiftPercentage(daysAlreadyRostered, daysAvailable),
+      weeksPerMonth,
       responsibleBrother: volunteer.responsible_brother,
       appointment: volunteer.appointment,
       servingAs: volunteer.serving_as,
       maritalStatus: volunteer.marital_status,
       birthYear: volunteer.birth_year,
       mobilePhone: volunteer.mobile_phone,
+      lastLocation: volunteer.last_location_name ?? null,
       daysAlreadyRostered,
       daysAvailable,
     };
   });
 });
 
-const calcShiftPercentage = (daysRostered, daysAvailable) => {
+const calcShiftPercentage = (daysRostered: DayCounts, daysAvailable: DayCounts) => {
   if (!daysAvailable) {
     return 0;
   }
   let sumOfDaysRostered = 0;
   let sumOfDaysAvailable = 0;
-  for (const day in daysAvailable) {
-    if (!daysAvailable.hasOwnProperty(day) || !daysAvailable[day]) {
+  for (const day of Object.keys(daysAvailable) as DayName[]) {
+    if (!daysAvailable[day]) {
       continue;
     }
     // Not using Array.reduce because we're only calculating based on the days a volunteer is available
@@ -200,20 +220,25 @@ const calcShiftPercentage = (daysRostered, daysAvailable) => {
   return Math.round((sumOfDaysRostered / sumOfDaysAvailable) * 100);
 };
 
-const assignVolunteer = (volunteerId, volunteerName) => {
+const assignVolunteer = (volunteerId: number, volunteerName: string) => {
+  // The button only exists inside a row of the table the modal opened for a
+  // shift, so neither can be missing by the time it is pressed.
+  if (!props.location || !props.shift) {
+    return;
+  }
   emit("assignVolunteer", { volunteerId, volunteerName, location: props.location, shift: props.shift });
 };
 
-const bodyRowClassNameFunction = (item) =>
+const bodyRowClassNameFunction = (item: { gender?: string }) =>
   item.gender === "male"
     ? "bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 transition duration-150 hover:ease-in"
     : "bg-pink-100 hover:bg-pink-200 dark:bg-fuchsia-900/40 dark:hover:bg-fuchsia-900/60 transition duration-150 hover:ease-in";
-const bodyItemClassNameFunction = (column) => {
+const bodyItemClassNameFunction = (column: string) => {
   if (column === "action") return "!text-right";
   return "";
 };
 
-const formatShiftDate = (shiftDate, shiftTime) => {
+const formatShiftDate = (shiftDate: string | null, shiftTime: string | null) => {
   if (!shiftDate) {
     return "Never";
   }
@@ -226,7 +251,7 @@ const formatShiftDate = (shiftDate, shiftTime) => {
 const toast = useToast();
 
 watchEffect(async () => {
-  if (!props.isVisible) {
+  if (!props.isVisible || !props.shift) {
     return;
   }
   try {
@@ -247,18 +272,18 @@ watchEffect(async () => {
   }
 });
 
-const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((day) => day > 0);
+const hasDaysAvailable = (daysAvailable: DayCounts) => Object.values(daysAvailable).some((day) => day > 0);
 </script>
 
 <template>
   <div class="volunteers">
-    <data-table :headers="tableHeaders"
-                :items="tableRows"
-                :search-value="textFilter"
-                :filter-options="[]"
-                :show-hover="false"
-                :body-row-class-name="bodyRowClassNameFunction"
-                :body-item-class-name="bodyItemClassNameFunction">
+    <easy-data-table :headers="tableHeaders"
+                     :items="tableRows"
+                     :search-value="textFilter"
+                     :filter-options="[]"
+                     :show-hover="false"
+                     :body-row-class-name="bodyRowClassNameFunction"
+                     :body-item-class-name="bodyItemClassNameFunction">
       <template #header-responsibleBrother="header">
         <v-menu class="mr-1 inline-block">
           <span><QuestionCircle /></span>
@@ -267,7 +292,7 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
             <div class="max-w-[300px]">Is volunteer a 'trained responsible brother'?</div>
           </template>
         </v-menu>
-        {{ header.text }}
+        {{ header['text'] }}
       </template>
 
       <template #header-filledShifts="header">
@@ -306,14 +331,19 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
             </div>
           </template>
         </v-menu>
-        {{ header.text }}
+        {{ header['text'] }}
       </template>
 
-      <template #item-name="{ name, comment }">
+      <template #item-name="{ name, comments }">
         {{ name }}
-        <div class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
-          <div>{{ comment }}</div>
+        <div v-if="!columnFilters.comments.value && comments"
+             class="ms-0.5 text-xs italic text-neutral-900 dark:text-neutral-200">
+          <div>{{ comments }}</div>
         </div>
+      </template>
+
+      <template #item-comments="{ comments }">
+        <span class="text-xs italic text-neutral-900 dark:text-neutral-200">{{ comments }}</span>
       </template>
 
       <template #item-responsibleBrother="{ responsibleBrother }">
@@ -337,6 +367,10 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
         {{ birthYear }}
       </template>
 
+      <template #item-lastLocation="{ lastLocation }">
+        {{ lastLocation ?? "Never" }}
+      </template>
+
       <template #item-mobilePhone="{ mobilePhone }">
         <div class="flex flex-wrap justify-center">
           <small class="text-xs w-full text-center">{{ mobilePhone }}</small>
@@ -357,6 +391,11 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
         {{ formatShiftDate(lastShift, lastShiftTime) }}
       </template>
 
+      <template #item-weeksPerMonth="{ weeksPerMonth }">
+        <span v-if="weeksPerMonth > 0">{{ numberOfWeeks[weeksPerMonth as keyof typeof numberOfWeeks] }}</span>
+        <span v-else class="italic text-gray-500">Not set</span>
+      </template>
+
       <template #item-filledShifts="{ daysAlreadyRostered, daysAvailable, filledShifts }">
         <div class="flex gap-x-1">
           <small v-if="!hasDaysAvailable(daysAvailable)" class="italic pl-5">Not set</small>
@@ -368,7 +407,7 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
 
             <template v-for="(days, key) in daysAvailable" :key="key">
               <small v-if="days" class="block text-center">
-                <span>{{ key.substring(0, 2) }}</span><br>
+                <span>{{ String(key).substring(0, 2) }}</span><br>
                 <FilledShiftsIndicator :available="days" :filled="daysAlreadyRostered[key]" />
               </small>
             </template>
@@ -381,7 +420,7 @@ const hasDaysAvailable = (daysAvailable) => Object.values(daysAvailable).some((d
           <span class="iconify mdi--user-add"/>
         </PButton>
       </template>
-    </data-table>
+    </easy-data-table>
   </div>
 </template>
 

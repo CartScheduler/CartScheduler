@@ -4,10 +4,11 @@ import { computed } from "vue";
 const { action, label, icon, success = false, failure = false, errors, processing = false } = defineProps<{
   action?: "edit" | "add";
   label?: string;
-  icon?: string;
-  success?: boolean;
-  failure?: boolean;
-  errors?: string | string[] | Record<string, string> | Partial<Record<string, string>>;
+  icon?: string | undefined;
+  // Neither is known while a save is still in flight.
+  success?: boolean | undefined;
+  failure?: boolean | undefined;
+  errors?: string | string[] | Record<string, string | undefined> | undefined;
   processing?: boolean;
 }>();
 
@@ -54,8 +55,10 @@ const tooltip = computed(() => {
 
   } else if (typeof errors === "object" && Object.keys(errors).length > 0) {
     const keys = Object.keys(errors);
+    const firstKey = keys[0];
+    if (!firstKey) return;
     value = "Oops! The following problems were found: \n\n";
-    value += (errors as Record<string, string>)[keys[0]];
+    value += (errors as Record<string, string>)[firstKey];
     if (keys.length > 1) {
       value += ` and ${keys.length - 1} more problems found.`;
     }

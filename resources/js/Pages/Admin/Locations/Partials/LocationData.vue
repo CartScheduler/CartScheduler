@@ -2,13 +2,14 @@
 import TextEditor from "@/Components/TextEditor.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
-import type { InertiaForm } from "@inertiajs/vue3/types/useForm";
+import type { InertiaForm } from "@inertiajs/vue3";
+import type { LocationFormData } from "@/Pages/Admin/Locations/Partials/locationFormData";
 
 const { maxVolunteers } = defineProps<{
   maxVolunteers: number;
 }>();
 
-const form = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: true });
+const form = defineModel<InertiaForm<LocationFormData>>({ required: true });
 </script>
 
 <template>
@@ -37,7 +38,7 @@ const form = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: tr
   <!-- Minimum Volunteers -->
   <div class="col-span-6 sm:col-span-4 md:col-span-3">
     <JetLabel for="min-volunteers" value="Minimum Volunteers at Location" />
-    <PInputNumber id="min-volunteers"
+    <PInputNumber input-id="min-volunteers"
                   v-model="form.min_volunteers"
                   :min="0"
                   :max="maxVolunteers"
@@ -50,7 +51,7 @@ const form = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: tr
     <JetLabel for="max-volunteers">
       Maximum Volunteers at Location <span class="text-sm">(Max {{ maxVolunteers }})</span>
     </JetLabel>
-    <PInputNumber id="max-volunteers"
+    <PInputNumber input-id="max-volunteers"
                   v-model="form.max_volunteers"
                   :max="maxVolunteers"
                   :use-grouping="false"
@@ -60,10 +61,10 @@ const form = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: tr
 
   <!-- Requires Brother -->
   <div class="col-span-6 sm:col-span-3 card flex flex-col gap-x-4 gap-y-2">
-    <JetLabel for="is-unrestricted"
+    <JetLabel for="requires-brother"
               value="Requires a brother to be in shifts in this location?"
               :form
-              error-key="is_unrestricted" />
+              error-key="requires_brother" />
     <PSelectButton name="requires-brother"
                    id="requires-brother"
                    v-model="form.requires_brother"
@@ -78,7 +79,7 @@ const form = defineModel<InertiaForm<App.Data.LocationAdminData>>({ required: tr
 
   <!-- Location Status -->
   <div class="col-span-6 sm:col-span-3 card flex flex-col gap-x-4 gap-y-2">
-    <JetLabel for="is-unrestricted" value="Location Status" :form error-key="is_unrestricted" />
+    <JetLabel for="location-status" value="Location Status" :form error-key="is_enabled" />
     <PSelectButton name="location-status"
                    id="location-status"
                    v-model="form.is_enabled"

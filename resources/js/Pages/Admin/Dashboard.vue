@@ -45,8 +45,17 @@ defineProps<{
         </div>
       </Link>
 
-      <div
-          class="dashboard col-span-full sm:p-6 rounded-lg grid grid-cols-1 border border-neutral-300/75 dark:border-neutral-700/75">
+      <!--
+        The border and its padding arrive together at `sm`. Below it there is no
+        padding, so a border here would sit flush against the edges of the date
+        picker and the location panels and read as one box drawn around both.
+
+        `order-first` puts the calendar and its locations at the top on a narrow
+        screen, where the three counts above would otherwise be a full screen of
+        scrolling before the thing an admin came here to use. On `sm` and up the
+        counts sit on one or two rows and cost nothing, so the order stands.
+      -->
+      <div class="dashboard std-border col-span-full grid grid-cols-1 max-sm:order-first sm:rounded-lg sm:border sm:p-6">
         <CartReservationManagement />
       </div>
       <div

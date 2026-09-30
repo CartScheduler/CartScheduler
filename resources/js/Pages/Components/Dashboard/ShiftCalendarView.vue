@@ -1,0 +1,130 @@
+<script setup lang="ts">
+import { debouncedWatch } from "@vueuse/core";
+import { computed, ref } from "vue";
+import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
+import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
+import LocationTitle from "@/Pages/Components/Dashboard/LocationTitle.vue";
+import type { Location } from "@/Composables/useLocationFilter";
+import type { AuthUser } from "@/types/laravel-request-helpers";
+import type { DateMark } from "@/types/types";
+
+// Destructured for the default: Vue casts an absent Boolean prop to `false`.
+const { locations, showSwitchButton = true } = defineProps<{
+  shiftMarkers: DateMark[];
+  locations: Location[];
+  isLoading: boolean;
+  maxReservationDate: Date | undefined;
+  freeShifts: App.Data.AvailableShiftsData["freeShifts"] | undefined;
+  markerDates: App.Data.AvailableShiftsData["shifts"] | undefined;
+  isRestricted: boolean;
+  user: AuthUser;
+  userShiftLocations: Set<number>;
+  /** False once the user has hidden the switch button and swipes instead. */
+  showSwitchButton?: boolean;
+  /** True while the notice below the button is open, over a blurred page. */
+  isHintOpen?: boolean;
+}>();
+
+const emit = defineEmits<{
+  switchView: [];
+  toggleReservation: [locationId: number, shiftId: number, toggleOn: boolean];
+}>();
+
+const date = defineModel<Date>("date", { required: true });
+const expandedPanel = defineModel<number | undefined>("expandedPanel");
+
+const hasInitialised = computed(() => locations.length > 0);
+
+const shiftDate = ref(date.value);
+
+debouncedWatch(() => locations, () => {
+  shiftDate.value = date.value;
+}, {
+  debounce: 500,
+});
+</script>
+
+<template>
+  <!--
+    `gap-y-2` matches the layout's top padding, so the switch button sits evenly
+    between the panel edge and the content below it. The button only ever goes
+    on mobile, so hiding it collapses the unprefixed row track and leaves the
+    desktop one alone.
+  -->
+  <div class="grid gap-x-3 gap-y-2 grid-cols-1 min-h-0 max-sm:px-4
+              sm:grid-cols-[20rem_3fr] sm:grid-rows-[auto_1fr] sm:min-h-full"
+       :class="showSwitchButton ? 'grid-rows-[auto_1fr]' : 'max-sm:grid-rows-1'">
+    <!--
+      The wrapper exists to anchor the first-run hint, which is about this
+      button and so has to hang off it. It takes the button's grid placement
+      with it, so the row still disappears when the button is hidden.
+
+      It also holds the link that offers to take the button away, directly under
+      it, and the panel that link opens is positioned against this same wrapper.
+
+      While the panel is open the wrapper lifts clear of its backdrop, so the
+      button and the link stay sharp inside the blur — they are the subject of
+      the notice, and a notice pointing at something you cannot read explains
+      nothing. Driven by a prop rather than by `:has()` on the panel, so what
+      the lift depends on is visible in the markup and can be tested.
+
+      Lifted, the button would still be clickable through a modal, so the
+      wrapper stops taking pointers and the panel opts back in. A tap on the
+      button then reaches the backdrop and closes the panel.
+    -->
+    <div v-if="showSwitchButton"
+         class="relative sm:col-start-1 sm:row-start-1"
+         :class="isHintOpen ? 'pointer-events-none z-40' : ''">
+      <PButton size="small"
+               class="w-full shadow-sm"
+               variant="outlined"
+               severity="info"
+               @click="emit('switchView')">
+        <span class="iconify mdi--timeline-text-outline" />
+        Switch to Timeline view
+      </PButton>
+      <slot name="switch-hint" />
+    </div>
+
+    <!--
+      Mobile: the picker and the locations stack under the switch button and
+      grow to their content, because the page is what scrolls. Desktop: this
+      wrapper collapses to `contents` so both children sit directly in the
+      two-column grid.
+    -->
+    <div class="max-sm:flex max-sm:flex-col max-sm:gap-3 sm:contents">
+      <DatePicker v-model:date="date"
+                  :shiftMarkers
+                  :is-ready="hasInitialised"
+                  :max-date="maxReservationDate"
+                  :free-shifts="freeShifts"
+                  :marker-dates="markerDates"
+                  class="sm:col-start-1 sm:row-start-2 sm:h-0 sm:min-h-full" />
+      <ComponentSpinner :show="isLoading"
+                        class="min-h-56 sm:h-auto sm:min-h-full sm:col-start-2 sm:row-start-1 sm:row-span-2">
+        <!-- No border here: the panels draw the outline of the stack themselves. -->
+        <Accordion v-model="expandedPanel"
+                   :hasInitialised="hasInitialised">
+          <AccordionPanel v-for="location in locations"
+                          :key="location.id"
+                          :unique-id="location.id"
+                          :contentTrigger="`${location.id}-${shiftDate}`">
+            <template #title>
+              <div class="flex items-center text-base font-bold p-2">
+                <LocationTitle :location="location"
+                               :is-rostered="userShiftLocations.has(location.id)"
+                               :is-restricted="isRestricted" />
+              </div>
+            </template>
+
+            <LocationDetails :location="location"
+                             :is-restricted="isRestricted"
+                             :date="date"
+                             :user="user"
+                             @toggle-reservation="(...args) => emit('toggleReservation', ...args)" />
+          </AccordionPanel>
+        </Accordion>
+      </ComponentSpinner>
+    </div>
+  </div>
+</template>

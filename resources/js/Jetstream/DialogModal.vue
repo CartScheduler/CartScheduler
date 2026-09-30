@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import Modal, { Widths } from "@/Jetstream/Modal.vue";
+import Modal from "@/Jetstream/Modal.vue";
+import type { Widths } from "@/Jetstream/Modal.vue";
 
 const emit = defineEmits(["close"]);
 

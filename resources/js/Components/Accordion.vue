@@ -6,36 +6,59 @@ import type { WatchHandle } from "vue";
 type ModelValueArray = Array<AllowedModelValues>;
 type ModelValue = ModelValueArray | AllowedModelValues | undefined;
 
-const { multiple = false, hasInitialised = undefined } = defineProps<{
+const { multiple = false, staticPanels = false, hasInitialised = undefined } = defineProps<{
   multiple?: boolean;
+  /**
+   * Lays the panels out as fixed panels instead of disclosures: all open, no
+   * headers to click, no height to animate. The model is ignored while set.
+   */
+  staticPanels?: boolean;
   hasInitialised?: boolean;
 }>();
+
+const isStatic = computed(() => staticPanels);
 
 const expandedPanelIndex = defineModel<ModelValue>({ default: [], required: false });
 
 const headerRefs = reactive<Map<AllowedModelValues, HTMLElement>>(new Map());
 const isInitialised = ref(false);
 
-const openedPanel = computed<AllowedModelValues>(() => {
+/**
+ * Every panel currently open, as a set so a panel can ask about itself without
+ * caring which mode the accordion is in.
+ *
+ * Single mode holds one value or nothing; `multiple` holds a list.
+ */
+const openedPanels = computed<ReadonlySet<AllowedModelValues>>(() => {
   if (!multiple) {
-    return expandedPanelIndex.value as AllowedModelValues;
+    const single = expandedPanelIndex.value as AllowedModelValues | undefined;
+    return new Set(single === undefined ? [] : [single]);
   }
 
-  return (expandedPanelIndex.value as ModelValueArray)[0];
+  return new Set(expandedPanelIndex.value as ModelValueArray);
 });
 
+const isPanelOpen = (key: AllowedModelValues) => staticPanels || openedPanels.value.has(key);
+
 const toggle = (key: AllowedModelValues) => {
-  if (!multiple) {
-    (expandedPanelIndex.value as Partial<ModelValue>) = openedPanel.value === key ? undefined : key;
+  // Unreachable while static — there is no header to click — but the model
+  // must not drift out from under a layout that is ignoring it either way.
+  if (staticPanels) {
     return;
   }
 
-  const i = (expandedPanelIndex.value as ModelValueArray).indexOf(key);
-  if (i === -1) {
-    (expandedPanelIndex.value as ModelValueArray).push(key);
-  } else {
-    (expandedPanelIndex.value as ModelValueArray).splice(i, 1);
+  if (!multiple) {
+    (expandedPanelIndex.value as Partial<ModelValue>) = isPanelOpen(key) ? undefined : key;
+    return;
   }
+
+  // Replaced rather than spliced in place: `defineModel` emits on assignment,
+  // so mutating the array would leave a parent holding a plain (non-reactive)
+  // array with no idea anything had changed.
+  const open = expandedPanelIndex.value as ModelValueArray;
+  expandedPanelIndex.value = isPanelOpen(key)
+    ? open.filter((candidate) => candidate !== key)
+    : [...open, key];
 };
 
 const registerPanel = (key: AllowedModelValues, el: HTMLElement) => {
@@ -101,8 +124,9 @@ const setHeight = async (el: Element) => {
 // Provide context for AccordionPanel
 provide<AccordionContext<AllowedModelValues>>(AccordionContext, {
   isInitialised,
+  isStatic,
   registerPanel,
-  openedPanel,
+  isPanelOpen,
   toggle,
   onHeaderKeydown,
 });
@@ -137,7 +161,7 @@ const classes = computed(() => isReadyForTransition.value ? "height 0.5s cubic-b
 </script>
 
 <template>
-  <div class="accordion">
+  <div class="accordion grid grid-cols-1">
     <TransitionGroup v-if="isReadyForTransition"
                      name="accordion"
                      @enter="(el) => setHeight(el)"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, reactive, ref } from "vue";
+import { nextTick, reactive, ref, useTemplateRef } from "vue";
 import JetDialogModal from "./DialogModal.vue";
 import JetInput from "./Input.vue";
 import JetInputError from "./InputError.vue";
@@ -24,6 +24,13 @@ defineProps({
 
 const confirmingPassword = ref(false);
 
+/**
+ * `ref="passwordInput"` in the template creates no binding under `<script
+ * setup>`, so the focus call in the failure branch below was reaching an
+ * undeclared name and throwing instead of refocusing the field.
+ */
+const passwordInput = useTemplateRef("passwordInput");
+
 const form = reactive({
   password: "",
   error: "",
@@ -31,7 +38,7 @@ const form = reactive({
 });
 
 const startConfirmingPassword = () => {
-  axios.get(route("password.confirmation")).then((response) => {
+  void axios.get(route("password.confirmation")).then((response) => {
     if (response.data.confirmed) {
       emit("confirmed");
     } else {
@@ -49,12 +56,12 @@ const confirmPassword = () => {
     form.processing = false;
 
     closeModal();
-    nextTick().then(() => emit("confirmed"));
+    void nextTick().then(() => emit("confirmed"));
 
   }).catch((error) => {
     form.processing = false;
     form.error = error.response.data.errors.password[0];
-    passwordInput.value.focus();
+    passwordInput.value?.focus();
   });
 };
 

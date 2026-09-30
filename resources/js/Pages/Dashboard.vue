@@ -14,7 +14,7 @@ const showReportsModal = ref(false);
 <template>
   <PageHeader title="Dashboard">
     <div class="flex flex-col justify-between w-full sm:flex-row">
-      <h2 class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">Dashboard</h2>
+      <h2 class="hidden sm:block text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200">Dashboard</h2>
       <div>
         <PButton v-if="outstandingReportCount"
                  :label="`${ outstandingReportCount } ${ reportsLabel } Outstanding`"
@@ -28,7 +28,9 @@ const showReportsModal = ref(false);
       </div>
     </div>
   </PageHeader>
-  <div class="flex flex-col sm:rounded-lg py-2 max-w-7xl sm:min-h-full">
+  <!-- No top padding: the layout already pads above, and doubling it up put
+    more space over the view-switch button than its own gap leaves below. -->
+  <div class="flex flex-col sm:rounded-lg pb-2 max-w-7xl sm:min-h-full">
     <CartReservation/>
   </div>
   <ReportsModal v-model="showReportsModal"

@@ -1,0 +1,20 @@
+{
+  // The root config excludes this directory so that `tsc --noEmit` checks the
+  // application rather than its tests. typescript-eslint's project service
+  // resolves the nearest tsconfig, so without this the test files belong to no
+  // project at all and every type-aware rule fails to parse them.
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals",
+      "chai",
+      "node",
+      "../types/vue"
+    ]
+  },
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx"
+  ],
+  "exclude": []
+}

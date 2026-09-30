@@ -1,12 +1,13 @@
-<script setup>
+<script setup lang="ts">
 import { Head, Link, useForm } from "@inertiajs/vue3";
 import { computed } from "vue";
 
-const props = defineProps({
-  status: String,
-});
+const props = defineProps<{
+  status?: string;
+}>();
 
-const form = useForm();
+// Nothing to send but the request itself; `useForm` still wants a payload.
+const form = useForm({});
 
 const submit = () => {
   form.post(route("verification.send"));

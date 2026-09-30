@@ -1,8 +1,121 @@
 @layer components {
     .scroll-gradient {
-        @apply after:absolute after:h-24 after:z-10 after:bottom-0 after:left-0 after:right-0;
-        @apply after:pointer-events-none after:border after:border-transparent after:rounded-b after:bg-no-repeat;
-        @apply after:bg-gradient-to-t after:from-white after:dark:from-sub-panel-dark after:to-transparent;
+        @apply after:dark:from-sub-panel-dark after:pointer-events-none after:absolute after:right-0 after:bottom-0;
+        @apply after:left-0 after:z-10 after:h-24 after:rounded-b after:border after:border-transparent;
+        @apply after:bg-gradient-to-t after:from-white after:to-transparent after:bg-no-repeat;
+    }
+
+    .scroll-gradient-x {
+        @apply before:dark:from-sub-panel-dark after:dark:from-sub-panel-dark before:pointer-events-none before:absolute;
+        @apply before:inset-y-0 before:left-0 before:z-40 before:w-16 before:rounded-s before:bg-gradient-to-r;
+        @apply before:from-white before:to-transparent before:bg-no-repeat before:opacity-0 after:pointer-events-none;
+        @apply after:absolute after:inset-y-0 after:right-0 after:z-10 after:w-16 after:rounded-e after:bg-gradient-to-l;
+        @apply after:from-white after:to-transparent after:bg-no-repeat after:opacity-0;
+
+        /* Progressive enhancement: base opacity-0 means unsupporting browsers and
+           no-overflow states (inactive timeline) show nothing. Left fade appears
+           over the first 4rem of scroll; right fade disappears over the last 4rem. */
+        @supports (animation-timeline: scroll()) {
+            &::before {
+                animation: scroll-edge-fade-in linear both;
+                animation-timeline: --scroll-edge-x;
+                animation-range: 0 4rem;
+            }
+
+            &::after {
+                animation: scroll-edge-fade-out linear both;
+                animation-timeline: --scroll-edge-x;
+                animation-range: calc(100% - 4rem) 100%;
+            }
+        }
+    }
+
+    /* Vertical counterpart of .scroll-gradient-x. Top fade appears over the
+       first 4rem of scroll; bottom fade disappears over the last 4rem. Same
+       progressive-enhancement gating: the base opacity-0 means unsupporting
+       browsers, and any layout where the scroller doesn't overflow (leaving
+       --scroll-edge-y inactive), show nothing.
+
+       Each host pairs .scroll-edge-scope-y with one .scroll-edge-source-y in
+       its own subtree, so several can coexist — the mobile timeline and an
+       open dialog resolve the name independently. The fade colours match both
+       the timeline panel and the dialog surface (white / neutral-900). */
+    .scroll-gradient-y {
+        @apply before:dark:from-sub-panel-dark after:dark:from-sub-panel-dark before:pointer-events-none before:absolute;
+        @apply before:inset-x-0 before:top-0 before:z-40 before:h-16 before:rounded-t before:bg-gradient-to-b;
+        @apply before:from-white before:to-transparent before:bg-no-repeat before:opacity-0 after:pointer-events-none;
+        @apply after:absolute after:inset-x-0 after:bottom-0 after:z-40 after:h-16 after:rounded-b after:bg-gradient-to-t;
+        @apply after:from-white after:to-transparent after:bg-no-repeat after:opacity-0;
+
+        @supports (animation-timeline: scroll()) {
+            &::before {
+                animation: scroll-edge-fade-in linear both;
+                animation-timeline: --scroll-edge-y;
+                animation-range: 0 4rem;
+            }
+
+            &::after {
+                animation: scroll-edge-fade-out linear both;
+                animation-timeline: --scroll-edge-y;
+                animation-range: calc(100% - 4rem) 100%;
+            }
+        }
+    }
+
+    /* The page's own bottom fade, for where the page is the scroller and there
+       is no element to hang .scroll-gradient-y off — the mobile dashboard, where
+       the whole page scrolls rather than a pane inside it. The timeline is the
+       root scroller's and the fade is pinned to the window, so it marks the
+       bottom of the *viewport* rather than the bottom of any one element.
+
+       Same progressive enhancement as the gradients above: opacity-0 by
+       default, so a browser without scroll-driven animations shows nothing, and
+       so does a page short enough not to overflow — which leaves the root
+       timeline inactive. The host places its own `bottom`, since what sits
+       below the fade is the host's business. */
+    .page-end-fade {
+        @apply pointer-events-none fixed inset-x-0 z-20 h-16 bg-gradient-to-t bg-no-repeat opacity-0;
+        @apply from-panel to-transparent dark:from-panel-dark;
+
+        @supports (animation-timeline: scroll()) {
+            animation: scroll-edge-fade-out linear both;
+            animation-timeline: scroll(root block);
+            animation-range: calc(100% - 4rem) 100%;
+        }
+    }
+
+    /* Lifts the scroller's named timeline so ancestor-hosted overlays can bind
+       to it (covers the declaring element and its subtree). */
+    .scroll-edge-scope {
+        timeline-scope: --scroll-edge-x;
+    }
+
+    .scroll-edge-scope-y {
+        timeline-scope: --scroll-edge-y;
+    }
+
+    /* Declared by the scroll container the gradients react to. */
+    .scroll-edge-source {
+        scroll-timeline-name: --scroll-edge-x;
+        scroll-timeline-axis: x;
+    }
+
+    .scroll-edge-source-y {
+        scroll-timeline-name: --scroll-edge-y;
+        scroll-timeline-axis: y;
+    }
+
+    /* For scrollers the user drives by gesture rather than by the bar — the view
+       carousel's page indicator is the view itself, so a scrollbar is noise. */
+    .no-scrollbar {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    /* Not nested under the rule above: a nested pseudo-element does not survive
+       Tailwind rewriting the selector for a variant, and is silently dropped. */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
     }
 
     .std-border {
@@ -19,12 +132,18 @@
         transition: background var(--p-datepicker-transition-duration);
     }
 
+    .p-toast {
+        /* Default PrimeVue toast width is a fixed 25rem, which overflows narrow viewports. */
+        width: min(25rem, calc(100vw - 2rem));
+        max-width: calc(100vw - 2rem);
+    }
+
     .subtle-zoom {
         @apply hover:scale-[102%];
     }
 
     .card {
-        @apply border std-border p-4 rounded text-neutral-600 dark:text-neutral-300;
+        @apply std-border rounded border p-4 text-neutral-600 dark:text-neutral-300;
 
         a&, &.action {
             @apply
@@ -75,4 +194,14 @@
         grid-template-columns: minmax(0, theme(screens.xl));
         justify-content: center;
     }
+}
+
+@keyframes scroll-edge-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scroll-edge-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }

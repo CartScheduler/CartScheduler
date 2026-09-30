@@ -35,11 +35,11 @@ const invalid = computed(() => {
       </span>
     </span>
 
-    <template v-if="$slots.default">
+    <template v-if="$slots['default']">
       <span class="block">
         <slot />
       </span>
-      <span v-if="$slots.end" class="block col-span-2">
+      <span v-if="$slots['end']" class="block col-span-2">
         <slot name="end" />
       </span>
     </template>

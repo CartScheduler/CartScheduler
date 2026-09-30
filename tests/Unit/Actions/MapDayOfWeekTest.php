@@ -1,53 +1,41 @@
 <?php
 
-namespace Tests\Unit\Actions;
-
 use App\Actions\MapDayOfWeek;
-use InvalidArgumentException;
-use Tests\TestCase;
 
+test('convert day of week to integer', function () {
+    $mapDayOfWeek = new MapDayOfWeek;
 
-class MapDayOfWeekTest extends TestCase
-{
-    public function test_convert_day_of_week_to_integer(): void
-    {
-        $mapDayOfWeek = new MapDayOfWeek();
+    expect($mapDayOfWeek->toInteger('SUN'))->toEqual(0);
+    expect($mapDayOfWeek->toInteger('MON'))->toEqual(1);
+    expect($mapDayOfWeek->toInteger('TUE'))->toEqual(2);
+    expect($mapDayOfWeek->toInteger('WED'))->toEqual(3);
+    expect($mapDayOfWeek->toInteger('THU'))->toEqual(4);
+    expect($mapDayOfWeek->toInteger('FRI'))->toEqual(5);
+    expect($mapDayOfWeek->toInteger('SAT'))->toEqual(6);
+});
 
-        $this->assertEquals(0, $mapDayOfWeek->toInteger('SUN'));
-        $this->assertEquals(1, $mapDayOfWeek->toInteger('MON'));
-        $this->assertEquals(2, $mapDayOfWeek->toInteger('TUE'));
-        $this->assertEquals(3, $mapDayOfWeek->toInteger('WED'));
-        $this->assertEquals(4, $mapDayOfWeek->toInteger('THU'));
-        $this->assertEquals(5, $mapDayOfWeek->toInteger('FRI'));
-        $this->assertEquals(6, $mapDayOfWeek->toInteger('SAT'));
-    }
+test('throw an exception for invalid day of week', function () {
+    $mapDayOfWeek = new MapDayOfWeek;
 
-    public function test_throw_an_exception_for_invalid_day_of_week(): void
-    {
-        $mapDayOfWeek = new MapDayOfWeek();
+    $this->expectException(InvalidArgumentException::class);
+    $mapDayOfWeek->toInteger('INVALID_DAY');
+});
 
-        $this->expectException(InvalidArgumentException::class);
-        $mapDayOfWeek->toInteger('INVALID_DAY');
-    }
+test('lengthen', function () {
+    $mapDayOfWeek = new MapDayOfWeek;
 
-    public function test_lengthen(): void
-    {
-        $mapDayOfWeek = new MapDayOfWeek();
+    expect($mapDayOfWeek->lengthen('SUN'))->toEqual('Sunday');
+    expect($mapDayOfWeek->lengthen('MON'))->toEqual('Monday');
+    expect($mapDayOfWeek->lengthen('TUE'))->toEqual('Tuesday');
+    expect($mapDayOfWeek->lengthen('WED'))->toEqual('Wednesday');
+    expect($mapDayOfWeek->lengthen('THU'))->toEqual('Thursday');
+    expect($mapDayOfWeek->lengthen('FRI'))->toEqual('Friday');
+    expect($mapDayOfWeek->lengthen('SAT'))->toEqual('Saturday');
+});
 
-        $this->assertEquals('Sunday', $mapDayOfWeek->lengthen('SUN'));
-        $this->assertEquals('Monday', $mapDayOfWeek->lengthen('MON'));
-        $this->assertEquals('Tuesday', $mapDayOfWeek->lengthen('TUE'));
-        $this->assertEquals('Wednesday', $mapDayOfWeek->lengthen('WED'));
-        $this->assertEquals('Thursday', $mapDayOfWeek->lengthen('THU'));
-        $this->assertEquals('Friday', $mapDayOfWeek->lengthen('FRI'));
-        $this->assertEquals('Saturday', $mapDayOfWeek->lengthen('SAT'));
-    }
+test('lengthen with invalid day of week', function () {
+    $mapDayOfWeek = new MapDayOfWeek;
 
-    public function test_lengthen_with_invalid_day_of_week(): void
-    {
-        $mapDayOfWeek = new MapDayOfWeek();
-
-        $this->expectException(InvalidArgumentException::class);
-        $mapDayOfWeek->lengthen('INVALID');
-    }
-}
+    $this->expectException(InvalidArgumentException::class);
+    $mapDayOfWeek->lengthen('INVALID');
+});

@@ -11,7 +11,10 @@ use Maatwebsite\Excel\Concerns\WithDefaultStyles;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
+use PhpOffice\PhpSpreadsheet\Exception;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Color;
@@ -22,42 +25,58 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 /*******************************************************************************************************************
  * @see \App\Imports\UsersImport CHANGES IN THIS FILE NEED HERE MAY NEED TO BE REFLECTED HERE
  *******************************************************************************************************************/
-class UsersExport extends DefaultValueBinder implements
-    FromQuery,
-    ShouldAutoSize,
-    WithHeadings,
-    WithCustomValueBinder,
-    WithDefaultStyles,
-    WithMapping,
-    WithStyles
+class UsersExport extends DefaultValueBinder implements FromQuery, ShouldAutoSize, WithCustomValueBinder, WithDefaultStyles, WithHeadings, WithMapping, WithStyles
 {
     private bool $excludeData = false;
 
     public function excludeData(): static
     {
         $this->excludeData = true;
+
         return $this;
     }
 
     /**
      * @noinspection PhpUnused
+     *
      * @codeCoverageIgnore
      */
     public function includeData(): static
     {
         $this->excludeData = false;
+
         return $this;
     }
 
     public function query(): Builder
     {
         return User::query()
-            ->when($this->excludeData, fn(Builder $query) => $query->whereRaw('true = false'))
+            ->when($this->excludeData, fn (Builder $query) => $query->whereRaw('true = false'))
             ->with(['spouse']);
     }
 
     /**
-     * @param User $row
+     * Forces anything that opens like a formula to be stored as text.
+     *
+     * The parent binder deliberately maps a leading `=` onto
+     * `DataType::TYPE_FORMULA`, so without this override a volunteer who sets
+     * their own name to `=WEBSERVICE(...)` gets it evaluated when an admin
+     * opens the download. The other characters are the DDE and lookup variants
+     * that spreadsheets treat the same way.
+     */
+    public function bindValue(Cell $cell, $value): bool
+    {
+        if (is_string($value) && $value !== '' && str_contains("=+-@\t\r", $value[0])) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
+    }
+
+    /**
+     * @param  User  $row
      */
     public function map($row): array
     {
@@ -81,7 +100,7 @@ class UsersExport extends DefaultValueBinder implements
     {
         return [
             [
-                'PLACEHOLDER OTHERWISE THIS DOES NOT WORK'
+                'PLACEHOLDER OTHERWISE THIS DOES NOT WORK',
             ],
             [
                 'NAME',
@@ -100,7 +119,7 @@ class UsersExport extends DefaultValueBinder implements
     }
 
     /**
-     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * @throws Exception
      */
     public function styles(Worksheet $sheet): void
     {
@@ -117,11 +136,11 @@ class UsersExport extends DefaultValueBinder implements
     }
 
     /**
-     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * @throws Exception
      */
     protected function applyInstructions(Worksheet $sheet): void
     {
-        $richText = new RichText();
+        $richText = new RichText;
 
         $this->doText($richText, 'DO NOT DELETE THIS ROW! RETAIN THE HEADING ROW!', true, true);
         $this->doText($richText, 'Instructions: Starting on Row 3, fill in the relevant fields. Do not delete rows 1 and 2.', true, true);
@@ -161,7 +180,7 @@ class UsersExport extends DefaultValueBinder implements
     protected function doText(RichText $richText, string $text, $newLine = false, $bold = false, $underline = false): void
     {
         if ($bold || $underline) {
-            $formatted = $richText->createTextRun($text . $this->newLine($newLine));
+            $formatted = $richText->createTextRun($text.$this->newLine($newLine));
             if ($bold) {
                 $formatted->getFont()?->setBold(true);
             }
@@ -169,7 +188,7 @@ class UsersExport extends DefaultValueBinder implements
                 $formatted->getFont()?->setUnderline(true);
             }
         } else {
-            $richText->createText($text . $this->newLine($newLine));
+            $richText->createText($text.$this->newLine($newLine));
         }
     }
 

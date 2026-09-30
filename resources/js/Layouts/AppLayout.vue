@@ -9,7 +9,7 @@ import { useDarkMode } from "@/Composables/useDarkMode.js";
 import { useGlobalState } from "@/store";
 import { EnableUserAvailability } from "@/Utils/provide-inject-keys.js"; // TODO AFTER REMOVING FLOATING-VUE, DELETE
 import "@vuepic/vue-datepicker/dist/main.css"; // FIXME AFTER REMOVING VUE-DATEPICKER, DELETE
-import "floating-vue/dist/style.css";
+import "floating-vue/dist/style.css"; // TODO AFTER REMOVING FLOATING-VUE, DELETE — the plugin itself is already gone, only this stylesheet remains
 
 defineProps<{
   fullWidth?: boolean;
@@ -26,12 +26,15 @@ onMounted(() => {
   if (bugsnagKey) {
     const user = page.props.auth.user;
     if (user?.id) {
-      Bugsnag.setUser(user.id, user.email, user.name);
+      Bugsnag.setUser(String(user.id), user.email, user.name);
     }
   }
 });
 
-const { isDarkMode } = useDarkMode();
+// Called for the side effect, not the return: `useColorMode` is what puts
+// `.dark` on <html>, and the theme has to resolve for every page under this
+// layout rather than depending on the nav's switch happening to be mounted.
+useDarkMode();
 
 provide(EnableUserAvailability, !!page.props.enableUserAvailability || false);
 
@@ -59,35 +62,32 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="text-neutral-900 dark:text-neutral-100 bg-gradient-to-b from-page  to-neutral-50 dark:bg-page-dark dark:bg-gradient-to-b dark:from-page-dark dark:to-neutral-950">
-    <div class="flex flex-col content-start min-h-dvh w-dvw max-w-full-dvw justify-stretch">
-      <Nav class="border-b page-grid border-neutral-300 dark:border-neutral-700/85"
-           @toggle-dark-mode="isDarkMode = $event" />
+  <div class="from-page dark:bg-page-dark dark:from-page-dark bg-gradient-to-b to-neutral-50 text-neutral-900 dark:bg-gradient-to-b dark:to-neutral-950 dark:text-neutral-100">
+    <div class="flex min-h-dvh w-dvw max-w-full-dvw flex-col content-start justify-stretch">
+      <NavBar class="page-grid border-b border-neutral-300 dark:border-neutral-700/85" />
 
       <!-- Page Heading -->
       <header id="page-header"
-              class="page-grid
-                      px-4 xl:px-0 py-6
-                      border-b border-neutral-200 text-neutral-900 dark:text-neutral-100 dark:border-b dark:border-neutral-700/85">
+              class="page-grid border-b border-neutral-200 px-4 py-6 text-neutral-900 xl:px-0 dark:border-b dark:border-neutral-700/85 dark:text-neutral-100">
         <slot name="header" />
       </header>
 
-      <main class="flex-1 flex sm:flex-col">
+      <main class="flex flex-1 sm:flex-col">
         <!-- Page Top -->
         <section v-if="$slots['page-top']" class="page-grid text-neutral-900 dark:text-neutral-100">
           <slot name="page-top" />
         </section>
 
         <!-- Page Content -->
-        <section class="flex-1 w-dvw page-grid">
-          <div class="pt-4 sm:pb-6 px-4 sm:px-4 bg-panel dark:bg-panel-dark overflow-hidden border border-t-0 std-border sm:rounded-b-md sm:mb-5">
+        <section class="page-grid w-dvw flex-1">
+          <div class="bg-panel dark:bg-panel-dark std-border overflow-hidden border border-t-0 px-4 pt-4 sm:mb-5 sm:rounded-b-md sm:px-4 sm:pb-6">
             <slot />
           </div>
         </section>
       </main>
 
       <!-- Page Bottom -->
-      <section v-if="$slots['page-bottom']" class="px-4 py-6 w-7xl sm:px-6 lg:px-8 text-neutral-900 dark:text-neutral-100">
+      <section v-if="$slots['page-bottom']" class="w-7xl px-4 py-6 text-neutral-900 sm:px-6 lg:px-8 dark:text-neutral-100">
         <slot name="page-bottom" />
       </section>
     </div>

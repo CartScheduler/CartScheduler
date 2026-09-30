@@ -12,7 +12,7 @@ class GetUserShiftsData
 {
     /**
      * This is a recursive query that will return a list of dates from the start date
-     * to the end date, and then join that list of dates to the shifts table to get
+     * to the end date and then join that list of dates to the shift table to get
      * the shifts for that date.
      *
      * Parameters line up with those in cart-scheduler config
@@ -38,6 +38,7 @@ class GetUserShiftsData
                        shift_user.user_id AS volunteer_id,
                        shifts.id AS shift_id,
                        shifts.start_time,
+                       shifts.end_time,
                        shifts.location_id,
                        shifts.available_from,
                        shifts.available_to,

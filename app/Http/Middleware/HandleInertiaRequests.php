@@ -86,6 +86,10 @@ class HandleInertiaRequests extends Middleware
             $custom['enableUserLocationChoices'] = true;
         }
 
+        if ($this->settings->enableShiftRemoveConfirm) {
+            $custom['shiftRemoveConfirmMessage'] = $this->settings->shiftRemoveConfirmMessage;
+        }
+
         if ($user?->is_unrestricted) {
             $custom['isUnrestricted'] = true;
         }

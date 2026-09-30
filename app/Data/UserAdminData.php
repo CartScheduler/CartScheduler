@@ -20,7 +20,7 @@ class UserAdminData extends Data
         public string $name,
         public string $email,
         public string $role,
-        #[LiteralTypeScriptType('male | female | undefined')]
+        #[LiteralTypeScriptType("'male' | 'female' | undefined")]
         public string|Optional $gender,
         public string|Optional $mobile_phone,
         public int|Optional $year_of_birth,
@@ -28,7 +28,7 @@ class UserAdminData extends Data
         public ServingAs|Optional $serving_as,
         public MaritalStatus|Optional $marital_status,
         public string|Optional $responsible_brother,
-        /** @var Collection<\App\Data\UserVacationData> */
+        /** @var Collection<UserVacationData> */
         public Collection|Optional $vacations,
         public AvailabilityData|Optional $availability,
         public SpouseAdminData|Optional $spouse,
@@ -37,14 +37,13 @@ class UserAdminData extends Data
         public bool $is_enabled = true,
         public bool $is_unrestricted = false,
         public bool $has_logged_in = false,
-    ) {
-    }
+    ) {}
 
     /** @noinspection PhpUnused */
     public static function fromModel(User $user): self
     {
         $selectedLocations = $user->relationLoaded('rosterLocations')
-            ? $user->rosterLocations->map(fn($location) => $location->id)
+            ? $user->rosterLocations->map(fn ($location) => $location->id)
             : Optional::create();
 
         $vacations = $user->relationLoaded('vacations')

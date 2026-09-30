@@ -54,6 +54,7 @@
     "verbatimModuleSyntax": false
   },
   "include": [
+    "./*.ts",
     "./resources/js/**/*.ts",
     "./resources/js/**/*.tsx",
     "./resources/js/**/*.vue",
@@ -61,6 +62,6 @@
   "exclude": [
     "node_modules",
     "node_modules/primevue/accordionpanel/*.ts",
-    "./resources/js/__*__/*.ts",
+    "./resources/js/__*__/**/*.ts",
   ]
 }

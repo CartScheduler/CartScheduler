@@ -8,14 +8,6 @@ import useToast from "@/Composables/useToast";
 import JetLabel from "@/Jetstream/Label.vue";
 import type { AppPageProps } from "@/types/laravel-request-helpers";
 
-type PageProps = {
-  jetstream: {
-    flash?: {
-      setPassword?: string;
-    };
-  };
-};
-
 const props = defineProps<{
   canResetPassword: boolean;
   status?: string; // This is used by Laravel Fortify
@@ -57,7 +49,7 @@ const submit = async () => {
 
 const setPasswordSuccess = computed<string>(() => {
   // When the user has successfully set their password, they will be directed to the login with a message:
-  return usePage<AppPageProps<PageProps>>().props.jetstream.flash?.setPassword || "";
+  return usePage<AppPageProps>().props.jetstream.flash?.setPassword || "";
 });
 
 if (import.meta.env.DEV) {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Actions\SanitiseRichText;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
@@ -18,17 +19,23 @@ class UpdateLocationRequest extends FormRequest
     {
         // Force the location id to be the same as the location id in the route
         $locationId = $this->route('location')->id;
-        $shifts     = collect($this->get('shifts', []));
-        $shifts     = $shifts->map(function (array $shift) use ($locationId) {
+        $shifts = collect($this->get('shifts', []));
+        $shifts = $shifts->map(function (array $shift) use ($locationId) {
             $shift['location_id'] = $locationId;
             // convert undefined to null so it can update in the database
             $shift['available_from'] = $shift['available_from'] ?? null;
             $shift['available_to'] = $shift['available_to'] ?? null;
+
             return $shift;
         });
-        $this->merge(['shifts' => $shifts->toArray()]);
+        $this->merge([
+            'shifts' => $shifts->toArray(),
+            // The editor is a UI, not a boundary: this endpoint accepts whatever
+            // markup is posted, and the result is rendered with `v-html` on every
+            // volunteer's dashboard.
+            'description' => app(SanitiseRichText::class)->execute($this->get('description')),
+        ]);
     }
-
 
     /**
      * Get the validation rules that apply to the request.
@@ -38,34 +45,35 @@ class UpdateLocationRequest extends FormRequest
     public function rules(): array
     {
         $maxVolunteers = config('cart-scheduler.max_volunteers_per_location');
+
         return [
-            'name'                    => ['required', 'string', 'max:190'],
-            'description'             => ['required', 'string', 'max:4000000000'],
-            'min_volunteers'          => ['required', 'integer', 'lte:max_volunteers', 'min:0'],
-            'max_volunteers'          => ['required', 'integer', 'gte:min_volunteers', "max:$maxVolunteers"],
-            'requires_brother'        => ['boolean'],
-            'latitude'                => ['nullable', 'numeric', 'min:-90', 'max:90.999999999999'],
-            'longitude'               => ['nullable', 'numeric', 'min:-180', 'max:180.999999999999'],
-            'is_enabled'              => ['nullable', 'boolean'],
-            'shifts'                  => ['array'],
-            'shifts.*.id'             => ['filled', 'integer'],
-            'shifts.*.location_id'    => ['required', 'integer'],
-            'shifts.*.day_monday'     => ['boolean'],
-            'shifts.*.day_tuesday'    => ['boolean'],
-            'shifts.*.day_wednesday'  => ['boolean'],
-            'shifts.*.day_thursday'   => ['boolean'],
-            'shifts.*.day_friday'     => ['boolean'],
-            'shifts.*.day_saturday'   => ['boolean'],
-            'shifts.*.day_sunday'     => ['boolean'],
+            'name' => ['required', 'string', 'max:190'],
+            'description' => ['required', 'string', 'max:4000000000'],
+            'min_volunteers' => ['required', 'integer', 'lte:max_volunteers', 'min:0'],
+            'max_volunteers' => ['required', 'integer', 'gte:min_volunteers', "max:$maxVolunteers"],
+            'requires_brother' => ['boolean'],
+            'latitude' => ['nullable', 'numeric', 'min:-90', 'max:90.999999999999'],
+            'longitude' => ['nullable', 'numeric', 'min:-180', 'max:180.999999999999'],
+            'is_enabled' => ['nullable', 'boolean'],
+            'shifts' => ['array'],
+            'shifts.*.id' => ['filled', 'integer'],
+            'shifts.*.location_id' => ['required', 'integer'],
+            'shifts.*.day_monday' => ['boolean'],
+            'shifts.*.day_tuesday' => ['boolean'],
+            'shifts.*.day_wednesday' => ['boolean'],
+            'shifts.*.day_thursday' => ['boolean'],
+            'shifts.*.day_friday' => ['boolean'],
+            'shifts.*.day_saturday' => ['boolean'],
+            'shifts.*.day_sunday' => ['boolean'],
             // Note, extra validation is done in withValidator()
-            'shifts.*.start_time'     => ['required', 'date_format:H:i:s', 'before_or_equal:shifts.*.end_time'],
+            'shifts.*.start_time' => ['required', 'date_format:H:i:s', 'before_or_equal:shifts.*.end_time'],
             // Note, extra validation is done in withValidator()
-            'shifts.*.end_time'       => ['required', 'date_format:H:i:s', 'after_or_equal:shifts.*.start_time'],
+            'shifts.*.end_time' => ['required', 'date_format:H:i:s', 'after_or_equal:shifts.*.start_time'],
             // Note, extra validation is done in withValidator()
             'shifts.*.available_from' => ['nullable', 'date', 'date_format:Y-m-d'],
             // Note, extra validation is done in withValidator()
-            'shifts.*.available_to'   => ['nullable', 'date', 'date_format:Y-m-d'],
-            'shifts.*.is_enabled'     => ['nullable', 'boolean'],
+            'shifts.*.available_to' => ['nullable', 'date', 'date_format:Y-m-d'],
+            'shifts.*.is_enabled' => ['nullable', 'boolean'],
         ];
     }
 
@@ -79,13 +87,13 @@ class UpdateLocationRequest extends FormRequest
                 $validator->sometimes(
                     'shifts.*.available_from',
                     'before_or_equal:shifts.*.available_to',
-                    fn(Fluent $input, Fluent $shiftData) => (bool)$shiftData->get('available_to'));
+                    fn (Fluent $input, Fluent $shiftData) => (bool) $shiftData->get('available_to'));
 
                 // Validate that available_to is after available_from only if the latter is present
                 $validator->sometimes(
                     'shifts.*.available_to',
                     'after_or_equal:shifts.*.available_from',
-                    fn(Fluent $input, Fluent $shiftData) => (bool)$shiftData->get('available_from'));
+                    fn (Fluent $input, Fluent $shiftData) => (bool) $shiftData->get('available_from'));
             },
         ];
     }
@@ -95,17 +103,17 @@ class UpdateLocationRequest extends FormRequest
         $formatMsg = 'Please use the format 04xx xxx xxx';
 
         return [
-            'mobile_phone.regex'                      => "The mobile phone can contain only numbers and spaces. $formatMsg",
-            'mobile_phone.min'                        => $formatMsg,
-            'mobile_phone.max'                        => $formatMsg,
-            'shifts.*.start_time.date_format'         => 'Please use the format HH:mm:ss',
-            'shifts.*.end_time.date_format'           => 'Please use the format HH:mm:ss',
-            'shifts.*.start_time.before_or_equal'     => "The 'start' time must be before the 'end' time.",
-            'shifts.*.end_time.after_or_equal'        => "The 'end' time must be after the 'start' time. ",
-            'shifts.*.available_from.date'            => "The 'available from' date must be a valid date and time",
-            'shifts.*.available_to.date'              => "The 'available to' date must be a valid date and time",
+            'mobile_phone.regex' => "The mobile phone can contain only numbers and spaces. $formatMsg",
+            'mobile_phone.min' => $formatMsg,
+            'mobile_phone.max' => $formatMsg,
+            'shifts.*.start_time.date_format' => 'Please use the format HH:mm:ss',
+            'shifts.*.end_time.date_format' => 'Please use the format HH:mm:ss',
+            'shifts.*.start_time.before_or_equal' => "The 'start' time must be before the 'end' time.",
+            'shifts.*.end_time.after_or_equal' => "The 'end' time must be after the 'start' time. ",
+            'shifts.*.available_from.date' => "The 'available from' date must be a valid date and time",
+            'shifts.*.available_to.date' => "The 'available to' date must be a valid date and time",
             'shifts.*.available_from.before_or_equal' => "The 'available from' date must be before or the same as the 'available to' date",
-            'shifts.*.available_to.after_or_equal'    => "The 'available to' date must be after or the same the 'available from' date",
+            'shifts.*.available_to.after_or_equal' => "The 'available to' date must be after or the same the 'available from' date",
         ];
     }
 
@@ -114,13 +122,13 @@ class UpdateLocationRequest extends FormRequest
         $shifts = $this->get('shifts', []);
 
         foreach ($shifts as $index1 => $shift1) {
-            if (!isset($shift1['is_enabled']) || !$shift1['is_enabled']) {
+            if (! isset($shift1['is_enabled']) || ! $shift1['is_enabled']) {
                 continue;
             }
 
             $errorShifts = 0;
             foreach ($shifts as $index2 => $shift2) {
-                if (!isset($shift2['is_enabled']) || !$shift2['is_enabled'] || $index1 === $index2) {
+                if (! isset($shift2['is_enabled']) || ! $shift2['is_enabled'] || $index1 === $index2) {
                     continue;
                 }
 
@@ -136,25 +144,25 @@ class UpdateLocationRequest extends FormRequest
 
                 // For overlapping periods with only available_from or available_to
                 $eitherSetOfDatesShift1 = isset($shift1['available_from']) || isset($shift1['available_to']);
-                $noDatesShift2          = !isset($shift2['available_from']) && !isset($shift2['available_to']);
+                $noDatesShift2 = ! isset($shift2['available_from']) && ! isset($shift2['available_to']);
                 if ($eitherSetOfDatesShift1 && $noDatesShift2 && $timesOverlap && $this->doDaysOverlap($shift1, $shift2)) {
                     $errorShifts = 120;
                 }
 
-                $eitherSetOfDatesShift1 = !isset($shift1['available_from']) && !isset($shift1['available_to']);
-                $noDatesShift2          = isset($shift2['available_from']) || isset($shift2['available_to']);
+                $eitherSetOfDatesShift1 = ! isset($shift1['available_from']) && ! isset($shift1['available_to']);
+                $noDatesShift2 = isset($shift2['available_from']) || isset($shift2['available_to']);
                 if ($eitherSetOfDatesShift1 && $noDatesShift2 && $timesOverlap && $this->doDaysOverlap($shift1, $shift2)) {
                     $errorShifts = 121;
                 }
 
                 // For shifts with no available_from or available_to
-                $noDatesBoth = !isset($shift1['available_from']) && !isset($shift1['available_to']) && !isset($shift2['available_from']) && !isset($shift2['available_to']);
+                $noDatesBoth = ! isset($shift1['available_from']) && ! isset($shift1['available_to']) && ! isset($shift2['available_from']) && ! isset($shift2['available_to']);
                 if ($noDatesBoth && $timesOverlap && $this->doDaysOverlap($shift1, $shift2)) {
                     $errorShifts = 130;
                 }
 
                 $startTime = Carbon::now()->setTimeFromTimeString($shift2['start_time'])->format('H:i');
-                $endTime   = Carbon::now()->setTimeFromTimeString($shift2['end_time'])->format('H:i');
+                $endTime = Carbon::now()->setTimeFromTimeString($shift2['end_time'])->format('H:i');
 
                 if ($errorShifts) {
                     $validator->errors()->add("shifts.$index1.start_time", "There is an active shift that conflicts with this shift between $startTime and $endTime. Only one shift per timeslot can be enabled. [Code: $errorShifts]");
@@ -164,6 +172,7 @@ class UpdateLocationRequest extends FormRequest
     }
 
     private array $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
     protected function doDaysOverlap($shift1, $shift2): bool
     {
         $daysOverlap = false;
@@ -173,6 +182,7 @@ class UpdateLocationRequest extends FormRequest
                 break;
             }
         }
+
         return $daysOverlap;
     }
 }

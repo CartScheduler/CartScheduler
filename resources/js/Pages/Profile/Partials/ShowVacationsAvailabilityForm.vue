@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Dropdown as VDropdown } from "floating-vue";
 import SubmitButton from "@/Components/Form/Buttons/SubmitButton.vue";
+import DateRange from "@/Components/Form/DateRange.vue";
 import CloseCircle from "@/Components/Icons/CloseCircle.vue";
 import QuestionCircle from "@/Components/Icons/QuestionCircle.vue";
 import InputTextEIPField from "@/Components/InputTextEIPField.vue";
@@ -9,12 +10,11 @@ import JetActionMessage from "@/Jetstream/ActionMessage.vue";
 import JetFormSection from "@/Jetstream/FormSection.vue";
 import JetInput from "@/Jetstream/Input.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
-import VacationDateRange from "@/Pages/Profile/Partials/VacationDateRange.vue";
 import precognitiveForm from "@/Utils/precognitiveForm";
 
 const { vacations = [], userId } = defineProps<{
-  vacations?: Array<App.Data.UserVacationData>;
-  userId?: number;
+  vacations?: Array<App.Data.UserVacationData> | undefined;
+  userId?: number | undefined;
 }>();
 
 const toast = useToast();
@@ -59,7 +59,13 @@ const resetForm = () => {
 
 const addVacation = () => form.vacations = [...form.vacations, { start_date: "", end_date: "", description: "" }];
 
-const deleteVacation = (idx: number) => form.deletedVacations = [...form.deletedVacations, form.vacations.splice(idx, 1)[0]];
+const deleteVacation = (idx: number) => {
+  const [removed] = form.vacations.splice(idx, 1);
+  if (!removed) {
+    return;
+  }
+  form.deletedVacations = [...form.deletedVacations, removed];
+};
 </script>
 
 <template>
@@ -76,7 +82,7 @@ const deleteVacation = (idx: number) => form.deletedVacations = [...form.deleted
       <div class="col-span-6 text-gray-700 dark:text-gray-100">
         <div v-if="form.vacations?.length">
           <div v-for="(vacation, idx) in form.vacations"
-               :key="vacation.id"
+               :key="vacation.id ?? `new-${idx}`"
                class="grid grid-cols-[auto_minmax(0,_1fr)] sm:grid-cols-[auto_minmax(0,_2fr)] gap-y-px gap-x-3 rounded p-3 items-center mb-3 bg-sub-panel dark:bg-sub-panel-dark shadow">
             <PButton severity=""
                      type="button"
@@ -84,10 +90,10 @@ const deleteVacation = (idx: number) => form.deletedVacations = [...form.deleted
                      @click="deleteVacation(idx)">
               <CloseCircle />
             </PButton>
-            <vacation-date-range v-model:start-date="vacation.start_date"
-                                 v-model:end-date="vacation.end_date"
-                                 :start-error="form.errors[`vacations.${idx}.start_date`]"
-                                 :end-error="form.errors[`vacations.${idx}.end_date`]" />
+            <DateRange v-model:start-date="vacation.start_date"
+                       v-model:end-date="vacation.end_date"
+                       :start-error="form.errors[`vacations.${idx}.start_date`]"
+                       :end-error="form.errors[`vacations.${idx}.end_date`]" />
             <div class="mt-2 sm:mt-0">
               <div class="flex items-center">
                 <span class="font-bold">Comment</span>

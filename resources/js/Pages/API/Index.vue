@@ -1,11 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import ApiTokenManager from "@/Pages/API/Partials/ApiTokenManager.vue";
+import type { ApiToken } from "@/Pages/API/Partials/ApiTokenManager.vue";
 
-defineProps({
-  tokens: Array,
-  availablePermissions: Array,
-  defaultPermissions: Array,
-});
+defineProps<{
+  tokens?: ApiToken[];
+  availablePermissions?: string[];
+  defaultPermissions?: string[];
+}>();
 </script>
 
 <template>

@@ -111,7 +111,7 @@ onUnmounted(() => {
           ref="submenu"
           :id
           :class="[ popUpPosition === 'start' ? 'sm:absolute sm:left-0' : 'sm:absolute sm:right-0' ]"
-          class="overflow-hidden flex flex-col gap-1 ps-4 sm:px-1 sm:py-1 sm:mt-2 sm:min-w-48 sm:z-50 sm:bg-white sm:rounded-md sm:ring-1 sm:ring-black sm:ring-opacity-5 sm:shadow-md sm:origin-top-right sm:dark:bg-neutral-700/60 sm:backdrop-blur-sm sm:focus:outline-none">
+          class="overflow-hidden flex flex-col gap-1 ps-4 sm:px-1 sm:py-1 sm:mt-2 sm:min-w-48 sm:z-50 sm:bg-white/70 sm:rounded-md sm:ring-1 sm:ring-black sm:ring-opacity-5 sm:shadow-md sm:origin-top-right sm:dark:bg-neutral-700/60 sm:backdrop-blur-sm sm:focus:outline-none">
         <li v-for="subItem in submenuItems"
             :key="subItem.label">
           <Link v-if="subItem.href"

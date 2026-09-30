@@ -1,7 +1,3 @@
-<script setup lang="ts">
-
-</script>
-
 <template>
   <transition name="fade">
     <slot />
@@ -12,7 +8,7 @@
 <style>
 .fade-enter-active,
 .fade-leave-active {
-    transition: opacity 0.5s ease;
+    transition: opacity 0.25s ease;
 }
 
 .fade-enter-from,

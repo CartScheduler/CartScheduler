@@ -16,8 +16,6 @@ const options: ToastOptions = {
   group: "default",
   closable: true,
   life: 5000,
-  styleClass: undefined,
-  contentStyleClass: undefined,
 };
 
 export default function useToast() {

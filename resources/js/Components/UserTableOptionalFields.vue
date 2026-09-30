@@ -1,22 +1,26 @@
 <script setup lang="ts">
 import { templateRef } from "@vueuse/core";
-import { computed } from "vue";
-import { useGlobalState } from "@/store";
+import { computed, inject } from "vue";
+import { useGlobalState, columnFilterOrder } from "@/store";
+import { EnableUserAvailability } from "@/Utils/provide-inject-keys";
 import type { LocalStore } from "@/store";
 
 const state = useGlobalState();
+const enableUserAvailability = inject(EnableUserAvailability);
 
-const options = computed(() => Object.entries(state.value.columnFilters).map(([key, value]) => ({
-  key,
-  name: value.label,
-  value: value.value,
-})));
+const options = computed(() => columnFilterOrder
+  .filter((key) => enableUserAvailability || key !== "weeksPerMonth")
+  .map((key) => ({
+    key,
+    name: state.value.columnFilters[key].label,
+    value: state.value.columnFilters[key].value,
+  })));
 
 const model = computed({
   get: () => options.value.filter((value) => value.value).map((value) => ({ ...value })),
   set: (val) => {
     options.value.forEach((value) => {
-      state.value.columnFilters[value.key as keyof LocalStore["columnFilters"]].value = !!val.find((item) => item.key === value.key);
+      state.value.columnFilters[value.key as keyof LocalStore["columnFilters"]].value = val.some((item) => item.key === value.key);
     });
   },
 });
@@ -25,12 +29,9 @@ const label = computed(() => {
   if (!model.value.length) {
     return "0 selected";
   }
-  let count = 0;
-  for (const key in model.value) {
-    if (model.value[key].value) {
-      count++;
-    }
-  }
+  // `for…in` walked the array by string index, so each lookup came back as
+  // possibly absent. The count is over the entries themselves.
+  const count = model.value.filter((option) => option.value).length;
   return `${count} selected`;
 });
 

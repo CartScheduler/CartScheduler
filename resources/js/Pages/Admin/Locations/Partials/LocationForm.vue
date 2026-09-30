@@ -7,6 +7,7 @@ import JetFormSection from "@/Jetstream/FormSection.vue";
 import JetSectionBorder from "@/Jetstream/SectionBorder.vue";
 import ShiftData from "@/Pages/Admin/Locations/Partials/ShiftData.vue";
 import LocationData from "./LocationData.vue";
+import type { LocationFormData } from "@/Pages/Admin/Locations/Partials/locationFormData";
 
 const { location, maxVolunteers, action } = defineProps<{
   location: App.Data.LocationAdminData;
@@ -18,7 +19,7 @@ defineEmits(["cancel"]);
 
 const toast = useToast();
 
-const form = useForm<App.Data.LocationAdminData>({
+const form = useForm<LocationFormData>({
   id: location?.id,
   name: location?.name,
   description: location?.description,

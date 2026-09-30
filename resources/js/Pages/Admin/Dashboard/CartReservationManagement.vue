@@ -12,7 +12,6 @@ import DatePicker from "@/Pages/Components/Dashboard/DatePicker.vue";
 import type { Ref } from "vue";
 import type { Location, Shift } from "@/Composables/useLocationFilter";
 import type { Selection } from "@/Pages/Admin/Dashboard/MoveUserField.vue";
-import type { LocationsOnDate } from "@/Pages/Components/Dashboard/DatePicker.vue";
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -38,9 +37,8 @@ const gridCols = {
   5: "grid-cols-reservation-5",
 };
 
-const locationsOnDays = ref<LocationsOnDate[]>([]);
-
-const setLocationMarkers = (locations: LocationsOnDate[]) => locationsOnDays.value = locations;
+/** The picker stays covered until the first fetch has brought something back. */
+const hasInitialised = computed(() => locations.value.length > 0);
 
 type MoveSelection = {
   label: string;
@@ -188,20 +186,29 @@ type SelectedRemoveUser = {
 };
 
 const removeVolunteer = async () => {
+  // Read once, up front. The `finally` below clears the selection, so a second
+  // call entered while the first request is still out — a double-tap on the
+  // confirm button — used to find it already `undefined` and throw building
+  // the toast, reporting a crash for a removal that had in fact succeeded.
+  const selected = selectedRemoveUser.value;
+  if (!selected) {
+    return;
+  }
+
   const timeoutId = setTimeout(() => isLoading.value = true, 1000);
 
   try {
     await axios.delete("/admin/toggle-shift-for-user", {
       data: {
         do_reserve: false,
-        user: selectedRemoveUser.value!.volunteer.id,
-        location: selectedRemoveUser.value!.location.id,
-        shift: selectedRemoveUser.value!.shift.id,
-        date: format(selectedRemoveUser.value!.date, "yyyy-MM-dd"),
+        user: selected.volunteer.id,
+        location: selected.location.id,
+        shift: selected.shift.id,
+        date: format(selected.date, "yyyy-MM-dd"),
       },
     });
 
-    toast.warning(`${selectedRemoveUser.value!.volunteer.name} was removed from ${selectedRemoveUser.value!.location.name} at ${selectedRemoveUser.value!.shift.start_time}`);
+    toast.warning(`${selected.volunteer.name} was removed from ${selected.location.name} at ${selected.shift.start_time}`);
   } catch (e) {
     if (isAxiosError(e) && e.response?.data?.message) {
       toast.error(e.response.data.message);
@@ -235,10 +242,7 @@ const rowClass = (gender?: string) => {
 };
 
 type ShiftLocation = { shift: Shift; location: Location };
-const assignUserData = reactive<Partial<ShiftLocation>>({
-  shift: undefined,
-  location: undefined,
-});
+const assignUserData = reactive<Partial<ShiftLocation>>({});
 
 const doShowAssignVolunteerModal = (shift: Shift, location: Location) => {
   assignUserData.shift = shift;
@@ -264,17 +268,15 @@ onMounted(() => {
 <template>
   <div class="grid gap-3 grid-cols-1 sm:grid-cols-[20rem_3fr] sm:items-stretch">
     <div class="pb-3 md:pb-0">
-      <ComponentSpinner :show="!locations">
-        <DatePicker can-view-historical
-                    v-model:date="date"
-                    :locations="locations"
-                    :free-shifts="freeShifts"
-                    :marker-dates="serverDates"
-                    @locations-for-day="setLocationMarkers" />
-      </ComponentSpinner>
+      <DatePicker can-view-historical
+                  v-model:date="date"
+                  :is-ready="hasInitialised"
+                  :free-shifts="freeShifts"
+                  :marker-dates="serverDates" />
     </div>
     <ComponentSpinner :show="isLoading" class="min-h-[200px] sm:min-h-full">
-      <Accordion v-if="!isLoading" v-model="accordionExpandIndex" class="border std-border rounded border-b-0">
+      <!-- No border here: the panels draw the outline of the stack themselves. -->
+      <Accordion v-if="!isLoading" v-model="accordionExpandIndex">
         <AccordionPanel v-for="location in locations" :key="location.id" :uniqueId="location.id">
           <template #title>
             <div class="flex items-center text-base font-bold p-2">

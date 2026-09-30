@@ -3,19 +3,24 @@
   "compilerOptions": {
     "module": "ES2022",
     "noEmit": true,
+    // No "types/vue": there is no such package, and naming it made the whole
+    // config fail to load before a single file was checked.
     "types": [
       "vitest/globals",
       "chai",
-      "node",
-      "types/vue"
+      "node"
     ]
   },
-    "include": [
-      "./vitest.config.ts",
-      "./resources/js/**/*.ts",
-      "./resources/js/**/*.tsx",
-      "./resources/js/**/*.vue",
-      "./resources/js/tests/**/*.ts",
-      "./resources/js/tests/**/*.tsx"
+  // The root config excludes the test directory; this config exists to check
+  // it, so the exclusion is lifted here.
+  "exclude": [],
+  "include": [
+    // The root config's own declaration files, which the shims at the project
+    // root live in.
+    "./*.ts",
+    "./vitest.config.ts",
+    "./resources/js/**/*.ts",
+    "./resources/js/**/*.tsx",
+    "./resources/js/**/*.vue"
   ]
-},
+}

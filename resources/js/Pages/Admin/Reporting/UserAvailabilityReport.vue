@@ -1,4 +1,11 @@
-<template></template>
+<!--
+  Unbuilt: everything below is commented out, and `admin.reports.users-availability`
+  still renders this component, so that route currently serves a blank page.
+  The empty root is a placeholder, not a design.
+-->
+<template>
+  <div />
+</template>
 <!-- <script setup> -->
 <!-- import {computed, h, ref} from 'vue'; -->
 <!-- import {useForm} from '@inertiajs/vue3'; -->
