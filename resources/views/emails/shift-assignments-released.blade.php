@@ -9,7 +9,10 @@ We’re pleased to inform you that you have been assigned to the following SMPW 
 
 @foreach ($shifts as $shift)
 **Date:** {{ $shift['date'] }}  
-**Location:** {{ $shift['location'] }}  
+**Location:** {{ $shift['location'] }}@if (!empty($shift['location_map_url'])) ([Map]({{ $shift['location_map_url'] }}))@endif  
+@if (!empty($shift['location_description']))
+{{ $shift['location_description'] }}  
+@endif
 **Start Time:** {{ $shift['start_time'] }}  
 **Finish Time:** {{ $shift['end_time'] }}  
 **Other Volunteers:**

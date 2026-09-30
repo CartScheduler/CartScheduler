@@ -14,7 +14,7 @@ class NotifyReleasedShiftAssignmentsCommand extends Command
 
     public function handle(NotifyVolunteersOfReleasedShifts $notifyVolunteersOfReleasedShifts): int
     {
-        if (!config('cart-scheduler.shift_assignment_notifications_enabled')) {
+        if (! config('cart-scheduler.shift_assignment_notifications_enabled')) {
             $this->info('Shift assignment notifications are disabled (CA_SHIFT_ASSIGNMENT_NOTIFICATIONS_ENABLED).');
 
             return self::SUCCESS;
@@ -29,7 +29,7 @@ class NotifyReleasedShiftAssignmentsCommand extends Command
         }
 
         $this->info(sprintf(
-            'Sent notifications to %d volunteer(s) covering %d assignment(s).',
+            'Queued notifications for %d volunteer(s) covering %d assignment(s).',
             $result['users_notified'],
             $result['assignments_notified'],
         ));

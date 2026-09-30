@@ -31,6 +31,49 @@ declare namespace App.Data {
     locations: Array<App.Data.LocationData>;
     maxDateReservation: string;
   };
+  export type EmailPlaceholderData = {
+    key: string;
+    label: string;
+    description: string;
+    type: string;
+    category: string;
+    value?: string;
+    parent?: string;
+    collection?: string;
+    item?: string;
+  };
+  export type EmailTemplateData = {
+    id: number;
+    key: string;
+    name: string;
+    subject: string;
+    body: string;
+    description?: string;
+    is_system: boolean;
+    updated_at: string;
+    placeholders: Array<App.Data.EmailPlaceholderData>;
+    trigger?: App.Data.EmailTemplateTriggerData;
+    recipients?: App.Data.EmailTemplateRecipientData;
+  };
+  export type EmailTemplateListData = {
+    id: number;
+    key: string;
+    name: string;
+    subject: string;
+    description?: string;
+    is_system: boolean;
+    updated_at: string;
+    trigger?: App.Data.EmailTemplateTriggerData;
+    recipients?: App.Data.EmailTemplateRecipientData;
+  };
+  export type EmailTemplateRecipientData = {
+    summary: string;
+  };
+  export type EmailTemplateTriggerData = {
+    type: App.Enums.EmailTemplateTriggerType;
+    enabled: boolean;
+    summary: string;
+  };
   export type ExtendedUserData = {
     id: number;
     name: string;
@@ -219,6 +262,7 @@ declare namespace App.Enums {
   export type AvailabilityHours = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23;
   export type CacheKey = "total-users" | "total-locations" | "shift-filled-data" | "outstanding-reports";
   export type DBPeriod = "MONTH" | "MONTHS" | "WEEK" | "WEEKS";
+  export type EmailTemplateTriggerType = "system" | "manual";
   export type MaritalStatus = "single" | "married" | "separated" | "divorced" | "widowed";
   export type Role = "admin" | "user";
   export type ServingAs = "field missionary" | "special pioneer" | "bethel family member" | "circuit overseer" | "regular pioneer" | "publisher";

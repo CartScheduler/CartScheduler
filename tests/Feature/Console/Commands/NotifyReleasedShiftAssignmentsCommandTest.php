@@ -5,6 +5,7 @@ namespace Tests\Feature\Console\Commands;
 use App\Actions\NotifyVolunteersOfReleasedShifts;
 use App\Console\Commands\NotifyReleasedShiftAssignmentsCommand;
 use App\Enums\DBPeriod;
+use App\Jobs\SendShiftAssignmentsReleasedMail;
 use App\Mail\ShiftAssignmentsReleased;
 use App\Models\Location;
 use App\Models\Shift;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 use Tests\Traits\SetConfig;
 
@@ -36,10 +38,10 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
 
         $userWithNewShift = User::factory()->userRoleUser()->enabled()->create();
         $userWithOldShift = User::factory()->userRoleUser()->enabled()->create();
-        $userWithNoShift  = User::factory()->userRoleUser()->enabled()->create();
+        $userWithNoShift = User::factory()->userRoleUser()->enabled()->create();
 
         $location = Location::factory()->create(['name' => 'Town Square']);
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
 
         $userWithOldShift->attachShiftOnDate($shift, '2023-02-08');
         $userWithNewShift->attachShiftOnDate($shift, '2023-02-14');
@@ -61,10 +63,15 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         Mail::assertSent(ShiftAssignmentsReleased::class, 1);
         Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($userWithNewShift) {
             return $mail->hasTo($userWithNewShift->email)
-                && $mail->shifts->count() === 2;
+                && $mail->shifts->count() === 2
+                && $mail->period === [
+                    'start' => '13 February 2023',
+                    'end' => '19 February 2023',
+                    'label' => '13 February 2023 – 19 February 2023',
+                ];
         });
-        Mail::assertNotSent(ShiftAssignmentsReleased::class, fn(ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithOldShift->email));
-        Mail::assertNotSent(ShiftAssignmentsReleased::class, fn(ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithNoShift->email));
+        Mail::assertNotSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithOldShift->email));
+        Mail::assertNotSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithNoShift->email));
         $this->assertDatabaseCount('shift_assignment_notifications', 2);
 
         $this->assertSame(
@@ -78,9 +85,9 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
     {
         $this->setConfig(1, DBPeriod::Month, false, null, '09:00');
 
-        $user     = User::factory()->userRoleUser()->enabled()->create();
+        $user = User::factory()->userRoleUser()->enabled()->create();
         $location = Location::factory()->create(['name' => 'Hall']);
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
 
         $user->attachShiftOnDate($shift, '2023-01-15');
         $user->attachShiftOnDate($shift, '2023-02-10');
@@ -97,7 +104,7 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
         $this->assertSame(['users_notified' => 1, 'assignments_notified' => 1], $result);
-        Mail::assertSent(ShiftAssignmentsReleased::class, fn(ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
+        Mail::assertSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
             && str_contains($mail->shifts->first()['date'], '10 February 2023'));
     }
 
@@ -105,9 +112,9 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
     {
         $this->setConfig(1, DBPeriod::Week, true, 'MON', '08:00');
 
-        $user     = User::factory()->userRoleUser()->enabled()->create();
+        $user = User::factory()->userRoleUser()->enabled()->create();
         $location = Location::factory()->create();
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
 
         $user->attachShiftOnDate($shift, '2023-01-09');
         $user->attachShiftOnDate($shift, '2023-01-08');
@@ -124,7 +131,7 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
         $this->assertSame(['users_notified' => 1, 'assignments_notified' => 1], $result);
-        Mail::assertSent(ShiftAssignmentsReleased::class, fn(ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
+        Mail::assertSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
             && str_contains($mail->shifts->first()['date'], '9 January 2023'));
     }
 
@@ -133,16 +140,16 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
         $recipient = User::factory()->userRoleUser()->enabled()->create([
-            'name'         => 'Alice Recipient',
+            'name' => 'Alice Recipient',
             'mobile_phone' => '0411111111',
         ]);
-        $partner   = User::factory()->userRoleUser()->enabled()->create([
-            'name'         => 'Bob Partner',
+        $partner = User::factory()->userRoleUser()->enabled()->create([
+            'name' => 'Bob Partner',
             'mobile_phone' => '0422222222',
         ]);
-        $solo      = User::factory()->userRoleUser()->enabled()->create(['name' => 'Carol Solo']);
-        $location  = Location::factory()->create(['name' => 'Town Square']);
-        $shift     = Shift::factory()->everyDay9am()->for($location)->create();
+        $solo = User::factory()->userRoleUser()->enabled()->create(['name' => 'Carol Solo']);
+        $location = Location::factory()->create(['name' => 'Town Square']);
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
 
         $recipient->attachShiftOnDate($shift, '2023-02-14');
         $partner->attachShiftOnDate($shift, '2023-02-14');
@@ -172,13 +179,56 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         });
     }
 
+    public function test_email_includes_location_notes_and_map_url(): void
+    {
+        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+
+        $user = User::factory()->userRoleUser()->enabled()->create();
+        $mapped = Location::factory()->create([
+            'name' => 'Town Square',
+            'description' => '<p>Meet at the <strong>north</strong> entrance.</p>',
+            'latitude' => '-37.8136',
+            'longitude' => '144.9631',
+        ]);
+        $unmapped = Location::factory()->create([
+            'name' => 'Hall',
+            'description' => '<p></p>',
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+        $mappedShift = Shift::factory()->everyDay9am()->for($mapped)->create();
+        $unmappedShift = Shift::factory()->everyDay9am()->for($unmapped)->create();
+
+        $user->attachShiftOnDate($mappedShift, '2023-02-14');
+        $user->attachShiftOnDate($unmappedShift, '2023-02-16');
+
+        $mapped->refresh();
+
+        Mail::fake();
+        $this->travelTo('2023-02-06 12:30:01');
+
+        app(NotifyVolunteersOfReleasedShifts::class)->execute();
+
+        Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($user, $mapped) {
+            $shifts = $mail->shifts->values();
+
+            return $mail->hasTo($user->email)
+                && $shifts[0]['location'] === 'Town Square'
+                && $shifts[0]['location_description'] === 'Meet at the north entrance.'
+                && $shifts[0]['location_map_url'] === 'https://www.google.com/maps?q='.$mapped->latitude.','.$mapped->longitude
+                && $shifts[1]['location'] === 'Hall'
+                && $shifts[1]['location_description'] === ''
+                && $shifts[1]['location_map_url'] === null;
+        });
+    }
+
     public function test_force_flag_allows_catch_up_outside_release_moment(): void
     {
         $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
-        $user     = User::factory()->userRoleUser()->enabled()->create();
+        $user = User::factory()->userRoleUser()->enabled()->create();
         $location = Location::factory()->create();
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
         $user->attachShiftOnDate($shift, '2023-02-14');
 
         Mail::fake();
@@ -199,10 +249,10 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
     {
         $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
-        $enabledUser  = User::factory()->userRoleUser()->enabled()->create();
+        $enabledUser = User::factory()->userRoleUser()->enabled()->create();
         $disabledUser = User::factory()->userRoleUser()->create(['is_enabled' => false]);
-        $location     = Location::factory()->create();
-        $shift        = Shift::factory()->everyDay9am()->for($location)->create();
+        $location = Location::factory()->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
 
         $enabledUser->attachShiftOnDate($shift, '2023-02-14');
         $disabledUser->attachShiftOnDate($shift, '2023-02-15');
@@ -210,7 +260,7 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $tracked = ShiftUser::query()->where('user_id', $enabledUser->id)->first();
         ShiftAssignmentNotification::create([
             'shift_user_id' => $tracked->id,
-            'sent_at'       => now(),
+            'sent_at' => now(),
         ]);
 
         Mail::fake();
@@ -228,16 +278,16 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
         Config::set('cart-scheduler.shift_assignment_notifications_enabled', true);
 
-        $user     = User::factory()->userRoleUser()->enabled()->create();
+        $user = User::factory()->userRoleUser()->enabled()->create();
         $location = Location::factory()->create();
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
         $user->attachShiftOnDate($shift, '2023-02-14');
 
         Mail::fake();
         $this->travelTo('2023-02-06 12:30:01');
 
         $this->artisan(NotifyReleasedShiftAssignmentsCommand::class)
-            ->expectsOutput('Sent notifications to 1 volunteer(s) covering 1 assignment(s).')
+            ->expectsOutput('Queued notifications for 1 volunteer(s) covering 1 assignment(s).')
             ->assertSuccessful();
     }
 
@@ -246,9 +296,9 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
         $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
         Config::set('cart-scheduler.shift_assignment_notifications_enabled', false);
 
-        $user     = User::factory()->userRoleUser()->enabled()->create();
+        $user = User::factory()->userRoleUser()->enabled()->create();
         $location = Location::factory()->create();
-        $shift    = Shift::factory()->everyDay9am()->for($location)->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
         $user->attachShiftOnDate($shift, '2023-02-14');
 
         Mail::fake();
@@ -258,5 +308,53 @@ class NotifyReleasedShiftAssignmentsCommandTest extends TestCase
             ->expectsOutput('Shift assignment notifications are disabled (CA_SHIFT_ASSIGNMENT_NOTIFICATIONS_ENABLED).')
             ->assertSuccessful();
         Mail::assertNothingSent();
+    }
+
+    public function test_execute_queues_one_job_per_user_without_recording_until_the_job_runs(): void
+    {
+        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+
+        $user = User::factory()->userRoleUser()->enabled()->create();
+        $location = Location::factory()->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
+        $user->attachShiftOnDate($shift, '2023-02-14');
+
+        Queue::fake();
+        Mail::fake();
+        $this->travelTo('2023-02-06 12:30:01');
+
+        $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
+
+        $this->assertSame(['users_notified' => 1, 'assignments_notified' => 1], $result);
+        Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, 1);
+        Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, function (SendShiftAssignmentsReleasedMail $job) use ($user) {
+            return $job->user->is($user)
+                && $job->shifts->count() === 1
+                && $job->period === [
+                    'start' => '13 February 2023',
+                    'end' => '19 February 2023',
+                    'label' => '13 February 2023 – 19 February 2023',
+                ];
+        });
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('shift_assignment_notifications', 0);
+    }
+
+    public function test_does_not_queue_a_second_job_for_the_same_assignments_while_the_first_is_pending(): void
+    {
+        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+
+        $user = User::factory()->userRoleUser()->enabled()->create();
+        $location = Location::factory()->create();
+        $shift = Shift::factory()->everyDay9am()->for($location)->create();
+        $user->attachShiftOnDate($shift, '2023-02-14');
+
+        Queue::fake();
+        $this->travelTo('2023-02-06 12:30:01');
+
+        app(NotifyVolunteersOfReleasedShifts::class)->execute();
+        app(NotifyVolunteersOfReleasedShifts::class)->execute();
+
+        Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, 1);
     }
 }
