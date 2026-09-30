@@ -117,6 +117,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Support Contact
+    |--------------------------------------------------------------------------
+    |
+    | Used in email templates (e.g. the account-activation "contact us" link)
+    | via the {{ mail.support.address }} placeholder.
+    |
+    */
+
+    'support' => [
+        'address' => env('MAIL_SUPPORT_ADDRESS', 'hello@example.com'),
+        'name' => env('MAIL_SUPPORT_NAME', 'Example'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Markdown Mail Settings
     |--------------------------------------------------------------------------
     |

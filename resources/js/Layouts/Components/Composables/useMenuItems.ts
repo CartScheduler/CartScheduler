@@ -1,6 +1,6 @@
 import { router, usePage } from "@inertiajs/vue3";
 import { breakpointsTailwind, useBreakpoints } from "@vueuse/core";
-import { computed, onBeforeMount } from "vue";
+import { computed } from "vue";
 import type { MenuItem } from "@/Layouts/Components/Composables/useNavEvents";
 
 export default () => {
@@ -15,13 +15,9 @@ export default () => {
   const breakpoints = useBreakpoints(breakpointsTailwind);
   const isNotMobile = breakpoints.greaterOrEqual("sm");
 
-  const hasAdminMenu = computed(() => page.props.pagePermissions.canAdmin);
+  const permissions = computed(() => page.props.pagePermissions as Permissions);
+  const hasAdminMenu = computed(() => permissions.value?.canAdmin);
   const hasUpdate = computed(() => page.props.hasUpdate as boolean); // For update indicators
-  let permissions: Permissions;
-
-  onBeforeMount(() => {
-    permissions = page.props.pagePermissions as Permissions;
-  });
 
   const logout = () => {
     router.post(route("logout"));
@@ -35,7 +31,7 @@ export default () => {
       href: route("dashboard"),
     }];
 
-    if (!permissions?.canAdmin) return items;
+    if (!permissions.value?.canAdmin) return items;
 
     const adminSubmenu: MenuItem[] = [
       {
@@ -69,7 +65,13 @@ export default () => {
         href: route("admin.exports"),
       },
     ];
-    if (permissions.canEditSettings) {
+    if (permissions.value?.canEditSettings) {
+      adminSubmenu.push({
+        label: "Emails",
+        icon: "iconify mdi--email-outline",
+        routeName: "admin.emails.index",
+        href: route("admin.emails.index"),
+      });
       adminSubmenu.push({
         label: "Settings",
         icon: "iconify mdi--settings-outline",
