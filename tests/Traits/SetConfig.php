@@ -20,7 +20,7 @@ trait SetConfig
         Config::set('cart-scheduler.shift_reservation_duration', $duration);
         Config::set('cart-scheduler.shift_reservation_duration_period', $period->value);
         Config::set('cart-scheduler.do_release_shifts_daily', $dailyRelease);
-        $dayOfWeekRelease && Config::set('cart-scheduler.release_weekly_shifts_on_day', $dayOfWeekRelease);
+        Config::set('cart-scheduler.release_weekly_shifts_on_day', $dayOfWeekRelease ?? 'SUN');
         Config::set('cart-scheduler.release_new_shifts_at_time', $timeOfDayRelease);
     }
 

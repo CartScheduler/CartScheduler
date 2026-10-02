@@ -10,6 +10,7 @@ use App\Http\Controllers\AvailableShiftsController;
 use App\Http\Controllers\DeleteShiftsController;
 use App\Http\Controllers\DownloadUserImportSpreadsheetController;
 use App\Http\Controllers\DownloadUsersAsSpreadsheetController;
+use App\Http\Controllers\EmailTemplatesController;
 use App\Http\Controllers\ExportReportsController;
 use App\Http\Controllers\ExportShiftAssignmentsController;
 use App\Http\Controllers\ExportUserAvailabilitiesController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\GetUserLocationChoicesController;
 use App\Http\Controllers\LocationsController;
 use App\Http\Controllers\MissingReportsForUserController;
 use App\Http\Controllers\MoveUserToNewShiftController;
+use App\Http\Controllers\PreviewEmailTemplateController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ReportTagsController;
 use App\Http\Controllers\ReportTagsSortOrderController;
@@ -167,6 +169,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::match(['put', 'delete'], '/toggle-shift-for-user', ToggleUserOntoShiftReservationController::class);
 
             Route::get('/settings', ShowGeneralSettingsController::class)->name('admin.settings');
+
+            Route::post('/emails/preview', PreviewEmailTemplateController::class)->name('admin.emails.preview');
+
+            Route::resource('/emails', EmailTemplatesController::class)->parameters([
+                'emails' => 'emailTemplate',
+            ])->names([
+                'index' => 'admin.emails.index',
+                'edit' => 'admin.emails.edit',
+                'update' => 'admin.emails.update',
+            ])->only(['index', 'edit', 'update']);
 
             Route::put(
                 '/general-settings',
