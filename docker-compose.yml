@@ -32,11 +32,10 @@ services:
             - type: bind
               source: ./
               target: /var/www/html
-              consistency: cached
             - type: bind
               source: ./docker/host-launch-editor.sh
               target: /usr/local/bin/hosteditor
-              consistency: cached
+              read_only: true
         networks:
             - sail
         depends_on:
