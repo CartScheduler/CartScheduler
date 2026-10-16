@@ -38,7 +38,7 @@ class Location extends Model
     protected static function boot(): void
     {
         parent::boot();
-        static::addGlobalScope('sort_order', static fn(Builder $builder) => $builder
+        static::addGlobalScope('sort_order', static fn (Builder $builder) => $builder
             ->orderBy('sort_order')
             ->orderBy('name')
         );
@@ -59,12 +59,12 @@ class Location extends Model
     protected function casts(): array
     {
         return [
-            'min_volunteers'   => 'integer',
-            'max_volunteers'   => 'integer',
+            'min_volunteers' => 'integer',
+            'max_volunteers' => 'integer',
             'requires_brother' => 'boolean',
-            'latitude'         => 'decimal:8',
-            'longitude'        => 'decimal:8',
-            'is_enabled'       => 'boolean',
+            'latitude' => 'decimal:8',
+            'longitude' => 'decimal:8',
+            'is_enabled' => 'boolean',
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Exceptions\ShiftAvailabilityException;
 use App\Models\Location;
 use App\Models\Shift;
 use Illuminate\Support\Carbon;
@@ -9,12 +10,10 @@ use Illuminate\Support\Facades\Auth;
 
 class DoShiftReservation
 {
-    public function __construct(private readonly ValidateShiftIsNotFullAction $validateShiftIsNotFullAction)
-    {
-    }
+    public function __construct(private readonly ValidateShiftIsNotFullAction $validateShiftIsNotFullAction) {}
 
     /**
-     * @throws \App\Exceptions\ShiftAvailabilityException
+     * @throws ShiftAvailabilityException
      */
     public function execute(Shift $shift, Location $location, int $userId, Carbon|\Carbon\Carbon $shiftDate): void
     {
@@ -25,11 +24,10 @@ class DoShiftReservation
             ->performedOn($shift)
             ->causedBy(Auth::user())
             ->withProperties([
-                'user_id'             => $userId,
-                'shift_date'          => $shiftDate,
+                'user_id' => $userId,
+                'shift_date' => $shiftDate,
                 'shift.location.name' => $location->name,
             ])
             ->log('shift_reserved');
     }
-
 }

@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Contracts\Support\Arrayable;
-use Spatie\LaravelData\Support\Creation\ValidationStrategy;
-use Spatie\LaravelData\Transformers;
+use Spatie\LaravelData\Casts;
 use Spatie\LaravelData\Normalizers;
 use Spatie\LaravelData\RuleInferrers;
-use Spatie\LaravelData\Casts;
+use Spatie\LaravelData\Support\Creation\ValidationStrategy;
+use Spatie\LaravelData\Transformers;
 
 return [
     /*
@@ -55,7 +55,7 @@ return [
     'casts' => [
         DateTimeInterface::class => Casts\DateTimeInterfaceCast::class,
         BackedEnum::class => Casts\EnumCast::class,
-//        Enumerable::class => Casts\EnumerableCast::class,
+        //        Enumerable::class => Casts\EnumerableCast::class,
     ],
 
     /*

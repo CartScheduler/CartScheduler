@@ -13,6 +13,7 @@ class UserAvailability extends Model
     use HasFactory;
 
     protected $primaryKey = 'user_id';
+
     public $incrementing = false;
 
     protected $fillable = [
@@ -29,13 +30,13 @@ class UserAvailability extends Model
     protected function casts(): array
     {
         return [
-            'day_monday'    => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_tuesday'   => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_wednesday' => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_thursday'  => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_friday'    => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_saturday'  => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
-            'day_sunday'    => SetAsEnumCollectionCast::class . ':' . AvailabilityHours::class,
+            'day_monday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_tuesday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_wednesday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_thursday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_friday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_saturday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
+            'day_sunday' => SetAsEnumCollectionCast::class.':'.AvailabilityHours::class,
         ];
     }
 

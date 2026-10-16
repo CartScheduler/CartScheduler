@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\Role;
 use App\Models\Traits\User\AttachesSpouse;
 use App\Models\Traits\User\RevokesUserAccess;
 use App\Models\Traits\User\SendsWelcomeEmail;
-use App\Settings\GeneralSettings;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -28,35 +26,35 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class User extends Authenticatable
 {
+    use AttachesSpouse;
+    use CausesActivity;
     use HasApiTokens;
     use HasFactory;
-    use Notifiable;
-    use TwoFactorAuthenticatable;
     use LogsActivity;
-    use CausesActivity;
-    use SendsWelcomeEmail;
-    use AttachesSpouse;
+    use Notifiable;
     use RevokesUserAccess;
+    use SendsWelcomeEmail;
+    use TwoFactorAuthenticatable;
 
     protected function casts(): array
     {
         return [
-            'is_enabled'          => 'boolean',
-            'is_unrestricted'     => 'boolean',
+            'is_enabled' => 'boolean',
+            'is_unrestricted' => 'boolean',
             'responsible_brother' => 'boolean',
-            'email_verified_at'   => 'datetime',
-            'year_of_birth'       => 'integer',
-            'password'            => 'hashed',
+            'email_verified_at' => 'datetime',
+            'year_of_birth' => 'integer',
+            'password' => 'hashed',
         ];
     }
 
     protected static function booted(): void
     {
-        static::created(static fn(self $user) => self::sendWelcomeEmail($user));
-        static::saving(static fn(self $user) => self::clearSpouseUnlessMarried($user));
-        static::saved(static fn(self $user) => self::attachSpouse($user));
-        static::updating(static fn(self $user) => self::detachSpouse($user));
-        static::updated(static fn(self $user) => self::revokePrivilegedAccess($user));
+        static::created(static fn (self $user) => self::sendWelcomeEmail($user));
+        static::saving(static fn (self $user) => self::clearSpouseUnlessMarried($user));
+        static::saved(static fn (self $user) => self::attachSpouse($user));
+        static::updating(static fn (self $user) => self::detachSpouse($user));
+        static::updated(static fn (self $user) => self::revokePrivilegedAccess($user));
     }
 
     /**
@@ -80,6 +78,7 @@ class User extends Authenticatable
         'password',
         'role',
     ];
+
     /**
      * The only attributes that should be visible for serialization when calling toArray().
      */
@@ -90,6 +89,7 @@ class User extends Authenticatable
         'email',
         'gender',
     ];
+
     /**
      * The accessors to append to the model's array form.
      */
@@ -107,8 +107,8 @@ class User extends Authenticatable
     public function scopeShiftsOnDate(Builder $query, Carbon $date): Builder
     {
         return $query->with([
-            'shifts' => fn(BelongsToMany $query) => $query
-                ->wherePivot('shift_date', '=', $date)
+            'shifts' => fn (BelongsToMany $query) => $query
+                ->wherePivot('shift_date', '=', $date),
         ]);
     }
 
@@ -123,7 +123,7 @@ class User extends Authenticatable
         return Attribute::make(
             get: static function ($value) {
                 if (preg_match('/^(\d{4})(\d{3})(\d{3})$/', $value, $matches)) {
-                    $result = $matches[1] . ' ' . $matches[2] . ' ' . $matches[3];
+                    $result = $matches[1].' '.$matches[2].' '.$matches[3];
                 } else {
                     $result = $value;
                 }
@@ -144,17 +144,17 @@ class User extends Authenticatable
     protected function hasLoggedIn(): Attribute
     {
         return Attribute::make(
-            get: static fn($value, $attributes) => isset($attributes['password']) && $attributes['password'],
+            get: static fn ($value, $attributes) => isset($attributes['password']) && $attributes['password'],
         );
     }
 
     protected function isRestricted(): Attribute
     {
         return Attribute::make(
-            get: static fn(
+            get: static fn (
                 $value,
                 $attributes
-            ) => isset($attributes['is_unrestricted']) && !$attributes['is_unrestricted'],
+            ) => isset($attributes['is_unrestricted']) && ! $attributes['is_unrestricted'],
         );
     }
 

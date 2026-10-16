@@ -28,11 +28,11 @@ class GetSpouseCandidatesController extends Controller
         $candidates = User::query()
             ->select(['id', 'name'])
             ->where('gender', $oppositeGender)
-            ->when($userId, fn($query) => $query->where('id', '!=', $userId))
+            ->when($userId, fn ($query) => $query->where('id', '!=', $userId))
             ->whereNotIn('id', User::query()
                 ->select('spouse_id')
                 ->whereNotNull('spouse_id')
-                ->when($userId, fn($query) => $query->where('id', '!=', $userId)))
+                ->when($userId, fn ($query) => $query->where('id', '!=', $userId)))
             ->orderBy('name')
             ->get();
 

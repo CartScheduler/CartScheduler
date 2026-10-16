@@ -11,7 +11,7 @@ class UserVacationSeeder extends Seeder
     public function run(): void
     {
         User::all()->each(
-            fn(User $user) => UserVacation::factory()
+            fn (User $user) => UserVacation::factory()
                 ->for($user)
                 ->create()
         );

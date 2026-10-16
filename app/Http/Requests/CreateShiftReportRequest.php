@@ -16,16 +16,16 @@ class CreateShiftReportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'shift_id'            => ['required', 'integer', 'exists:shifts,id'],
-            'shift_date'          => ['required', 'date', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'start_time'          => ['required', 'date_format:H:i:s'],
+            'shift_id' => ['required', 'integer', 'exists:shifts,id'],
+            'shift_date' => ['required', 'date', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'start_time' => ['required', 'date_format:H:i:s'],
             'shift_was_cancelled' => ['boolean'],
-            'placements_count'    => ['integer', 'min:0'],
-            'videos_count'        => ['integer', 'min:0'],
-            'requests_count'      => ['integer', 'min:0'],
-            'comments'            => ['string', 'max:500'],
-            'tags'                => ['array'],
-            'tags.*'              => ['required', 'integer', 'exists:tags,id'],
+            'placements_count' => ['integer', 'min:0'],
+            'videos_count' => ['integer', 'min:0'],
+            'requests_count' => ['integer', 'min:0'],
+            'comments' => ['string', 'max:500'],
+            'tags' => ['array'],
+            'tags.*' => ['required', 'integer', 'exists:tags,id'],
         ];
     }
 
@@ -43,16 +43,16 @@ class CreateShiftReportRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'start_time'                  => 'The start time needs to be in the format h:m:s',
+            'start_time' => 'The start time needs to be in the format h:m:s',
             'shift_was_cancelled.boolean' => 'Shift was cancelled must be a boolean',
-            'placements_count.integer'    => 'Placements count must be a whole number',
-            'videos_count.integer'        => 'Videos count must be a whole number',
-            'requests_count.integer'      => 'Requests count must be a whole number',
-            'placements_count.min'        => 'Placements count cannot be negative',
-            'videos_count.min'            => 'Videos count cannot be negative',
-            'requests_count.min'          => 'Requests count cannot be negative',
-            'comments.string'             => 'Comments must be a string',
-            'comments.max'                => 'Comments must be less than 500 characters',
+            'placements_count.integer' => 'Placements count must be a whole number',
+            'videos_count.integer' => 'Videos count must be a whole number',
+            'requests_count.integer' => 'Requests count must be a whole number',
+            'placements_count.min' => 'Placements count cannot be negative',
+            'videos_count.min' => 'Videos count cannot be negative',
+            'requests_count.min' => 'Requests count cannot be negative',
+            'comments.string' => 'Comments must be a string',
+            'comments.max' => 'Comments must be less than 500 characters',
         ];
     }
 }

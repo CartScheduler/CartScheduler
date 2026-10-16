@@ -20,16 +20,15 @@ class MoveUserToNewShiftController extends Controller
         private readonly ValidateShiftIsAvailableAction $validateShiftIsAvailableAction,
         private readonly ValidateVolunteerIsAllowedToBeRosteredAction $validateVolunteerIsAllowedToBeRosteredAction,
         private readonly ValidateShiftIsNotFullAction $validateShiftIsNotFullAction,
-    ) {
-    }
+    ) {}
 
     public function __invoke(MoveUserToNewShiftRequest $request)
     {
         $oldShift = $request->oldShift();
         $newShift = $request->newShift();
 
-        $date      = $request->date('date')?->midDay();
-        $userId    = $request->integer('user_id');
+        $date = $request->date('date')?->midDay();
+        $userId = $request->integer('user_id');
 
         $location = Location::where('id', $request->get('location_id'))
             ->where('is_enabled', true)
@@ -39,7 +38,7 @@ class MoveUserToNewShiftController extends Controller
             // TODO much of this can be moved into the FormRequest and maybe a custom validation rule
             $this->validateShiftIsAvailableAction->execute($newShift, $date);
 
-            $user      = User::find($userId);
+            $user = User::find($userId);
             $isAllowed = $this->validateVolunteerIsAllowedToBeRosteredAction->execute($location, $user,
                 $newShift->users);
             if (is_string($isAllowed)) {
@@ -57,6 +56,7 @@ class MoveUserToNewShiftController extends Controller
         } catch (ShiftAvailabilityException $e) {
             return ErrorApiResource::create($e->getMessage(), $e->getExceptionType(), 422);
         }
+
         return response()->noContent();
     }
 }

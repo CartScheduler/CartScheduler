@@ -25,8 +25,7 @@ class ExportReportData extends Data
         public ?string $metadata_submitted_by_email,
         public ?string $metadata_submitted_by_phone,
         public ?string $metadata_associates,
-    ) {
-    }
+    ) {}
 
     public static function fromReport(Report $report): self
     {

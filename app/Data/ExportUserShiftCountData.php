@@ -12,8 +12,7 @@ class ExportUserShiftCountData extends Data
         public string $name,
         public string $email,
         public int $shift_count,
-    ) {
-    }
+    ) {}
 
     public static function fromUser(User $user): self
     {

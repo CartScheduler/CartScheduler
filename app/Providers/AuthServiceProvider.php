@@ -20,9 +20,9 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        User::class     => UserPolicy::class,
+        User::class => UserPolicy::class,
         Location::class => LocationPolicy::class,
-        Tag::class      => TagPolicy::class,
+        Tag::class => TagPolicy::class,
     ];
 
     /**
@@ -30,6 +30,6 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::define('admin', static fn(User $user) => $user->role === Role::Admin->value);
+        Gate::define('admin', static fn (User $user) => $user->role === Role::Admin->value);
     }
 }

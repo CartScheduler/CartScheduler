@@ -11,7 +11,7 @@ class UserAvailabilitySeeder extends Seeder
     public function run(): void
     {
         User::all()->each(
-            fn(User $user) => UserAvailability::factory()
+            fn (User $user) => UserAvailability::factory()
                 ->for($user)
                 ->create()
         );

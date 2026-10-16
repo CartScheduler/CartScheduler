@@ -1,6 +1,8 @@
 <?php
 
 use App\Data\Transformers\LaravelSettingsTransformer;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Spatie\LaravelData\Support\TypeScriptTransformer;
 use Spatie\TypeScriptTransformer\Collectors;
 use Spatie\TypeScriptTransformer\Formatters;
@@ -34,7 +36,7 @@ return [
      */
 
     'transformers' => [
-//        Spatie\TypeScriptTransformer\Transformers\EnumTransformer::class,
+        //        Spatie\TypeScriptTransformer\Transformers\EnumTransformer::class,
         Transformers\EnumTransformer::class,
         TypeScriptTransformer\DataTypeScriptTransformer::class,
         LaravelSettingsTransformer::class,
@@ -47,11 +49,11 @@ return [
      */
 
     'default_type_replacements' => [
-        DateTime::class               => 'string',
-        DateTimeImmutable::class      => 'string',
-        Carbon\CarbonInterface::class => 'string',
-        Carbon\CarbonImmutable::class => 'string',
-        Carbon\Carbon::class          => 'string',
+        DateTime::class => 'string',
+        DateTimeImmutable::class => 'string',
+        CarbonInterface::class => 'string',
+        CarbonImmutable::class => 'string',
+        Carbon\Carbon::class => 'string',
     ],
 
     /*

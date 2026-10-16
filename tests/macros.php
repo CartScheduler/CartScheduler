@@ -9,10 +9,12 @@ TestResponse::macro('assertJsonHasKeys', function (string $jsonPath, string ...$
     foreach ($keys as $key) {
         Assert::assertArrayHasKey($key, $items);
     }
+
     return $this;
 });
 
 TestResponse::macro('assertContainsStringIgnoringCase', function (string $jsonPath, string $string) {
     Assert::assertStringContainsStringIgnoringCase($string, $this->json($jsonPath));
+
     return $this;
 });

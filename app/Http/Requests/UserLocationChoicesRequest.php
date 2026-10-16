@@ -11,8 +11,8 @@ class UserLocationChoicesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id'             => ['integer', 'exists:users,id'],
-            'selectedLocations'   => ['nullable'],
+            'user_id' => ['integer', 'exists:users,id'],
+            'selectedLocations' => ['nullable'],
             'selectedLocations.*' => ['integer', 'exists:locations,id'],
         ];
     }
@@ -22,7 +22,7 @@ class UserLocationChoicesRequest extends FormRequest
         return [
             function (Validator $validator) {
                 $settings = app()->make(GeneralSettings::class);
-                if (!$settings->enableUserLocationChoices) {
+                if (! $settings->enableUserLocationChoices) {
                     $validator->errors()->add('featureDisabled', 'User location choices are not enabled.');
                 }
             },

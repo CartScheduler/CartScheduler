@@ -9,7 +9,7 @@ trait LaravelUpdaterMocks
 {
     protected function makeGithubTagTypeMock(string $installedVersion = '1.0.0', string $availableVersion = '2.0.0'): MockInterface
     {
-        return $this->partialMock(GithubTagType::class, fn(MockInterface $mock) => $mock
+        return $this->partialMock(GithubTagType::class, fn (MockInterface $mock) => $mock
             ->shouldReceive('getVersionInstalled')
             ->andReturn($installedVersion)
             ->shouldReceive('getVersionAvailable')

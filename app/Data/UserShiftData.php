@@ -27,8 +27,7 @@ class UserShiftData extends Data
         public int $max_volunteers,
         public ?string $available_from = null,
         public ?string $available_to = null,
-    ) {
-    }
+    ) {}
 
     /** @noinspection PhpUnused */
     public static function fromDb(stdClass $data): self

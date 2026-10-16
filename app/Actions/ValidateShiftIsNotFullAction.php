@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 class ValidateShiftIsNotFullAction
 {
     /**
-     * @throws \App\Exceptions\ShiftAvailabilityException
+     * @throws ShiftAvailabilityException
      */
     public function execute(Shift $shift, Carbon $date): void
     {

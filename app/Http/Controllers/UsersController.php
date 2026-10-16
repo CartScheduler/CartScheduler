@@ -34,14 +34,15 @@ class UsersController extends Controller
 
     public function store(UserRequest $request): RedirectResponse
     {
-        $data             = $request->validated();
+        $data = $request->validated();
         $data['password'] = null; // Set it to null. Once set, the user will be unable to log in
-        $data['uuid']     = Str::uuid();
+        $data['uuid'] = Str::uuid();
 
         // The user model will automatically send a welcome email via the created event
-        $user = User::unguarded(static fn() => User::create($data));
+        $user = User::unguarded(static fn () => User::create($data));
 
         session()?->flash('flash.message', "$user->name was successfully created.");
+
         return Redirect::route('admin.users.edit', $user);
     }
 
@@ -56,7 +57,8 @@ class UsersController extends Controller
     public function edit(User $user): Response
     {
         UserAvailability::where('user_id', $user->id)
-            ->firstOr(fn() => UserAvailability::create(['user_id' => $user->id]));
+            ->firstOr(fn () => UserAvailability::create(['user_id' => $user->id]));
+
         return Inertia::render('Admin/Users/Edit', [
             'editUser' => UserAdminData::from($user->load(['spouse', 'vacations', 'availability', 'rosterLocations'])),
         ]);
@@ -67,6 +69,7 @@ class UsersController extends Controller
         $user->update(Arr::except($request->validated(), ['id', 'uuid']));
 
         session()?->flash('flash.message', "$user->name was successfully modified.");
+
         return Redirect::route('admin.users.edit', $user->fresh());
     }
 
@@ -77,6 +80,7 @@ class UsersController extends Controller
 
         session()?->flash('flash.message', "$name was successfully deleted.");
         session()?->flash('flash.bannerStyle', 'warn');
+
         return Redirect::route('admin.users.index');
     }
 }

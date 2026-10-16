@@ -14,7 +14,7 @@ class UserAccountCreated extends Mailable
 
     public function __construct(public User $user)
     {
-        $this->subject = config('app.name') . ' Account Activation';
+        $this->subject = config('app.name').' Account Activation';
     }
 
     public function build(): static

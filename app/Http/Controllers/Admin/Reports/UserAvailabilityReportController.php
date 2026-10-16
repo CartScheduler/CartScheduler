@@ -11,6 +11,7 @@ use Inertia\Response;
 
 /**
  * WIP, ignore in coverage until it's done
+ *
  * @codeCoverageIgnore
  */
 class UserAvailabilityReportController extends Controller

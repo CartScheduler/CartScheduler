@@ -34,15 +34,15 @@ class Report extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-                         ->logAll()
-                         ->logOnlyDirty();
+            ->logAll()
+            ->logOnlyDirty();
     }
+
     protected function casts(): array
     {
         return [
             'shift_date' => 'custom_datetime:Y-m-d',
-            'metadata'   => 'array',
+            'metadata' => 'array',
         ];
     }
-
 }

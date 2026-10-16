@@ -22,27 +22,27 @@ class LaravelSettingsTransformer implements Transformer
 
     public function transform(ReflectionClass $class, string $name): ?TransformedType
     {
-        if (!$class->isSubclassOf(Settings::class)) {
+        if (! $class->isSubclassOf(Settings::class)) {
             return null;
         }
 
-        $missingSymbols = new MissingSymbolsCollection();
+        $missingSymbols = new MissingSymbolsCollection;
 
         $properties = array_map(
-            fn(ReflectionProperty $reflection) => $reflection->name .
-                ": " .
-                $this->reflectionToTypeScript($reflection, $missingSymbols) .
+            fn (ReflectionProperty $reflection) => $reflection->name.
+                ': '.
+                $this->reflectionToTypeScript($reflection, $missingSymbols).
                 ";\n",
             Arr::where(
                 $class->getProperties(),
-                static fn(ReflectionProperty $property) => $property->isPublic() && !$property->isStatic()
+                static fn (ReflectionProperty $property) => $property->isPublic() && ! $property->isStatic()
             )
         );
 
         return TransformedType::create(
             $class,
             $name,
-            '{' . implode($properties) . '}',
+            '{'.implode($properties).'}',
             $missingSymbols
         );
     }

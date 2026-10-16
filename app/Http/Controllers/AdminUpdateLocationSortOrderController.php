@@ -11,7 +11,7 @@ class AdminUpdateLocationSortOrderController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'locations'   => ['required', 'array'],
+            'locations' => ['required', 'array'],
             'locations.*' => ['required', 'integer'],
         ]);
 

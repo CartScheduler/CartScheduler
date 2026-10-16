@@ -671,14 +671,14 @@ test('admin can add new user with a spouse', function () {
 
     $this->actingAs($admin)
         ->postJson('/admin/users', [
-            'name'           => 'New Husband',
-            'email'          => 'new.husband@example.com',
-            'role'           => Role::User->value,
-            'gender'         => 'male',
-            'mobile_phone'   => '0400 000 000',
+            'name' => 'New Husband',
+            'email' => 'new.husband@example.com',
+            'role' => Role::User->value,
+            'gender' => 'male',
+            'mobile_phone' => '0400 000 000',
             'marital_status' => 'married',
-            'spouse_id'      => $wife->getKey(),
-            'is_enabled'     => true,
+            'spouse_id' => $wife->getKey(),
+            'is_enabled' => true,
             'is_unrestricted' => true,
         ])
         ->assertRedirect()
@@ -784,15 +784,15 @@ test('a new user who is not married is not attached to a spouse', function () {
     Mail::fake();
     $wife = User::factory()->enabled()->female()->create();
 
-    $husband = User::unguarded(static fn() => User::create([
-        'uuid'           => Str::uuid(),
-        'name'           => 'New Husband',
-        'email'          => 'new.husband@example.com',
-        'role'           => Role::User->value,
-        'gender'         => 'male',
-        'mobile_phone'   => '0400000000',
+    $husband = User::unguarded(static fn () => User::create([
+        'uuid' => Str::uuid(),
+        'name' => 'New Husband',
+        'email' => 'new.husband@example.com',
+        'role' => Role::User->value,
+        'gender' => 'male',
+        'mobile_phone' => '0400000000',
         'marital_status' => 'single',
-        'spouse_id'      => $wife->getKey(),
+        'spouse_id' => $wife->getKey(),
     ]));
 
     expect($husband->fresh()->spouse_id)->toBeNull();
@@ -809,12 +809,12 @@ test('admin can view a user as json', function () {
         ->getJson(route('admin.users.show', $female))
         ->assertOk()
         ->assertJson([
-            'id'             => $female->getKey(),
-            'name'           => $female->name,
-            'email'          => $female->email,
-            'gender'         => 'female',
+            'id' => $female->getKey(),
+            'name' => $female->name,
+            'email' => $female->email,
+            'gender' => 'female',
             'marital_status' => 'married',
-            'spouse'         => ['id' => $male->getKey(), 'name' => $male->name],
+            'spouse' => ['id' => $male->getKey(), 'name' => $male->name],
         ]);
 });
 
@@ -952,8 +952,8 @@ test('the spouse-only endpoint leaves the rest of the record alone', function ()
     $this->actingAs($admin)
         ->patchJson(route('admin.users.spouse.update', $male), [
             'spouse_id' => $female->getKey(),
-            'name'      => 'Renamed',
-            'role'      => Role::Admin->value,
+            'name' => 'Renamed',
+            'role' => Role::Admin->value,
         ])
         ->assertOk();
 

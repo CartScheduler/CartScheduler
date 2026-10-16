@@ -13,9 +13,11 @@ class ShiftUser extends Pivot
     use HasFactory;
     use LogsActivity;
 
-    public    $timestamps   = false;
-    public    $incrementing = true;
-    protected $fillable     = [
+    public $timestamps = false;
+
+    public $incrementing = true;
+
+    protected $fillable = [
         'shift_date',
     ];
 
@@ -32,6 +34,6 @@ class ShiftUser extends Pivot
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-                         ->logAll();
+            ->logAll();
     }
 }

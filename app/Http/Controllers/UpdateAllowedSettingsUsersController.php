@@ -7,9 +7,7 @@ use App\Settings\GeneralSettings;
 
 class UpdateAllowedSettingsUsersController extends Controller
 {
-    public function __construct(private readonly GeneralSettings $settings)
-    {
-    }
+    public function __construct(private readonly GeneralSettings $settings) {}
 
     public function __invoke(UpdateAllowedSettingsUsersRequest $request)
     {

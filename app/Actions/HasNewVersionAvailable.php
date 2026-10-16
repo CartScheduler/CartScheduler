@@ -3,14 +3,10 @@
 namespace App\Actions;
 
 use App\Settings\GeneralSettings;
-use Illuminate\Support\Str;
-use InvalidArgumentException;
 
 class HasNewVersionAvailable
 {
-    public function __construct(private readonly GeneralSettings $settings)
-    {
-    }
+    public function __construct(private readonly GeneralSettings $settings) {}
 
     public function execute(): bool
     {

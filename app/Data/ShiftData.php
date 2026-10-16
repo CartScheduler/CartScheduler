@@ -18,13 +18,12 @@ class ShiftData extends Data
         public string $end_time,
         public ?string $available_from,
         public ?string $available_to,
-        /** @var Collection<\App\Data\UserData> */
+        /** @var Collection<UserData> */
         public Collection|Optional $volunteers,
         public ?LocationData $location,
         #[LiteralTypeScriptType('[boolean, boolean, boolean, boolean, boolean, boolean, boolean]')]
         public array $js_days = [],
-    ) {
-    }
+    ) {}
 
     /** @noinspection PhpUnused */
     public static function fromModel(Shift $shift): self
@@ -42,13 +41,13 @@ class ShiftData extends Data
                 ? LocationData::from($shift->location)
                 : null,
             js_days: [ // These will map to JavaScript date() days
-                       0 => $shift->day_sunday,
-                       1 => $shift->day_monday,
-                       2 => $shift->day_tuesday,
-                       3 => $shift->day_wednesday,
-                       4 => $shift->day_thursday,
-                       5 => $shift->day_friday,
-                       6 => $shift->day_saturday,
+                0 => $shift->day_sunday,
+                1 => $shift->day_monday,
+                2 => $shift->day_tuesday,
+                3 => $shift->day_wednesday,
+                4 => $shift->day_thursday,
+                5 => $shift->day_friday,
+                6 => $shift->day_saturday,
             ],
         );
     }

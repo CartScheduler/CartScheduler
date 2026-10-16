@@ -9,8 +9,8 @@ trait AttachesSpouse
     public static function attachSpouse(User $user): void
     {
         if ($user->spouse_id) {
-            $spouse                 = User::find($user->spouse_id);
-            $spouse->spouse_id      = $user->id;
+            $spouse = User::find($user->spouse_id);
+            $spouse->spouse_id = $user->id;
             $spouse->marital_status = 'married';
             $spouse->saveQuietly();
         }

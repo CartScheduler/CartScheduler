@@ -13,6 +13,5 @@ class UserVacationData extends Data
         public string $start_date,
         public string $end_date,
         public ?string $description = null,
-    ) {
-    }
+    ) {}
 }

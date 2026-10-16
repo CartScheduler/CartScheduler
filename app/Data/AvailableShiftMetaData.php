@@ -13,8 +13,7 @@ class AvailableShiftMetaData extends Data
         public int $volunteer_count,
         public int $max_allowed,
         public bool $has_availability,
-    ) {
-    }
+    ) {}
 
     /** @noinspection PhpUnused */
     public static function fromDb(stdClass $data): self

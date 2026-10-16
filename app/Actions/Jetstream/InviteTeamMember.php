@@ -3,10 +3,12 @@
 namespace App\Actions\Jetstream;
 
 use Closure;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Laravel\Jetstream\Contracts\InvitesTeamMembers;
 use Laravel\Jetstream\Events\InvitingTeamMember;
 use Laravel\Jetstream\Jetstream;
@@ -16,9 +18,9 @@ use Laravel\Jetstream\Rules\Role;
 class InviteTeamMember implements InvitesTeamMembers
 {
     /**
-     * @throws \Illuminate\Auth\Access\AuthorizationException|\Illuminate\Validation\ValidationException
+     * @throws AuthorizationException|ValidationException
      */
-    public function invite(mixed $user, mixed $team, string $email, string $role = null): void
+    public function invite(mixed $user, mixed $team, string $email, ?string $role = null): void
     {
         Gate::forUser($user)->authorize('addTeamMember', $team);
 
@@ -35,7 +37,7 @@ class InviteTeamMember implements InvitesTeamMembers
     }
 
     /**
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     protected function validate(mixed $team, string $email, ?string $role): void
     {

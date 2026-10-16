@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Project: ${PROJECT_NAME}
  * Owner: Pixelated
@@ -11,8 +12,5 @@ use Illuminate\Database\Seeder;
 
 class AnnouncementSeeder extends Seeder
 {
-    public function run()
-    {
-
-    }
+    public function run() {}
 }

@@ -5,10 +5,11 @@ use Illuminate\Database\Migrations\Migration;
 /**
  * @deprecated (I think)
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
-        //Schema::create('reservations', static function (Blueprint $table) {
+        // Schema::create('reservations', static function (Blueprint $table) {
         //    $table->id();
         //    $table->foreignId('shift_id')->constrained();
         //    $table->unsignedBigInteger('publisher_1_id');
@@ -20,11 +21,11 @@ return new class extends Migration {
         //    $table->foreign('publisher_2_id')->references('id')->on('users')->restrictOnDelete();
         //    $table->foreign('publisher_3_id')->references('id')->on('users')->restrictOnDelete();
         //
-        //});
+        // });
     }
 
     public function down(): void
     {
-        //Schema::dropIfExists('reservations');
+        // Schema::dropIfExists('reservations');
     }
 };

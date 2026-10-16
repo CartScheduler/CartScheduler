@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * WIP, ignore in coverage until it's done
+ *
  * @codeCoverageIgnore
  */
 class GetUserAvailabilityReportAction

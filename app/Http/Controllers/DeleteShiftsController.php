@@ -10,6 +10,7 @@ class DeleteShiftsController extends Controller
     public function __invoke(Shift $shift)
     {
         $shift->delete();
+
         return response('', Response::HTTP_NO_CONTENT);
     }
 }

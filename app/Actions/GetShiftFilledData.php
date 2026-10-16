@@ -7,18 +7,18 @@ use Illuminate\Support\Facades\DB;
 
 class GetShiftFilledData
 {
-    public function execute(string $duration = null): array
+    public function execute(?string $duration = null): array
     {
-        $start     = Carbon::today();
+        $start = Carbon::today();
         $startDate = $start->format('Y-m-d');
-        $endDate   = (match ($duration) {
+        $endDate = (match ($duration) {
             'fortnight' => $start->addWeeks(2)->subDay(),
             default => $start->addMonth()->subDay(),
         })->format('Y-m-d');
 
         $params = ['startDate' => $startDate, 'endDate' => $endDate];
 
-        $rawQuery = /** @lang MySQL */ "WITH RECURSIVE dates (date) AS
+        $rawQuery = /** @lang MySQL */ 'WITH RECURSIVE dates (date) AS
                  (SELECT :startDate
                   UNION ALL
                   SELECT date + INTERVAL 1 DAY
@@ -61,7 +61,7 @@ FROM dates
           ON dates.date = derived.shift_date
 
 GROUP BY dates.date, shifts_available
-ORDER BY dates.date";
+ORDER BY dates.date';
 
         return DB::select($rawQuery, $params);
     }

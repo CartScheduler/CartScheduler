@@ -14,11 +14,11 @@ class UpdateAllowedSettingsUsersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'allowedSettingsUsers'   => ['required', 'array', 'min:1'],
-//            'allowedSettingsUsers.*' => ['required', 'integer', Rule::exists('users')->where(
-//                fn(Builder $query) => $query->where('role', 'admin')
-//                    ->where('is_enabled', true)
-//            )],
+            'allowedSettingsUsers' => ['required', 'array', 'min:1'],
+            //            'allowedSettingsUsers.*' => ['required', 'integer', Rule::exists('users')->where(
+            //                fn(Builder $query) => $query->where('role', 'admin')
+            //                    ->where('is_enabled', true)
+            //            )],
         ];
     }
 

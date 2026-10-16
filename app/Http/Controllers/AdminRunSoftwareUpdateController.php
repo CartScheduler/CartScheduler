@@ -18,8 +18,7 @@ class AdminRunSoftwareUpdateController extends Controller
 {
     public function __construct(
         private readonly GeneralSettings $settings,
-    ) {
-    }
+    ) {}
 
     public function __invoke()
     {
@@ -41,7 +40,7 @@ class AdminRunSoftwareUpdateController extends Controller
         $output = App::make(
             abstract: FilterAnsiEscapeSequencesStreamedOutput::class,
             parameters: [
-                'stream'    => $stream,
+                'stream' => $stream,
                 'verbosity' => OutputInterface::VERBOSITY_VERBOSE,
                 'decorated' => true,
             ]
@@ -50,9 +49,9 @@ class AdminRunSoftwareUpdateController extends Controller
         return Response::stream(
             callback: $this->runUpdateCommand($output, $available, $stream),
             headers: [
-                'Content-Type'      => 'text/plain',
+                'Content-Type' => 'text/plain',
                 'X-Accel-Buffering' => 'no',
-                'Cache-Control'     => 'no-cache',
+                'Cache-Control' => 'no-cache',
             ]);
     }
 
@@ -68,7 +67,7 @@ class AdminRunSoftwareUpdateController extends Controller
                 parameters: ['stream' => fopen('php://output', 'wb')]
             );
             $output->writeln('NOTICE! Cannot run software update in local environment.');
-            $output->writeln('Faking Update to version ' . $this->settings->availableVersion . '.');
+            $output->writeln('Faking Update to version '.$this->settings->availableVersion.'.');
         });
     }
     // @codeCoverageIgnoreEnd
@@ -81,7 +80,7 @@ class AdminRunSoftwareUpdateController extends Controller
                 $output->writeln("Running Software Update... (Version: $available).");
                 $output->writeln('NOTE: THIS MAY TAKE A WHILE...');
 
-                $params   = ['--force' => true, '--install-version' => $available];
+                $params = ['--force' => true, '--install-version' => $available];
                 $exitCode = Artisan::call('streamline:run-update', $params, $output);
 
                 if ($exitCode !== 0) {
@@ -92,10 +91,10 @@ class AdminRunSoftwareUpdateController extends Controller
             } catch (Exception $e) {
 
                 // Log the error
-                Log::error('Command streaming failed: ' . $e->getMessage());
+                Log::error('Command streaming failed: '.$e->getMessage());
 
                 // Output error message to stream
-                echo 'Error: ' . $e->getMessage();
+                echo 'Error: '.$e->getMessage();
 
                 // Ensure stream is closed
                 if (isset($stream) && is_resource($stream)) {

@@ -19,13 +19,11 @@ class GetAvailableShiftsCount
      *
      * @param  string  $startDate  YYYY-MM-DD
      * @param  string  $endDate  YYYY-MM-DD
-     *
-     * @return \Illuminate\Support\Collection
      */
     public function execute(string $startDate, string $endDate): Collection
     {
         $query = /** @lang MySQL */
-            "WITH RECURSIVE dates (date) AS
+            'WITH RECURSIVE dates (date) AS
                  (SELECT :startDate
                   UNION ALL
                   SELECT date + INTERVAL 1 DAY
@@ -91,14 +89,14 @@ FROM dates
 
 
 GROUP BY dates.date, count_query.vc
-ORDER BY dates.date";
+ORDER BY dates.date';
 
         $params = ['startDate' => $startDate, 'endDate' => $endDate];
 
         $results = DB::select($query, $params);
+
         return collect($results)
-            ->keyBy(fn(stdClass $shift) => $shift->date)
-            ->map(fn(stdClass $shift) => AvailableShiftMetaData::from($shift))
-            ;
+            ->keyBy(fn (stdClass $shift) => $shift->date)
+            ->map(fn (stdClass $shift) => AvailableShiftMetaData::from($shift));
     }
 }
