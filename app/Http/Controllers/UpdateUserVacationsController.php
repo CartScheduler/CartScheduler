@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Redirect;
 
 class UpdateUserVacationsController extends Controller
 {
-    public function __construct(private readonly IsAdminForUpdateOfUserAction $isAdminForUpdateOfUserAction)
-    {
-    }
+    public function __construct(private readonly IsAdminForUpdateOfUserAction $isAdminForUpdateOfUserAction) {}
 
     public function __invoke(UserVacationRequest $request): RedirectResponse
     {
@@ -23,24 +21,24 @@ class UpdateUserVacationsController extends Controller
         $vacations = $request->validated('vacations', []);
 
         foreach ($vacations as $vacation) {
-            if (isset($vacation['id'])) {
-                $userVacation = $user->vacations()->find($vacation['id']);
-            } else {
-                // If there is no id, create a new vacation
-                $userVacation          = new UserVacation();
+            $userVacation = isset($vacation['id'])
+                ? $user->vacations()->find($vacation['id'])
+                : null;
+
+            if (! $userVacation) {
+                $userVacation = new UserVacation;
                 $userVacation->user_id = $user->getKey();
             }
 
-            $userVacation->start_date  = $vacation['start_date'];
-            $userVacation->end_date    = $vacation['end_date'];
+            $userVacation->start_date = $vacation['start_date'];
+            $userVacation->end_date = $vacation['end_date'];
             $userVacation->description = $vacation['description'];
             $userVacation->save();
         }
 
         $toBeDeleted = $request->validated('deletedVacations', []);
         foreach ($toBeDeleted as $toDelete) {
-            $userVacation = $user->vacations()->find($toDelete['id']);
-            $userVacation->delete();
+            $user->vacations()->find($toDelete['id'] ?? null)?->delete();
         }
 
         session()?->flash('flash.banner', $isAdminEdit ? 'Volunteer holidays have been updated.' : 'Your holidays have been updated.');
@@ -49,6 +47,7 @@ class UpdateUserVacationsController extends Controller
         if ($isAdminEdit) {
             return Redirect::route('admin.users.edit', $user);
         }
+
         return Redirect::route('user.availability');
     }
 }

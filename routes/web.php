@@ -16,6 +16,7 @@ use App\Http\Controllers\ExportUserAvailabilitiesController;
 use App\Http\Controllers\ExportUserShiftCountsController;
 use App\Http\Controllers\GetAdminUsersController;
 use App\Http\Controllers\GetAvailableUsersForShiftController;
+use App\Http\Controllers\GetSpouseCandidatesController;
 use App\Http\Controllers\GetReportTagsController;
 use App\Http\Controllers\GetUserLocationChoicesController;
 use App\Http\Controllers\LocationsController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\UpdateAllowedSettingsUsersController;
 use App\Http\Controllers\UpdateGeneralSettingsController;
 use App\Http\Controllers\UpdateUserLocationsChoicesController;
 use App\Http\Controllers\UpdateUserRegularAvailabilityController;
+use App\Http\Controllers\UpdateUserSpouseController;
 use App\Http\Controllers\UpdateUserVacationsController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\UsersImportController;
@@ -177,6 +179,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
                 UpdateAllowedSettingsUsersController::class
             )->name('admin.allowed-settings-users.update');
             Route::get('/admin-users', GetAdminUsersController::class)->name('admin.admin-users.get');
+            Route::get('/spouse-candidates', GetSpouseCandidatesController::class)->name('admin.spouse-candidates.get');
+            Route::patch('/users/{user}/spouse', UpdateUserSpouseController::class)->name('admin.users.spouse.update');
             Route::get('/check-update', AdminCheckForUpdateController::class)->name('admin.check-update');
             Route::post('/do-update', AdminRunSoftwareUpdateController::class)->name('admin.do-update');
             Route::get(

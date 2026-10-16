@@ -12,38 +12,70 @@ import JetInput from "@/Jetstream/Input.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
 import precognitiveForm from "@/Utils/precognitiveForm";
 
-const { vacations = [], userId } = defineProps<{
+const props = defineProps<{
   vacations?: Array<App.Data.UserVacationData> | undefined;
   userId?: number | undefined;
 }>();
 
 const toast = useToast();
 
+const copyVacations = (items: Array<App.Data.UserVacationData> | undefined) =>
+  (items ?? []).map((vacation) => ({ ...vacation }));
+
 const form = precognitiveForm({
   routeName: "update.user.vacations",
   method: "put",
 }, {
-  vacations: vacations,
+  vacations: copyVacations(props.vacations),
   deletedVacations: [] as Array<App.Data.UserVacationData>,
 });
 
+const syncFormFromProps = () => {
+  form.defaults({
+    vacations: copyVacations(props.vacations),
+    deletedVacations: [],
+  });
+  form.reset();
+  form.clearErrors();
+};
+
 const update = () => {
   form.transform((data) => {
-    if (userId) {
+    const deletedIds = new Set(
+      (data.deletedVacations ?? [])
+        .map((vacation) => vacation.id)
+        .filter((id): id is number => typeof id === "number" && id > 0),
+    );
+    const vacations = (data.vacations ?? []).map((vacation) => {
+      if (vacation.id && deletedIds.has(vacation.id)) {
+        const { id: _ignored, ...rest } = vacation;
+
+        return rest;
+      }
+
+      return vacation;
+    });
+    const payload = { ...data, vacations };
+
+    if (props.userId) {
       return {
-        ...data,
-        user_id: userId,
+        ...payload,
+        user_id: props.userId,
       };
     }
-    return data;
+
+    return payload;
   })
     .submit({
       preserveScroll: true,
-      onSuccess: () => toast.success(
-        "Vacation information has been updated.",
-        "Success!",
-        { group: "center" },
-      ),
+      onSuccess: () => {
+        syncFormFromProps();
+        toast.success(
+          "Vacation information has been updated.",
+          "Success!",
+          { group: "center" },
+        );
+      },
       onError: () => toast.error(
         "Vacation information could not be updated. Please check the validation messages.",
         "Not Saved!",
@@ -61,7 +93,7 @@ const addVacation = () => form.vacations = [...form.vacations, { start_date: "",
 
 const deleteVacation = (idx: number) => {
   const [removed] = form.vacations.splice(idx, 1);
-  if (!removed) {
+  if (!removed?.id) {
     return;
   }
   form.deletedVacations = [...form.deletedVacations, removed];

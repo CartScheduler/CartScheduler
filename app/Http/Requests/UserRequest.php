@@ -20,9 +20,14 @@ class UserRequest extends FormRequest
     {
         $validationUtils = app()->make(GetUserValidationUtils::class);
 
-        $this->merge(
-            $validationUtils->prepare($this->all())
-        );
+        $preparedData = $validationUtils->prepare($this->all());
+
+        // A request without a spouse must leave the existing link alone, rather than detaching it
+        if (!$this->exists('spouse_id') && $preparedData['spouse_id'] === null) {
+            unset($preparedData['spouse_id']);
+        }
+
+        $this->merge($preparedData);
     }
 
     /**
@@ -37,6 +42,14 @@ class UserRequest extends FormRequest
 
         $rules['email'][]      = Rule::unique('users')->ignore($this->get('id'));
         $rules['is_enabled'][] = ['boolean'];
+
+        // Resubmitting the spouse already attached to this user is not a conflict
+        $rules['spouse_id'] = array_map(
+            fn(mixed $rule) => $rule === 'unique:users,spouse_id'
+                ? Rule::unique('users', 'spouse_id')->ignore($this->get('id'))
+                : $rule,
+            $rules['spouse_id'],
+        );
 
         return $rules;
     }

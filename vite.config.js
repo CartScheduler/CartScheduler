@@ -7,6 +7,7 @@ import IconsResolver from "unplugin-icons/resolver";
 import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import vueDevTools from "vite-plugin-vue-devtools";
+import phpToolRunner from "./vite.plugin.php-tool-runner.ts";
 
 export default defineConfig({
   plugins: [
@@ -27,6 +28,11 @@ export default defineConfig({
       // Set the editor by setting the env var on your $PATH: export LAUNCH_EDITOR=[your editor path or executable]
       // See: https://devtools.vuejs.org/getting-started/open-in-editor
       // and https://github.com/webfansplz/vite-plugin-vue-inspector?tab=readme-ov-file#--configuration-ide--editor
+    }),
+    phpToolRunner({
+      command: "php",
+      args: ["artisan", "typescript:transform"],
+      watch: ["/Data/", "/Enums/"],
     }),
     Components({
       globs: [
