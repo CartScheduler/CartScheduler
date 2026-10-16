@@ -23,7 +23,7 @@ const descriptionSelectors = () => {
 
   expect(errors).toEqual([]);
 
-  return [...code.matchAll(/([^{}]+)\{/g)].map((match) => match[1].trim());
+  return [...code.matchAll(/([^{}]+)\{/g)].map((match) => (match[1] ?? "").trim());
 };
 
 const selectorsMatching = (selectors: string[], element: Element | null) => selectors.filter((selector) => {
