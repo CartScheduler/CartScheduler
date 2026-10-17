@@ -1,74 +1,61 @@
 <?php
 
-namespace Tests\Feature\Integration\Actions;
-
 use App\Actions\GetNewlyReleasedShiftDateRange;
 use App\Enums\DBPeriod;
 use Illuminate\Support\Carbon;
-use Tests\TestCase;
 use Tests\Traits\SetConfig;
 
-class GetNewlyReleasedShiftDateRangeTest extends TestCase
-{
-    use SetConfig;
+uses(SetConfig::class);
 
-    public function test_weekly_returns_null_before_release_time(): void
-    {
-        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
-        $this->travelTo('2023-02-06 12:29:59');
+afterEach(function () {
+    Carbon::setTestNow();
+});
 
-        $this->assertNull(app(GetNewlyReleasedShiftDateRange::class)->execute());
-    }
+test('weekly returns null before release time', function () {
+    $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+    $this->travelTo('2023-02-06 12:29:59');
 
-    public function test_weekly_returns_newly_opened_week_after_release(): void
-    {
-        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
-        $this->travelTo('2023-02-06 12:30:01');
+    expect(app(GetNewlyReleasedShiftDateRange::class)->execute())->toBeNull();
+});
 
-        $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
+test('weekly returns newly opened week after release', function () {
+    $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+    $this->travelTo('2023-02-06 12:30:01');
 
-        $this->assertSame('2023-02-13', $range['start']->toDateString());
-        $this->assertSame('2023-02-19', $range['end']->toDateString());
-    }
+    $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
 
-    public function test_monthly_returns_next_month_after_release(): void
-    {
-        $this->setConfig(1, DBPeriod::Month, false, null, '09:00');
-        $this->travelTo('2023-01-01 09:00:01');
+    $this->assertSame('2023-02-13', $range['start']->toDateString());
+    $this->assertSame('2023-02-19', $range['end']->toDateString());
+});
 
-        $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
+test('monthly returns next month after release', function () {
+    $this->setConfig(1, DBPeriod::Month, false, null, '09:00');
+    $this->travelTo('2023-01-01 09:00:01');
 
-        $this->assertSame('2023-02-01', $range['start']->toDateString());
-        $this->assertSame('2023-02-28', $range['end']->toDateString());
-    }
+    $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
 
-    public function test_daily_returns_new_max_day_after_release_time(): void
-    {
-        $this->setConfig(1, DBPeriod::Week, true, 'MON', '08:00');
-        $this->travelTo('2023-01-03 08:00:01');
+    $this->assertSame('2023-02-01', $range['start']->toDateString());
+    $this->assertSame('2023-02-28', $range['end']->toDateString());
+});
 
-        $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
+test('daily returns new max day after release time', function () {
+    $this->setConfig(1, DBPeriod::Week, true, 'MON', '08:00');
+    $this->travelTo('2023-01-03 08:00:01');
 
-        $this->assertSame('2023-01-09', $range['start']->toDateString());
-        $this->assertSame('2023-01-09', $range['end']->toDateString());
-    }
+    $range = app(GetNewlyReleasedShiftDateRange::class)->execute();
 
-    public function test_force_returns_current_outer_slice_mid_week(): void
-    {
-        $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
-        $this->travelTo('2023-02-07 10:00:00');
+    $this->assertSame('2023-01-09', $range['start']->toDateString());
+    $this->assertSame('2023-01-09', $range['end']->toDateString());
+});
 
-        $this->assertNull(app(GetNewlyReleasedShiftDateRange::class)->execute());
+test('force returns current outer slice mid week', function () {
+    $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+    $this->travelTo('2023-02-07 10:00:00');
 
-        $range = app(GetNewlyReleasedShiftDateRange::class)->execute(force: true);
+    expect(app(GetNewlyReleasedShiftDateRange::class)->execute())->toBeNull();
 
-        $this->assertSame('2023-02-13', $range['start']->toDateString());
-        $this->assertSame('2023-02-19', $range['end']->toDateString());
-    }
+    $range = app(GetNewlyReleasedShiftDateRange::class)->execute(force: true);
 
-    protected function tearDown(): void
-    {
-        Carbon::setTestNow();
-        parent::tearDown();
-    }
-}
+    $this->assertSame('2023-02-13', $range['start']->toDateString());
+    $this->assertSame('2023-02-19', $range['end']->toDateString());
+});

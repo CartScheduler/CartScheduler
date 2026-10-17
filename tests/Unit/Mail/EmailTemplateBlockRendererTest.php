@@ -1,73 +1,63 @@
 <?php
 
-namespace Tests\Unit\Mail;
-
 use App\Mail\EmailTemplateBlockRenderer;
-use Tests\TestCase;
 
-class EmailTemplateBlockRendererTest extends TestCase
-{
-    public function test_it_repeats_content_for_each_item(): void
-    {
-        $rendered = app(EmailTemplateBlockRenderer::class)->render(
-            '{{#each shifts}}{{ shift.date }} {{/each}}',
-            [
-                'shifts' => [
-                    ['date' => 'Monday'],
-                    ['date' => 'Wednesday'],
-                ],
+test('it repeats content for each item', function () {
+    $rendered = app(EmailTemplateBlockRenderer::class)->render(
+        '{{#each shifts}}{{ shift.date }} {{/each}}',
+        [
+            'shifts' => [
+                ['date' => 'Monday'],
+                ['date' => 'Wednesday'],
             ],
-            ['shifts' => 'shift'],
-        );
+        ],
+        ['shifts' => 'shift'],
+    );
 
-        $this->assertSame('Monday Wednesday ', $rendered);
-    }
+    expect($rendered)->toBe('Monday Wednesday ');
+});
 
-    public function test_it_renders_nested_loops_and_empty_fallback(): void
-    {
-        $template = '{{#each shifts}}{{#each shift.other_volunteers}}{{ volunteer.name }},{{#empty}}None{{/each}};{{/each}}';
+test('it renders nested loops and empty fallback', function () {
+    $template = '{{#each shifts}}{{#each shift.other_volunteers}}{{ volunteer.name }},{{#empty}}None{{/each}};{{/each}}';
 
-        $rendered = app(EmailTemplateBlockRenderer::class)->render(
-            $template,
-            [
-                'shifts' => [
-                    ['other_volunteers' => [['name' => 'John'], ['name' => 'Mary']]],
-                    ['other_volunteers' => []],
-                ],
+    $rendered = app(EmailTemplateBlockRenderer::class)->render(
+        $template,
+        [
+            'shifts' => [
+                ['other_volunteers' => [['name' => 'John'], ['name' => 'Mary']]],
+                ['other_volunteers' => []],
             ],
-            [
-                'shifts' => 'shift',
-                'shift.other_volunteers' => 'volunteer',
+        ],
+        [
+            'shifts' => 'shift',
+            'shift.other_volunteers' => 'volunteer',
+        ],
+    );
+
+    expect($rendered)->toBe('John,Mary,;None;');
+});
+
+test('it hides falsey if blocks', function () {
+    $rendered = app(EmailTemplateBlockRenderer::class)->render(
+        '{{#each shifts}}{{#if shift.location_map_url}}{{ shift.location_map_url }}{{/if}}{{/each}}',
+        [
+            'shifts' => [
+                ['location_map_url' => 'https://maps.example/one'],
+                ['location_map_url' => null],
+                ['location_map_url' => ''],
             ],
-        );
+        ],
+        ['shifts' => 'shift'],
+    );
 
-        $this->assertSame('John,Mary,;None;', $rendered);
-    }
+    expect($rendered)->toBe('https://maps.example/one');
+});
 
-    public function test_it_hides_falsey_if_blocks(): void
-    {
-        $rendered = app(EmailTemplateBlockRenderer::class)->render(
-            '{{#each shifts}}{{#if shift.location_map_url}}{{ shift.location_map_url }}{{/if}}{{/each}}',
-            [
-                'shifts' => [
-                    ['location_map_url' => 'https://maps.example/one'],
-                    ['location_map_url' => null],
-                    ['location_map_url' => ''],
-                ],
-            ],
-            ['shifts' => 'shift'],
-        );
+test('it leaves plain content unchanged', function () {
+    $rendered = app(EmailTemplateBlockRenderer::class)->render(
+        'Hello {{ user.name }}',
+        ['user' => ['name' => 'Jane']],
+    );
 
-        $this->assertSame('https://maps.example/one', $rendered);
-    }
-
-    public function test_it_leaves_plain_content_unchanged(): void
-    {
-        $rendered = app(EmailTemplateBlockRenderer::class)->render(
-            'Hello {{ user.name }}',
-            ['user' => ['name' => 'Jane']],
-        );
-
-        $this->assertSame('Hello {{ user.name }}', $rendered);
-    }
-}
+    expect($rendered)->toBe('Hello {{ user.name }}');
+});
