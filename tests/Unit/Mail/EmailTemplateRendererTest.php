@@ -217,3 +217,53 @@ test('recipient variables are derived from a user model', function () {
     );
     expect($context['user']->id)->toBe(9);
 });
+
+test('placeholder values are html escaped in the body', function () {
+    $renderer = app(EmailTemplateRenderer::class);
+
+    $rendered = $renderer->replacePlaceholders(
+        'Dear {{ user.name }},',
+        'user-account-created',
+        ['user' => ['name' => '<a href="https://evil.test">Confirm</a><img src="https://evil.test/p.png">']],
+    );
+
+    expect($rendered)
+        ->not->toContain('<a href')
+        ->not->toContain('<img')
+        ->toContain('&lt;a href=&quot;https://evil.test&quot;&gt;Confirm&lt;/a&gt;');
+});
+
+test('placeholder values inside loops are html escaped', function () {
+    $rendered = app(EmailTemplateRenderer::class)->replacePlaceholders(
+        '{{#each shifts}}{{#each shift.other_volunteers}}{{ volunteer.name }}{{/each}}{{/each}}',
+        'shift-assignments-released',
+        ['shifts' => [['other_volunteers' => [['name' => 'Bob <script>alert(1)</script>']]]]],
+    );
+
+    expect($rendered)->toBe('Bob &lt;script&gt;alert(1)&lt;/script&gt;');
+});
+
+test('placeholder values cannot inject another placeholder', function () {
+    $renderer = app(EmailTemplateRenderer::class);
+    $context = [
+        'user' => ['name' => '{{ mail.from.address }}'],
+        'mail' => ['from' => ['address' => 'from@example.test']],
+    ];
+
+    $body = $renderer->replacePlaceholders('Hi {{ user.name }}', 'user-account-created', $context);
+    $subject = $renderer->replacePlaceholders('Hi {{ user.name }}', 'user-account-created', $context, escapeHtml: false);
+
+    expect($body)->not->toContain('from@example.test')
+        ->and($subject)->not->toContain('from@example.test');
+});
+
+test('subject values are not html escaped', function () {
+    $subject = app(EmailTemplateRenderer::class)->replacePlaceholders(
+        'Welcome {{ user.name }}',
+        'user-account-created',
+        ['user' => ['name' => "Tom & Mary O'Brien"]],
+        escapeHtml: false,
+    );
+
+    expect($subject)->toBe("Welcome Tom & Mary O'Brien");
+});

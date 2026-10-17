@@ -24,7 +24,7 @@ class EmailTemplateRenderer
         $context = $this->buildRenderContext($this->samplePreviewContext($templateKey));
 
         return [
-            'subject' => $this->replacePlaceholders($subject, $templateKey, $context),
+            'subject' => $this->replacePlaceholders($subject, $templateKey, $context, escapeHtml: false),
             'html' => (string) app(Markdown::class)->render('emails.dynamic-template', [
                 'body' => $this->replacePlaceholders($body, $templateKey, $context),
             ]),
@@ -50,7 +50,7 @@ class EmailTemplateRenderer
         $renderContext = $this->buildRenderContext($context);
 
         return [
-            'subject' => $this->replacePlaceholders($template->subject, $key, $renderContext),
+            'subject' => $this->replacePlaceholders($template->subject, $key, $renderContext, escapeHtml: false),
             'body' => $this->replacePlaceholders($template->body, $key, $renderContext),
             'view' => 'emails.dynamic-template',
         ];
@@ -59,12 +59,13 @@ class EmailTemplateRenderer
     /**
      * @param  array<string, mixed>  $context
      */
-    public function replacePlaceholders(string $content, string $templateKey, array $context): string
+    public function replacePlaceholders(string $content, string $templateKey, array $context, bool $escapeHtml = true): string
     {
         $content = $this->blockRenderer->render(
             $content,
             $context,
             $this->registry->loopItemAliases($templateKey),
+            $escapeHtml,
         );
 
         foreach ($this->registry->componentKeys($templateKey) as $componentKey) {
@@ -84,15 +85,13 @@ class EmailTemplateRenderer
 
         return preg_replace_callback(
             '/\{\{\s*([\w.]+)\s*\}\}/',
-            static function (array $matches) use ($variableContext) {
+            static function (array $matches) use ($variableContext, $escapeHtml) {
                 $count = EmailTemplateBlockRenderer::countFor($variableContext, $matches[1]);
                 if ($count !== null) {
                     return (string) $count;
                 }
 
-                $value = data_get($variableContext, $matches[1]);
-
-                return is_scalar($value) || $value === null ? (string) ($value ?? '') : '';
+                return EmailTemplateBlockRenderer::formatValue(data_get($variableContext, $matches[1]), $escapeHtml);
             },
             $content,
         ) ?? $content;

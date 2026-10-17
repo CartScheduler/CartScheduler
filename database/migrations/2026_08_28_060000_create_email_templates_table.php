@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('key')->unique();
             $table->string('name');
             $table->string('subject');
-            $table->text('body');
+            $table->mediumText('body');
             $table->text('description')->nullable();
             $table->boolean('is_system')->default(false);
             $table->timestamps();

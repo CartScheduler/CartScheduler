@@ -23,7 +23,7 @@ class UpdateEmailTemplateRequest extends FormRequest
 
         return [
             'subject' => ['required', 'string', 'max:255', new ValidEmailTemplatePlaceholders($emailTemplate->key)],
-            'body' => ['required', 'string', 'max:4000000000', new ValidEmailTemplatePlaceholders($emailTemplate->key)],
+            'body' => ['required', 'string', 'max:60000', new ValidEmailTemplatePlaceholders($emailTemplate->key)],
         ];
     }
 }

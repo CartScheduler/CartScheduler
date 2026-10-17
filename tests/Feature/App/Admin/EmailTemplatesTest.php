@@ -2,6 +2,7 @@
 
 use App\Mail\EmailTemplateRenderer;
 use App\Mail\ShiftAssignmentsReleased;
+use App\Mail\UserAccountCreated;
 use App\Models\EmailTemplate;
 use App\Models\User;
 use App\Settings\GeneralSettings;
@@ -178,6 +179,47 @@ test('unknown placeholder fails validation', function () {
         ->assertSessionHasErrors('body');
 });
 
+test('an overly long body fails validation instead of erroring', function () {
+    $admin = User::factory()->adminRoleUser()->create();
+    allowEmailTemplateSettingsUser($admin);
+
+    $this->seed(EmailTemplateSeeder::class);
+    $template = EmailTemplate::findByKey('user-account-created');
+
+    $this->actingAs($admin)
+        ->put("/admin/emails/{$template->id}", [
+            'subject' => $template->subject,
+            'body' => str_repeat('a', 60001),
+        ])
+        ->assertSessionHasErrors('body');
+
+    $this->actingAs($admin)
+        ->postJson('/admin/emails/preview', [
+            'key' => $template->key,
+            'subject' => $template->subject,
+            'body' => str_repeat('a', 60001),
+        ])
+        ->assertJsonValidationErrors('body');
+});
+
+test('a body at the length limit can be saved', function () {
+    $admin = User::factory()->adminRoleUser()->create();
+    allowEmailTemplateSettingsUser($admin);
+
+    $this->seed(EmailTemplateSeeder::class);
+    $template = EmailTemplate::findByKey('user-account-created');
+    $body = str_repeat('é', 60000);
+
+    $this->actingAs($admin)
+        ->put("/admin/emails/{$template->id}", [
+            'subject' => $template->subject,
+            'body' => $body,
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($template->fresh()->body)->toBe($body);
+});
+
 test('shift loop body can be saved', function () {
     $admin = User::factory()->adminRoleUser()->create();
     allowEmailTemplateSettingsUser($admin);
@@ -293,6 +335,21 @@ test('shift assignments email uses database template', function () {
         return $mail->hasTo($user->email)
             && $built->subject === 'Custom Assignments for Assigned User';
     });
+});
+
+test('a name containing html is shown as text in the welcome email', function () {
+    $this->seed(EmailTemplateSeeder::class);
+
+    $user = User::factory()->userRoleUser()->create([
+        'name' => '<a href="https://evil.test">Confirm here</a> <img src="https://evil.test/p.png">',
+    ]);
+
+    $html = (new UserAccountCreated($user))->render();
+
+    expect($html)
+        ->not->toContain('<a href="https://evil.test"')
+        ->not->toContain('<img src="https://evil.test/p.png"')
+        ->toContain('&lt;a href=');
 });
 
 test('allowed admin can preview email template', function () {

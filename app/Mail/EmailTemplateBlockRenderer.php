@@ -7,13 +7,42 @@ use Illuminate\Support\Str;
 
 class EmailTemplateBlockRenderer
 {
+    private bool $escapeHtml = true;
+
     /**
+     * Values are HTML-escaped by default because the body is rendered as raw HTML.
+     * Pass `$escapeHtml: false` for plain-text output such as a subject line.
+     *
      * @param  array<string, mixed>  $context
      * @param  array<string, string>  $loopItemAliases
      */
-    public function render(string $content, array $context, array $loopItemAliases = []): string
+    public function render(string $content, array $context, array $loopItemAliases = [], bool $escapeHtml = true): string
     {
-        return $this->renderNodes($this->parse($content), $context, $loopItemAliases);
+        $previous = $this->escapeHtml;
+        $this->escapeHtml = $escapeHtml;
+
+        try {
+            return $this->renderNodes($this->parse($content), $context, $loopItemAliases);
+        } finally {
+            $this->escapeHtml = $previous;
+        }
+    }
+
+    /**
+     * Turn a placeholder value into safe output text.
+     *
+     * Values come from user-editable data (names, phone numbers, location text), so they must never
+     * become markup in the email, nor form a new `{{ placeholder }}` that a later pass would expand.
+     */
+    public static function formatValue(mixed $value, bool $escapeHtml): string
+    {
+        $text = is_scalar($value) || $value === null ? (string) ($value ?? '') : '';
+
+        if ($escapeHtml) {
+            return str_replace(['{', '}'], ['&#123;', '&#125;'], e($text));
+        }
+
+        return str_replace(['{{', '}}'], ['{ {', '} }'], $text);
     }
 
     /**
@@ -249,18 +278,18 @@ class EmailTemplateBlockRenderer
      */
     private function interpolate(string $content, array $context): string
     {
+        $escapeHtml = $this->escapeHtml;
+
         return preg_replace_callback(
             '/\{\{\s*([\w.]+)\s*\}\}/',
-            static function (array $matches) use ($context) {
+            static function (array $matches) use ($context, $escapeHtml) {
                 $key = $matches[1];
                 $count = EmailTemplateBlockRenderer::countFor($context, $key);
                 if ($count !== null) {
                     return (string) $count;
                 }
 
-                $value = data_get($context, $key);
-
-                return is_scalar($value) || $value === null ? (string) ($value ?? '') : '';
+                return EmailTemplateBlockRenderer::formatValue(data_get($context, $key), $escapeHtml);
             },
             $content,
         ) ?? $content;

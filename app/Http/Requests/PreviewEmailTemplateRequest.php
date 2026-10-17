@@ -19,7 +19,7 @@ class PreviewEmailTemplateRequest extends FormRequest
         return [
             'key' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
-            'body' => ['required', 'string', 'max:4000000000'],
+            'body' => ['required', 'string', 'max:60000'],
         ];
     }
 }
