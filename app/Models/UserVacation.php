@@ -17,7 +17,7 @@ class UserVacation extends Model
     public function prunable(): Builder
     {
         /** @noinspection PhpIncompatibleReturnTypeInspection */
-        return static::where('end_date', '<', now()->subMonths(3));
+        return static::where('end_date', '<', now()->subDays(30));
     }
 
     protected function startDate(): Attribute

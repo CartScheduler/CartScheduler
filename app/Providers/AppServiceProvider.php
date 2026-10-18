@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Listeners\StreamlineInstalledVersionSetListener;
 use App\Listeners\StreamlineNextAvailableVersionUpdatedListener;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.is_https')) {
             URL::forceScheme('https');
         }
+
+        RateLimiter::for('mail-notifications', static fn () => Limit::perMinute(
+            max(1, (int) config('cart-scheduler.mail_rate_per_minute'))
+        ));
 
         Event::listen(InstalledVersionSet::class, StreamlineInstalledVersionSetListener::class);
         Event::listen(NextAvailableVersionUpdated::class, StreamlineNextAvailableVersionUpdatedListener::class);

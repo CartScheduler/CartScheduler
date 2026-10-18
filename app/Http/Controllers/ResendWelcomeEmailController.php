@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\UserAccountCreated;
 use App\Models\User;
+use App\Notifications\UserAccountCreatedNotification;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 
 class ResendWelcomeEmailController extends Controller
@@ -51,7 +50,7 @@ class ResendWelcomeEmailController extends Controller
 
     protected function sendCreatePassword(User $user): JsonResponse
     {
-        Mail::to($user->email)->send(new UserAccountCreated($user));
+        $user->notify(new UserAccountCreatedNotification);
 
         return response()->json([
             'message' => 'Welcome email was sent',

@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserAvailability;
 use App\Models\UserVacation;
+use App\Notifications\UserAccountCreatedNotification;
 use App\Settings\GeneralSettings;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,12 +89,12 @@ test('admin can add new user and user receives email', function () {
 
     $userData = $user->makeVisible('role', 'mobile_phone')->toArray();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/', $userData)
         ->assertRedirect()
         ->assertSessionHas('flash.message', "$user->name was successfully created.");
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentTimes(UserAccountCreatedNotification::class, 1);
 
     $this->assertDatabaseCount('users', 2);
 });
@@ -116,7 +117,7 @@ test('admin adds new user with bad data fails', function () {
         'is_unrestricted' => 'invalid unrestricted',
     ];
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/', $userData)
         ->assertUnprocessable()
@@ -134,7 +135,7 @@ test('admin adds new user with bad data fails', function () {
             'is_unrestricted',
         ]);
     $this->assertDatabaseCount('users', 1);
-    Mail::assertNothingSent();
+    Notification::assertNothingSent();
 });
 
 test('restrict admin user disallow remove admin rights', function () {
@@ -218,7 +219,7 @@ test('admin can send password reset email', function () {
         ->assertOk()
         ->assertJsonPath('message', 'A password reset link has been sent to the user.');
     Notification::assertSentToTimes($user, ResetPassword::class);
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('password reset too many requests', function () {
@@ -238,7 +239,7 @@ test('password reset too many requests', function () {
             ->assertStatus($i < 2 ? 200 : 429)
             ->assertContainsStringIgnoringCase('message', $expected);
     }
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('password reset unhandled password response', function () {
@@ -255,33 +256,33 @@ test('password reset unhandled password response', function () {
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertserverError()
         ->assertContainsStringIgnoringCase('message', 'unknown error');
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('admin can resend welcome email', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
     $user = User::factory()->enabled()->state(['password' => null])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertOk()
         ->assertJsonPath('message', 'Welcome email was sent');
 
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentToTimes($user, UserAccountCreatedNotification::class, 1);
 });
 
 test('resend welcome email is correct', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
     $user = User::factory()->enabled()->state(['password' => null])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertOk()
         ->assertJsonPath('message', 'Welcome email was sent');
 
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentToTimes($user, UserAccountCreatedNotification::class, 1);
 });
 
 test('welcome email is correct', function () {

@@ -3,24 +3,35 @@
 use App\Actions\NotifyVolunteersOfReleasedShifts;
 use App\Console\Commands\NotifyReleasedShiftAssignmentsCommand;
 use App\Enums\DBPeriod;
-use App\Jobs\SendShiftAssignmentsReleasedMail;
+use App\Enums\NotificationStatus;
+use App\Enums\NotificationType;
 use App\Mail\ShiftAssignmentsReleased;
 use App\Models\Location;
+use App\Models\NotificationLog;
 use App\Models\Shift;
-use App\Models\ShiftAssignmentNotification;
 use App\Models\ShiftUser;
 use App\Models\User;
+use App\Notifications\ShiftAssignmentsReleasedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Notification;
 use Tests\Traits\SetConfig;
 
 uses(RefreshDatabase::class);
 
 uses(SetConfig::class);
 
+expect()->extend('toContainMail', function (Closure $matches) {
+    expect($this->value->contains($matches))->toBeTrue('No matching Shift Assignments Released email was sent.');
+
+    return $this;
+});
+
 test('weekly release sends one email per user for newly opened slice only', function () {
+    Notification::fake();
     /*
      * February 2023
      * Mo Tu We Th Fr Sa Su
@@ -42,21 +53,19 @@ test('weekly release sends one email per user for newly opened slice only', func
     $userWithNewShift->attachShiftOnDate($shift, '2023-02-14');
     $userWithNewShift->attachShiftOnDate($shift, '2023-02-16');
 
-    Mail::fake();
-
     $this->travelTo('2023-02-06 12:29:59');
     $this->assertSame(
         ['users_notified' => 0, 'assignments_notified' => 0],
         app(NotifyVolunteersOfReleasedShifts::class)->execute()
     );
-    Mail::assertNothingSent();
+    expect(releasedMails())->toBeEmpty();
 
     $this->travelTo('2023-02-06 12:30:01');
     $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
     expect($result)->toBe(['users_notified' => 1, 'assignments_notified' => 2]);
-    Mail::assertSent(ShiftAssignmentsReleased::class, 1);
-    Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($userWithNewShift) {
+    expect(releasedMails())->toHaveCount(1);
+    expect(releasedMails())->toContainMail(function (ShiftAssignmentsReleased $mail) use ($userWithNewShift) {
         return $mail->hasTo($userWithNewShift->email)
             && $mail->shifts->count() === 2
             && $mail->period === [
@@ -65,18 +74,35 @@ test('weekly release sends one email per user for newly opened slice only', func
                 'label' => '13 February 2023 – 19 February 2023',
             ];
     });
-    Mail::assertNotSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithOldShift->email));
-    Mail::assertNotSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithNoShift->email));
-    $this->assertDatabaseCount('shift_assignment_notifications', 2);
+    expect(releasedMails())->not->toContainMail(fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithOldShift->email));
+    expect(releasedMails())->not->toContainMail(fn (ShiftAssignmentsReleased $mail) => $mail->hasTo($userWithNoShift->email));
+});
 
-    $this->assertSame(
-        ['users_notified' => 0, 'assignments_notified' => 0],
-        app(NotifyVolunteersOfReleasedShifts::class)->execute()
-    );
-    Mail::assertSent(ShiftAssignmentsReleased::class, 1);
+test('a second run does not notify the same assignments again', function () {
+    $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+
+    $user = User::factory()->userRoleUser()->enabled()->create();
+    $location = Location::factory()->create();
+    $shift = Shift::factory()->everyDay9am()->for($location)->create();
+    $user->attachShiftOnDate($shift, '2023-02-14');
+    $user->attachShiftOnDate($shift, '2023-02-16');
+
+    $this->travelTo('2023-02-06 12:30:01');
+
+    expect(app(NotifyVolunteersOfReleasedShifts::class)->execute())
+        ->toBe(['users_notified' => 1, 'assignments_notified' => 2])
+        ->and(app(NotifyVolunteersOfReleasedShifts::class)->execute())
+        ->toBe(['users_notified' => 0, 'assignments_notified' => 0]);
+
+    $log = NotificationLog::query()->where('type', NotificationType::ShiftAssignmentsReleased->value)->sole();
+    expect($log->status)->toBe(NotificationStatus::Sent)
+        ->and($log->notifiable_id)->toBe($user->id)
+        ->and($log->subject)->toContain('Shift Assignments')
+        ->and($log->shiftUsers)->toHaveCount(2);
 });
 
 test('monthly release notifies assignments in newly opened month', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Month, false, null, '09:00');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
@@ -85,8 +111,6 @@ test('monthly release notifies assignments in newly opened month', function () {
 
     $user->attachShiftOnDate($shift, '2023-01-15');
     $user->attachShiftOnDate($shift, '2023-02-10');
-
-    Mail::fake();
 
     $this->travelTo('2023-01-01 08:59:59');
     $this->assertSame(
@@ -98,11 +122,12 @@ test('monthly release notifies assignments in newly opened month', function () {
     $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
     expect($result)->toBe(['users_notified' => 1, 'assignments_notified' => 1]);
-    Mail::assertSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
+    expect(releasedMails())->toContainMail(fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
         && str_contains($mail->shifts->first()['date'], '10 February 2023'));
 });
 
 test('daily release notifies assignments on newly opened day', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, true, 'MON', '08:00');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
@@ -111,8 +136,6 @@ test('daily release notifies assignments on newly opened day', function () {
 
     $user->attachShiftOnDate($shift, '2023-01-09');
     $user->attachShiftOnDate($shift, '2023-01-08');
-
-    Mail::fake();
 
     $this->travelTo('2023-01-03 07:59:59');
     $this->assertSame(
@@ -124,11 +147,12 @@ test('daily release notifies assignments on newly opened day', function () {
     $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
     expect($result)->toBe(['users_notified' => 1, 'assignments_notified' => 1]);
-    Mail::assertSent(ShiftAssignmentsReleased::class, fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
+    expect(releasedMails())->toContainMail(fn (ShiftAssignmentsReleased $mail) => $mail->shifts->count() === 1
         && str_contains($mail->shifts->first()['date'], '9 January 2023'));
 });
 
 test('email includes other volunteers on the same shift', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $recipient = User::factory()->userRoleUser()->enabled()->create([
@@ -147,31 +171,31 @@ test('email includes other volunteers on the same shift', function () {
     $partner->attachShiftOnDate($shift, '2023-02-14');
     $solo->attachShiftOnDate($shift, '2023-02-16');
 
-    Mail::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
-    Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($recipient) {
+    expect(releasedMails())->toContainMail(function (ShiftAssignmentsReleased $mail) use ($recipient) {
         return $mail->hasTo($recipient->email)
             && $mail->shifts->count() === 1
             && $mail->shifts->first()['other_volunteers'] === [
                 ['name' => 'Bob Partner', 'mobile_phone' => '0422 222 222'],
             ];
     });
-    Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($partner) {
+    expect(releasedMails())->toContainMail(function (ShiftAssignmentsReleased $mail) use ($partner) {
         return $mail->hasTo($partner->email)
             && $mail->shifts->first()['other_volunteers'] === [
                 ['name' => 'Alice Recipient', 'mobile_phone' => '0411 111 111'],
             ];
     });
-    Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($solo) {
+    expect(releasedMails())->toContainMail(function (ShiftAssignmentsReleased $mail) use ($solo) {
         return $mail->hasTo($solo->email)
             && $mail->shifts->first()['other_volunteers'] === [];
     });
 });
 
 test('email includes location notes and map url', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
@@ -195,12 +219,11 @@ test('email includes location notes and map url', function () {
 
     $mapped->refresh();
 
-    Mail::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
-    Mail::assertSent(ShiftAssignmentsReleased::class, function (ShiftAssignmentsReleased $mail) use ($user, $mapped) {
+    expect(releasedMails())->toContainMail(function (ShiftAssignmentsReleased $mail) use ($user, $mapped) {
         $shifts = $mail->shifts->values();
 
         return $mail->hasTo($user->email)
@@ -214,14 +237,13 @@ test('email includes location notes and map url', function () {
 });
 
 test('force flag allows catch up outside release moment', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
     $location = Location::factory()->create();
     $shift = Shift::factory()->everyDay9am()->for($location)->create();
     $user->attachShiftOnDate($shift, '2023-02-14');
-
-    Mail::fake();
 
     $this->travelTo('2023-02-07 10:00:00');
     $this->assertSame(
@@ -232,10 +254,11 @@ test('force flag allows catch up outside release moment', function () {
     $result = app(NotifyVolunteersOfReleasedShifts::class)->execute(force: true);
 
     expect($result)->toBe(['users_notified' => 1, 'assignments_notified' => 1]);
-    Mail::assertSent(ShiftAssignmentsReleased::class, 1);
+    expect(releasedMails())->toHaveCount(1);
 });
 
 test('skips disabled users and already tracked assignments', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $enabledUser = User::factory()->userRoleUser()->enabled()->create();
@@ -247,19 +270,20 @@ test('skips disabled users and already tracked assignments', function () {
     $disabledUser->attachShiftOnDate($shift, '2023-02-15');
 
     $tracked = ShiftUser::query()->where('user_id', $enabledUser->id)->first();
-    ShiftAssignmentNotification::create([
-        'shift_user_id' => $tracked->id,
-        'sent_at' => now(),
-    ]);
+    NotificationLog::factory()
+        ->forUser($enabledUser)
+        ->ofType(NotificationType::ShiftAssignmentsReleased)
+        ->create()
+        ->shiftUsers()
+        ->attach($tracked);
 
-    Mail::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     $this->assertSame(
         ['users_notified' => 0, 'assignments_notified' => 0],
         app(NotifyVolunteersOfReleasedShifts::class)->execute()
     );
-    Mail::assertNothingSent();
+    expect(releasedMails())->toBeEmpty();
 });
 
 test('artisan command outputs summary', function () {
@@ -271,7 +295,6 @@ test('artisan command outputs summary', function () {
     $shift = Shift::factory()->everyDay9am()->for($location)->create();
     $user->attachShiftOnDate($shift, '2023-02-14');
 
-    Mail::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     $this->artisan(NotifyReleasedShiftAssignmentsCommand::class)
@@ -280,6 +303,7 @@ test('artisan command outputs summary', function () {
 });
 
 test('artisan command respects disabled flag', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
     Config::set('cart-scheduler.shift_assignment_notifications_enabled', false);
 
@@ -288,16 +312,16 @@ test('artisan command respects disabled flag', function () {
     $shift = Shift::factory()->everyDay9am()->for($location)->create();
     $user->attachShiftOnDate($shift, '2023-02-14');
 
-    Mail::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     $this->artisan(NotifyReleasedShiftAssignmentsCommand::class)
         ->expectsOutput('Shift assignment notifications are disabled (CA_SHIFT_ASSIGNMENT_NOTIFICATIONS_ENABLED).')
         ->assertSuccessful();
-    Mail::assertNothingSent();
+    expect(releasedMails())->toBeEmpty();
 });
 
-test('execute queues one job per user without recording until the job runs', function () {
+test('a failed earlier notification does not stop the assignment being notified again', function () {
+    Notification::fake();
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
@@ -305,28 +329,48 @@ test('execute queues one job per user without recording until the job runs', fun
     $shift = Shift::factory()->everyDay9am()->for($location)->create();
     $user->attachShiftOnDate($shift, '2023-02-14');
 
-    Queue::fake();
-    Mail::fake();
+    $assignment = ShiftUser::query()->where('user_id', $user->id)->first();
+    NotificationLog::factory()
+        ->forUser($user)
+        ->ofType(NotificationType::ShiftAssignmentsReleased)
+        ->failed()
+        ->create()
+        ->shiftUsers()
+        ->attach($assignment);
+
+    $this->travelTo('2023-02-06 12:30:01');
+
+    expect(app(NotifyVolunteersOfReleasedShifts::class)->execute())
+        ->toBe(['users_notified' => 1, 'assignments_notified' => 1]);
+    expect(releasedMails())->toHaveCount(1);
+});
+
+test('execute sends one notification per user holding only assignment ids', function () {
+    $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
+
+    $user = User::factory()->userRoleUser()->enabled()->create();
+    $location = Location::factory()->create();
+    $shift = Shift::factory()->everyDay9am()->for($location)->create();
+    $user->attachShiftOnDate($shift, '2023-02-14');
+    $assignment = ShiftUser::query()->where('user_id', $user->id)->first();
+
+    Notification::fake();
     $this->travelTo('2023-02-06 12:30:01');
 
     $result = app(NotifyVolunteersOfReleasedShifts::class)->execute();
 
     expect($result)->toBe(['users_notified' => 1, 'assignments_notified' => 1]);
-    Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, 1);
-    Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, function (SendShiftAssignmentsReleasedMail $job) use ($user) {
-        return $job->user->is($user)
-            && $job->shifts->count() === 1
-            && $job->period === [
+    Notification::assertSentToTimes($user, ShiftAssignmentsReleasedNotification::class, 1);
+    Notification::assertSentTo($user, ShiftAssignmentsReleasedNotification::class,
+        fn (ShiftAssignmentsReleasedNotification $notification) => $notification->shiftUserIds === [$assignment->id]
+            && $notification->period === [
                 'start' => '13 February 2023',
                 'end' => '19 February 2023',
                 'label' => '13 February 2023 – 19 February 2023',
-            ];
-    });
-    Mail::assertNothingSent();
-    $this->assertDatabaseCount('shift_assignment_notifications', 0);
+            ]);
 });
 
-test('does not queue a second job for the same assignments while the first is pending', function () {
+test('does not queue a second notification for the same assignments while the first is pending', function () {
     $this->setConfig(1, DBPeriod::Week, false, 'MON', '12:30');
 
     $user = User::factory()->userRoleUser()->enabled()->create();
@@ -334,11 +378,30 @@ test('does not queue a second job for the same assignments while the first is pe
     $shift = Shift::factory()->everyDay9am()->for($location)->create();
     $user->attachShiftOnDate($shift, '2023-02-14');
 
-    Queue::fake();
+    Config::set('queue.default', 'database');
+
     $this->travelTo('2023-02-06 12:30:01');
 
-    app(NotifyVolunteersOfReleasedShifts::class)->execute();
-    app(NotifyVolunteersOfReleasedShifts::class)->execute();
+    expect(app(NotifyVolunteersOfReleasedShifts::class)->execute()['users_notified'])->toBe(1)
+        ->and(app(NotifyVolunteersOfReleasedShifts::class)->execute()['users_notified'])->toBe(0);
 
-    Queue::assertPushed(SendShiftAssignmentsReleasedMail::class, 1);
+    expect(DB::table('jobs')->count())->toBe(1);
+    $this->assertDatabaseHas('notification_logs', [
+        'type' => NotificationType::ShiftAssignmentsReleased->value,
+        'status' => NotificationStatus::Queued->value,
+    ]);
 });
+
+/**
+ * The emails the faked notifications would have sent, built the same way the mail channel builds them.
+ *
+ * @return Collection<int, ShiftAssignmentsReleased>
+ */
+function releasedMails(): Collection
+{
+    return collect(Notification::sentNotifications())
+        ->flatten(1)
+        ->flatMap(fn (array $notificationsByClass) => $notificationsByClass[ShiftAssignmentsReleasedNotification::class] ?? [])
+        ->map(fn (array $sent) => $sent['notification']->toMail($sent['notifiable']))
+        ->values();
+}

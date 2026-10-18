@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -32,9 +32,9 @@ class ShiftUser extends Pivot
         return $this->belongsTo(User::class);
     }
 
-    public function assignmentNotification(): HasOne
+    public function notificationLogs(): MorphToMany
     {
-        return $this->hasOne(ShiftAssignmentNotification::class, 'shift_user_id');
+        return $this->morphToMany(NotificationLog::class, 'subject', 'notification_log_subjects');
     }
 
     public function getActivitylogOptions(): LogOptions
