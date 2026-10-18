@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRunSoftwareUpdateController;
 use App\Http\Controllers\AdminUpdateLocationSortOrderController;
 use App\Http\Controllers\AvailableShiftsController;
+use App\Http\Controllers\DeleteFailedJobController;
 use App\Http\Controllers\DeleteShiftsController;
 use App\Http\Controllers\DownloadUserImportSpreadsheetController;
 use App\Http\Controllers\DownloadUsersAsSpreadsheetController;
@@ -28,10 +29,13 @@ use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ReportTagsController;
 use App\Http\Controllers\ReportTagsSortOrderController;
 use App\Http\Controllers\ResendWelcomeEmailController;
+use App\Http\Controllers\RetryFailedJobsController;
 use App\Http\Controllers\SaveShiftReportController;
 use App\Http\Controllers\SetUserPasswordController;
 use App\Http\Controllers\ShowExportsController;
 use App\Http\Controllers\ShowGeneralSettingsController;
+use App\Http\Controllers\ShowNotificationLogsController;
+use App\Http\Controllers\ShowQueueController;
 use App\Http\Controllers\ShowUserAvailabilityController;
 use App\Http\Controllers\ToggleShiftReservationController;
 use App\Http\Controllers\ToggleUserOntoShiftReservationController;
@@ -171,6 +175,15 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::match(['put', 'delete'], '/toggle-shift-for-user', ToggleUserOntoShiftReservationController::class);
 
             Route::get('/settings', ShowGeneralSettingsController::class)->name('admin.settings');
+
+            Route::get('/notifications', ShowNotificationLogsController::class)->name('admin.notifications.index');
+            Route::get('/queue', ShowQueueController::class)->name('admin.queue.index');
+            Route::post('/queue/failed/{uuid}/retry', RetryFailedJobsController::class)
+                ->where('uuid', '[0-9a-f-]{36}|all')
+                ->name('admin.queue.failed.retry');
+            Route::delete('/queue/failed/{uuid}', DeleteFailedJobController::class)
+                ->where('uuid', '[0-9a-f-]{36}')
+                ->name('admin.queue.failed.destroy');
 
             Route::post('/emails/preview', PreviewEmailTemplateController::class)->name('admin.emails.preview');
 

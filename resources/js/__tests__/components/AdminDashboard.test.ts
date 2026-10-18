@@ -2,8 +2,11 @@ import { render } from "@testing-library/vue";
 import { describe, expect, it, vi } from "vitest";
 import AdminDashboard from "@/Pages/Admin/Dashboard.vue";
 
+const pollStart = vi.fn();
+
 vi.mock("@inertiajs/vue3", () => ({
   Link: { props: ["href"], template: "<a :href='href'><slot /></a>" },
+  usePoll: () => ({ start: pollStart, stop: vi.fn() }),
 }));
 
 const stubs = {
@@ -13,15 +16,34 @@ const stubs = {
   Tags: { template: "<div data-testid='tags' />" },
 };
 
-const renderDashboard = () => render(AdminDashboard, {
+const renderDashboard = (extraProps: Record<string, unknown> = {}) => render(AdminDashboard, {
   props: {
     totalUsers: 12,
     totalLocations: 3,
     shiftFilledData: [],
     outstandingReports: 4,
+    ...extraProps,
   },
-  global: { stubs, mocks: { route: (name: string) => `/${name}` } },
+  global: { stubs, mocks: { route: (name: string, params?: Record<string, string>) => `/${name}${params ? `?${new URLSearchParams(params)}` : ""}` } },
 });
+
+const notificationStats: App.Data.NotificationStatsData = {
+  sent_last_10_minutes: 2,
+  sent_last_hour: 9,
+  sent_last_24_hours: 40,
+  failed_last_7_days: 3,
+  queued: 1,
+};
+
+const queueStatus: App.Data.QueueStatusData = {
+  healthy: false,
+  problems: ["The scheduler has never run."],
+  connection: "database",
+  waiting: 4,
+  processing: 0,
+  delayed: 1,
+  failed: 2,
+};
 
 /** `order-…`, or a breakpoint-prefixed one. Not `border-…`, which contains it. */
 const ORDER_CLASS = /(^|:)-?order-/;
@@ -66,5 +88,48 @@ describe("Admin Dashboard", () => {
     const reservations = tiles.find((tile) => tile.querySelector("[data-testid='reservations']"))!;
     // Matched as a class, not a substring: `max-sm:order-first` contains it.
     expect([...reservations.classList].filter(isOrderClass)).toEqual(["max-sm:order-first"]);
+  });
+
+  it("hides the queue and notification panels from admins who can't edit settings", () => {
+    const { queryByTestId } = renderDashboard();
+
+    expect(queryByTestId("notifications-panel")).toBeNull();
+    expect(queryByTestId("queue-panel")).toBeNull();
+    expect(pollStart).not.toHaveBeenCalled();
+  });
+
+  it("shows sent counts and a failed stamp that links to the failed notifications", () => {
+    const { getByTestId } = renderDashboard({ notificationStats, queueStatus });
+    const panel = getByTestId("notifications-panel");
+
+    expect(panel.textContent).toContain("2");
+    expect(panel.textContent).toContain("Last 10 mins");
+    expect(panel.textContent).toContain("40");
+    const failed = getByTestId("notifications-failed");
+    expect(failed.textContent).toContain("3 failed");
+    expect(failed.getAttribute("href")).toBe("/admin.notifications.index?status=failed&period=7d");
+    expect(pollStart).toHaveBeenCalled();
+  });
+
+  it("shows a red queue indicator with the problem and job counts", () => {
+    const { getByTestId } = renderDashboard({ notificationStats, queueStatus });
+    const panel = getByTestId("queue-panel");
+
+    expect(panel.getAttribute("href")).toBe("/admin.queue.index");
+    expect(panel.querySelector("[data-healthy]")?.getAttribute("data-healthy")).toBe("false");
+    expect(panel.textContent).toContain("Not working");
+    expect(panel.textContent).toContain("The scheduler has never run.");
+    expect(panel.textContent).toContain("5 waiting");
+    expect(panel.textContent).toContain("2 failed");
+  });
+
+  it("shows a green queue indicator when everything is running", () => {
+    const { getByTestId } = renderDashboard({
+      notificationStats: { ...notificationStats, failed_last_7_days: 0 },
+      queueStatus: { ...queueStatus, healthy: true, problems: [], failed: 0 },
+    });
+
+    expect(getByTestId("queue-panel").textContent).toContain("Working");
+    expect(getByTestId("notifications-panel").textContent).toContain("All sent");
   });
 });

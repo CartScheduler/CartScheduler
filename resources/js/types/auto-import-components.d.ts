@@ -72,6 +72,7 @@ declare module 'vue' {
     PToast: typeof import('primevue/toast')['default']
     PToggleSwitch: typeof import('primevue/toggleswitch')['default']
     QuestionCircle: typeof import('./../Components/Icons/QuestionCircle.vue')['default']
+    StatusStamp: typeof import('./../Components/StatusStamp.vue')['default']
     StrikethroughButton: typeof import('./../Components/EditorToolbar/StrikethroughButton.vue')['default']
     SubmitButton: typeof import('./../Components/Form/Buttons/SubmitButton.vue')['default']
     TextEditor: typeof import('./../Components/TextEditor.vue')['default']

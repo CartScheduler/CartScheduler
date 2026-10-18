@@ -1,15 +1,26 @@
 <script setup lang="ts">
-import { Link } from "@inertiajs/vue3";
+import { Link, usePoll } from "@inertiajs/vue3";
 import CartReservationManagement from "@/Pages/Admin/Dashboard/CartReservationManagement.vue";
 import FilledShiftsChart from "@/Pages/Admin/Dashboard/FilledShiftsChart.vue";
+import NotificationsPanel from "@/Pages/Admin/Dashboard/NotificationsPanel.vue";
+import QueueStatusPanel from "@/Pages/Admin/Dashboard/QueueStatusPanel.vue";
 import Tags from "@/Pages/Admin/Dashboard/Tags.vue";
 
-defineProps<{
+const { notificationStats = null, queueStatus = null } = defineProps<{
   totalUsers: number;
   totalLocations: number;
   shiftFilledData: App.Data.FilledShiftData[];
   outstandingReports: number;
+  /** Only sent to admins on the Settings list. */
+  notificationStats?: App.Data.NotificationStatsData | null;
+  queueStatus?: App.Data.QueueStatusData | null;
 }>();
+
+// Keep the queue and notification panels current without reloading the rest of the page.
+const { start: startPolling } = usePoll(60_000, { only: ["notificationStats", "queueStatus"] }, { autoStart: false });
+if (notificationStats || queueStatus) {
+  startPolling();
+}
 </script>
 
 <template>
@@ -44,6 +55,9 @@ defineProps<{
           <div>Total number of locations in the system.</div>
         </div>
       </Link>
+
+      <NotificationsPanel v-if="notificationStats" :stats="notificationStats" />
+      <QueueStatusPanel v-if="queueStatus" :status="queueStatus" />
 
       <!--
         The border and its padding arrive together at `sm`. Below it there is no

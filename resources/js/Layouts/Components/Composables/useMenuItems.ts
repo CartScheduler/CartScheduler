@@ -73,6 +73,18 @@ export default () => {
         href: route("admin.emails.index"),
       });
       adminSubmenu.push({
+        label: "Notifications",
+        icon: "iconify mdi--email-fast-outline",
+        routeName: "admin.notifications.index",
+        href: route("admin.notifications.index"),
+      });
+      adminSubmenu.push({
+        label: "Queue",
+        icon: "iconify mdi--tray-full",
+        routeName: "admin.queue.index",
+        href: route("admin.queue.index"),
+      });
+      adminSubmenu.push({
         label: "Settings",
         icon: "iconify mdi--settings-outline",
         routeName: "admin.settings",
