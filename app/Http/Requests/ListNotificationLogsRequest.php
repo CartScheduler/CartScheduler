@@ -37,11 +37,12 @@ class ListNotificationLogsRequest extends FormRequest
             'period' => ['nullable', Rule::in(array_keys(self::PERIODS))],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'unresolved' => ['nullable', 'boolean'],
         ];
     }
 
     /**
-     * @return array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string}
+     * @return array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string, unresolved: bool}
      */
     public function filters(): array
     {
@@ -55,6 +56,7 @@ class ListNotificationLogsRequest extends FormRequest
             'period' => $validated['period'] ?? null,
             'from' => $validated['from'] ?? null,
             'to' => $validated['to'] ?? null,
+            'unresolved' => (bool) ($validated['unresolved'] ?? false),
         ];
     }
 }

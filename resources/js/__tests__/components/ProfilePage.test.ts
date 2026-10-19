@@ -50,7 +50,7 @@ const renderProfile = async (isDesktop: boolean, features = jetstream) => {
     global: {
       components,
       stubs,
-      mocks: { $page: { props: { auth: { user: { id: 1, name: "Test" } }, jetstream: features } } },
+      mocks: { route: (name: string) => `/${name}`, $page: { props: { auth: { user: { id: 1, name: "Test" } }, jetstream: features } } },
     },
   });
 

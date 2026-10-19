@@ -17,6 +17,7 @@ type Filters = {
   period: string | null;
   from: string | null;
   to: string | null;
+  unresolved: boolean;
 };
 type Paginated<T> = {
   data: T[];
@@ -45,7 +46,12 @@ const filters = reactive<Filters>({ ...props.filters });
 const expanded = ref<number | null>(null);
 
 const applyFilters = () => {
-  const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== null && value !== ""));
+  if (filters.status !== "failed") {
+    filters.unresolved = false;
+  }
+  const query = Object.fromEntries(Object.entries(filters)
+    .filter(([, value]) => value !== null && value !== "" && value !== false)
+    .map(([key, value]) => [key, value === true ? 1 : value]));
   router.get(route("admin.notifications.index"), query, { preserveState: true, preserveScroll: true, replace: true });
 };
 
@@ -57,11 +63,17 @@ const setPeriod = (period: string | null) => {
 };
 
 const clearFilters = () => {
-  Object.assign(filters, { status: null, type: null, channel: null, search: null, period: null, from: null, to: null });
+  Object.assign(filters, { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, unresolved: false });
   applyFilters();
 };
 
-const hasFilters = () => Object.values(filters).some((value) => value !== null && value !== "");
+const hasFilters = () => Object.values(filters).some((value) => value !== null && value !== "" && value !== false);
+
+const showUnresolvedFailures = () => {
+  filters.status = "failed";
+  filters.unresolved = true;
+  setPeriod("7d");
+};
 
 watchDebounced(() => filters.search, applyFilters, { debounce: 400 });
 
@@ -79,14 +91,13 @@ const resend = (log: App.Data.NotificationLogData) => {
   });
 };
 
-const backToDashboard = () => router.visit(route("admin.dashboard"));
 </script>
 
 <template>
   <PageHeader title="Notifications">
     <div class="flex justify-between">
       <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Notifications</h2>
-      <BackButton class="mx-3" @click.prevent="backToDashboard" />
+      <BackButton class="mx-3" :href="route('admin.dashboard')" />
     </div>
   </PageHeader>
 
@@ -115,13 +126,13 @@ const backToDashboard = () => router.visit(route("admin.dashboard"));
       </button>
       <button type="button"
               class="card text-left transition-colors"
-              :class="filters.status === 'failed' && filters.period === '7d' ? 'ring-2 ring-red-500' : ''"
-              @click="filters.status = 'failed'; setPeriod('7d')">
+              :class="filters.status === 'failed' && filters.unresolved && filters.period === '7d' ? 'ring-2 ring-red-500' : ''"
+              @click="showUnresolvedFailures">
         <div class="text-3xl font-semibold tabular-nums"
              :class="stats.failed_last_7_days ? 'text-red-600 dark:text-red-400' : ''">
           {{ stats.failed_last_7_days }}
         </div>
-        <div class="text-sm text-gray-600 dark:text-gray-300">Failed in the last 7 days</div>
+        <div class="text-sm text-gray-600 dark:text-gray-300">Failed and still not sent (last 7 days)</div>
       </button>
     </div>
 
@@ -190,6 +201,11 @@ const backToDashboard = () => router.visit(route("admin.dashboard"));
                  @change="filters.period = null; applyFilters()">
         </div>
       </div>
+
+      <label v-if="filters.status === 'failed'" class="flex items-center gap-2 text-sm">
+        <PCheckbox v-model="filters.unresolved" binary input-id="notification-unresolved" @change="applyFilters" />
+        Hide emails that were sent successfully later
+      </label>
 
       <div v-if="options.channels.length > 1" class="max-w-xs">
         <JetLabel for="notification-channel" value="Channel" />

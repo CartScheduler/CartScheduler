@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\Query\JoinClause;
 
 /**
  * One row per notification per channel (an email, and later a push notification).
@@ -78,6 +80,36 @@ class NotificationLog extends Model
             ->orWhere(fn (Builder $query) => $query
                 ->where('status', NotificationStatus::Sending)
                 ->where('updated_at', '<', now()->subMinutes(self::STALLED_AFTER_MINUTES))));
+    }
+
+    /**
+     * Excludes rows whose email was later sent successfully to the same person: same type and, for
+     * emails about assignments, at least one of the same assignments. Matches GetLaterNotificationAttempts.
+     *
+     * @param  Builder<NotificationLog>  $query
+     */
+    public function scopeUnresolved(Builder $query): void
+    {
+        $table = $this->getTable();
+
+        $query->whereNotExists(fn (QueryBuilder $later) => $later
+            ->from("$table as later")
+            ->whereColumn('later.type', "$table.type")
+            ->whereColumn('later.notifiable_type', "$table.notifiable_type")
+            ->whereColumn('later.notifiable_id', "$table.notifiable_id")
+            ->whereColumn('later.id', '>', "$table.id")
+            ->where('later.status', NotificationStatus::Sent->value)
+            ->where(fn (QueryBuilder $subjects) => $subjects
+                ->whereNotExists(fn (QueryBuilder $own) => $own
+                    ->from('notification_log_subjects as own')
+                    ->whereColumn('own.notification_log_id', "$table.id"))
+                ->orWhereExists(fn (QueryBuilder $shared) => $shared
+                    ->from('notification_log_subjects as own')
+                    ->join('notification_log_subjects as theirs', fn (JoinClause $join) => $join
+                        ->on('theirs.subject_type', '=', 'own.subject_type')
+                        ->on('theirs.subject_id', '=', 'own.subject_id'))
+                    ->whereColumn('own.notification_log_id', "$table.id")
+                    ->whereColumn('theirs.notification_log_id', 'later.id'))));
     }
 
     /**

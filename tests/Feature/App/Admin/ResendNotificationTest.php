@@ -155,3 +155,46 @@ test('admins not on the settings list cannot resend', function () {
 
     $this->actingAs($otherAdmin)->post("/admin/notifications/{$log->id}/resend")->assertNotFound();
 });
+
+test('failures later sent successfully are left out of the failed count and the unresolved filter', function () {
+    $resolvedUser = User::factory()->enabled()->create();
+    $resolved = NotificationLog::factory()->forUser($resolvedUser)->failed()->create();
+    NotificationLog::factory()->forUser($resolvedUser)->create();
+
+    $failedAgainUser = User::factory()->enabled()->create();
+    $failedAgain = NotificationLog::factory()->forUser($failedAgainUser)->failed()->create();
+    NotificationLog::factory()->forUser($failedAgainUser)->failed()->create();
+    $latestFailure = NotificationLog::query()->latest('id')->first();
+
+    $otherTypeUser = User::factory()->enabled()->create();
+    $otherType = NotificationLog::factory()->forUser($otherTypeUser)->failed()->create();
+    NotificationLog::factory()->forUser($otherTypeUser)->ofType(NotificationType::PasswordReset)->create();
+
+    $orphan = NotificationLog::factory()->failed()->create();
+
+    $this->actingAs($this->admin)
+        ->get('/admin/notifications?status=failed&unresolved=1')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('stats.failed_last_7_days', 4)
+            ->where('filters.unresolved', true)
+            ->where('logs.data', fn ($logs) => collect($logs)->pluck('id')->sort()->values()->all()
+                === collect([$failedAgain->id, $latestFailure->id, $otherType->id, $orphan->id])->sort()->values()->all()));
+
+    $this->actingAs($this->admin)
+        ->get('/admin/notifications?status=failed')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('logs.data', 5)
+            ->where('logs.data', fn ($logs) => collect($logs)->pluck('id')->contains($resolved->id)));
+});
+
+test('a shift email only counts as resolved by a later email about the same assignments', function () {
+    [$user, $assignment, $log] = failedShiftEmailFor(now()->addDays(3)->toDateString());
+    NotificationLog::factory()->forUser($user)->ofType(NotificationType::ShiftAssignmentsReleased)->create();
+
+    expect(NotificationLog::query()->failedOrStalled()->unresolved()->pluck('id')->all())->toBe([$log->id]);
+
+    $resend = NotificationLog::factory()->forUser($user)->ofType(NotificationType::ShiftAssignmentsReleased)->create();
+    $resend->shiftUsers()->attach($assignment);
+
+    expect(NotificationLog::query()->failedOrStalled()->unresolved()->exists())->toBeFalse();
+});

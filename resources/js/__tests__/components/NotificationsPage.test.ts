@@ -4,14 +4,12 @@ import List from "@/Pages/Admin/Notifications/List.vue";
 
 const routerGet = vi.fn();
 const routerPost = vi.fn();
-const routerVisit = vi.fn();
 
 vi.mock("@inertiajs/vue3", () => ({
   Link: { props: ["href"], template: "<a :href='href'><slot /></a>" },
   router: {
     get: (...args: unknown[]) => routerGet(...args),
     post: (...args: unknown[]) => routerPost(...args),
-    visit: (...args: unknown[]) => routerVisit(...args),
   },
 }));
 
@@ -28,8 +26,13 @@ vi.mock("primevue/select", () => ({
 }));
 
 const stubs = {
+  PCheckbox: {
+    props: ["modelValue", "inputId"],
+    emits: ["update:modelValue", "change"],
+    template: "<input type='checkbox' :id='inputId' :checked='modelValue' @change=\"$emit('update:modelValue', $event.target.checked); $emit('change')\" />",
+  },
   PageHeader: { template: "<div><slot /></div>" },
-  BackButton: { emits: ["click"], template: "<button @click=\"$emit('click', $event)\">Back</button>" },
+  BackButton: { props: ["href"], template: "<a :href='href'>Back</a>" },
   PButton: {
     props: ["label"],
     emits: ["click"],
@@ -63,9 +66,9 @@ const log = (overrides: Partial<App.Data.NotificationLogData> = {}): App.Data.No
   ...overrides,
 });
 
-type Filters = Record<"status" | "type" | "channel" | "search" | "period" | "from" | "to", string | null>;
+type Filters = Record<"status" | "type" | "channel" | "search" | "period" | "from" | "to", string | null> & { unresolved: boolean };
 
-const emptyFilters: Filters = { status: null, type: null, channel: null, search: null, period: null, from: null, to: null };
+const emptyFilters: Filters = { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, unresolved: false };
 
 const renderPage = (logs: App.Data.NotificationLogData[], filters: Filters = emptyFilters) => render(List, {
   props: {
@@ -85,7 +88,6 @@ const renderPage = (logs: App.Data.NotificationLogData[], filters: Filters = emp
 beforeEach(() => {
   routerGet.mockClear();
   routerPost.mockClear();
-  routerVisit.mockClear();
   vi.stubGlobal("route", (name: string, param?: number) => `/${name}${param ? `/${param}` : ""}`);
 });
 
@@ -123,12 +125,23 @@ describe("Notifications page", () => {
     expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed" }, expect.anything());
   });
 
-  it("shows failed notifications from the failed count", async () => {
+  it("shows failures that were never sent from the failed count", async () => {
     renderPage([log()]);
 
-    await fireEvent.click(screen.getByText("Failed in the last 7 days"));
+    await fireEvent.click(screen.getByText("Failed and still not sent (last 7 days)"));
 
-    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", period: "7d" }, expect.anything());
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", period: "7d", unresolved: 1 }, expect.anything());
+  });
+
+  it("can hide failures that were sent later, only while showing failures", async () => {
+    renderPage([log()], { ...emptyFilters, status: "failed" });
+
+    await fireEvent.click(screen.getByLabelText("Hide emails that were sent successfully later"));
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", unresolved: 1 }, expect.anything());
+
+    await fireEvent.update(screen.getByLabelText("Status"), "sent");
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "sent" }, expect.anything());
+    expect(screen.queryByLabelText("Hide emails that were sent successfully later")).toBeNull();
   });
 
   it("shows technical details when a row is opened", async () => {
@@ -176,11 +189,9 @@ describe("Notifications page", () => {
     expect(screen.getByTestId("failed-follow-up").textContent).toContain("This email can't be sent again from here.");
   });
 
-  it("goes back to the dashboard", async () => {
+  it("links back to the dashboard", () => {
     renderPage([log()]);
 
-    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
-
-    expect(routerVisit).toHaveBeenCalledWith("/admin.dashboard");
+    expect(screen.getByText("Back").getAttribute("href")).toBe("/admin.dashboard");
   });
 });

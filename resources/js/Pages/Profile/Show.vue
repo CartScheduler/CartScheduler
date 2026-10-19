@@ -41,9 +41,12 @@ watch(isNotMobile, () => {
 
 <template>
   <PageHeader title="Profile">
-    <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">
-      Profile
-    </h2>
+    <div class="flex justify-between">
+      <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">
+        Profile
+      </h2>
+      <BackButton class="mx-3" :href="route('dashboard')" />
+    </div>
   </PageHeader>
   <div class="mx-auto max-w-7xl py-10 sm:px-6 lg:px-8">
     <!--

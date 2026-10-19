@@ -5,7 +5,6 @@ import Show from "@/Pages/Admin/Queue/Show.vue";
 const routerPost = vi.fn();
 const routerDelete = vi.fn();
 
-const routerVisit = vi.fn();
 const copy = vi.fn();
 
 vi.mock("@inertiajs/vue3", () => ({
@@ -13,7 +12,6 @@ vi.mock("@inertiajs/vue3", () => ({
   router: {
     post: (...args: unknown[]) => routerPost(...args),
     delete: (...args: unknown[]) => routerDelete(...args),
-    visit: (...args: unknown[]) => routerVisit(...args),
   },
   usePoll: vi.fn(),
 }));
@@ -25,7 +23,7 @@ vi.mock("@vueuse/core", async () => {
 
 const stubs = {
   PageHeader: { template: "<div><slot /></div>" },
-  BackButton: { emits: ["click"], template: "<button @click=\"$emit('click', $event)\">Back</button>" },
+  BackButton: { props: ["href"], template: "<a :href='href'>Back</a>" },
   PButton: {
     props: ["label"],
     emits: ["click"],
@@ -70,7 +68,6 @@ const renderPage = (queueStatus = status()) => render(Show, {
 beforeEach(() => {
   routerPost.mockClear();
   routerDelete.mockClear();
-  routerVisit.mockClear();
   copy.mockClear();
   vi.stubGlobal("route", (name: string, param?: string) => `/${name}${param ? `/${param}` : ""}`);
 });
@@ -107,12 +104,10 @@ describe("Queue page", () => {
     expect(copy).toHaveBeenCalledWith(expect.stringContaining("Queue status: not working\n- The scheduler has never run."));
   });
 
-  it("goes back to the dashboard", async () => {
+  it("links back to the dashboard", () => {
     renderPage();
 
-    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
-
-    expect(routerVisit).toHaveBeenCalledWith("/admin.dashboard");
+    expect(screen.getByText("Back").getAttribute("href")).toBe("/admin.dashboard");
   });
 
   it("lists failed jobs in plain English with who they were for", () => {

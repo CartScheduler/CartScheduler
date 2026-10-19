@@ -47,21 +47,24 @@ onMounted(() => {
 
 <template>
   <PageHeader title="Users">
-    <div class="flex justify-between flex-wrap md:flex-nowrap">
-      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight w-full md:w-auto">
+    <div class="flex justify-between items-start gap-2">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
         Users
       </h2>
-      <div class="w-full md:w-auto hidden sm:flex gap-4">
-        <PButton label="Import Users"
-                 icon="iconify mdi--account-arrow-up"
-                 severity="help"
-                 variant="outlined"
-                 @click="onImportUsers" />
-        <PButton label="Download Users"
-                 icon="iconify mdi--account-arrow-down"
-                 severity="info"
-                 variant="outlined"
-                 @click="onDownloadUsers" />
+      <div class="flex items-center gap-4">
+        <div class="hidden sm:flex gap-4">
+          <PButton label="Import Users"
+                   icon="iconify mdi--account-arrow-up"
+                   severity="help"
+                   variant="outlined"
+                   @click="onImportUsers" />
+          <PButton label="Download Users"
+                   icon="iconify mdi--account-arrow-down"
+                   severity="info"
+                   variant="outlined"
+                   @click="onDownloadUsers" />
+        </div>
+        <BackButton :href="route('admin.dashboard')" />
       </div>
     </div>
   </PageHeader>

@@ -71,14 +71,13 @@ const details = computed(() => [
   `Checked: ${new Date().toISOString()}`,
 ].join("\n"));
 
-const backToDashboard = () => router.visit(route("admin.dashboard"));
 </script>
 
 <template>
   <PageHeader title="Queue">
     <div class="flex justify-between">
       <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Background Queue</h2>
-      <BackButton class="mx-3" @click.prevent="backToDashboard" />
+      <BackButton class="mx-3" :href="route('admin.dashboard')" />
     </div>
   </PageHeader>
 

@@ -26,6 +26,7 @@ class GetNotificationStats
             sent_last_24_hours: (int) ($sent->last_24_hours ?? 0),
             failed_last_7_days: NotificationLog::query()
                 ->failedOrStalled()
+                ->unresolved()
                 ->where('updated_at', '>=', $now->copy()->subDays(7))
                 ->count(),
             queued: NotificationLog::query()->whereIn('status', [NotificationStatus::Queued, NotificationStatus::Retrying])->count(),
