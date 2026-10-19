@@ -31,6 +31,7 @@ test('the queue is healthy when the scheduler and worker have run recently', fun
     $status = app(GetQueueStatus::class)->execute();
 
     expect($status->healthy)->toBeTrue()
+        ->and($status->summary)->toBeNull()
         ->and($status->problems)->toBe([]);
 });
 
@@ -40,6 +41,7 @@ test('a sync queue is reported as switched off', function () {
     $status = app(GetQueueStatus::class)->execute();
 
     expect($status->healthy)->toBeFalse()
+        ->and($status->summary)->toBe('It needs to be configured.')
         ->and($status->problems[0])->toContain('QUEUE_CONNECTION=sync');
 });
 
@@ -47,15 +49,18 @@ test('a scheduler that has never run is reported with the cron to add', function
     $status = app(GetQueueStatus::class)->execute();
 
     expect($status->healthy)->toBeFalse()
+        ->and($status->summary)->toBe('It needs to be configured.')
         ->and($status->problems)->toBe(['The scheduler has never run. Add a cron job that runs "php artisan schedule:run" every minute.']);
 });
 
 test('a stale scheduler is reported, not the worker it starts', function () {
     Cache::forever(CacheKey::SchedulerHeartbeat, now()->subMinutes(20)->getTimestamp());
 
-    $problems = app(GetQueueStatus::class)->execute()->problems;
+    $status = app(GetQueueStatus::class)->execute();
+    $problems = $status->problems;
 
-    expect($problems)->toHaveCount(1)
+    expect($status->summary)->toBe('It has stopped running and needs to be checked.')
+        ->and($problems)->toHaveCount(1)
         ->and($problems[0])->toStartWith('The scheduler last ran 20 minutes ago.');
 });
 

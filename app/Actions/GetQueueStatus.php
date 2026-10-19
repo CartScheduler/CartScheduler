@@ -28,17 +28,21 @@ class GetQueueStatus
         [$waiting, $processing, $delayed, $oldestWaiting] = $this->jobCounts($connection);
 
         $problems = [];
+        $needsSetup = false;
 
         if ($connection === 'sync') {
+            $needsSetup = true;
             $problems[] = 'The queue is switched off (QUEUE_CONNECTION=sync), so emails are sent while people wait, and failed ones are not retried. Set QUEUE_CONNECTION=database.';
         } else {
             if ($this->isStale($schedulerRanAt)) {
+                $needsSetup = $schedulerRanAt === null;
                 $problems[] = $schedulerRanAt
                     ? 'The scheduler last ran '.$schedulerRanAt->diffForHumans().'. Check the cron job that runs "php artisan schedule:run" every minute.'
                     : 'The scheduler has never run. Add a cron job that runs "php artisan schedule:run" every minute.';
             }
 
             if (! $this->isStale($schedulerRanAt) && $this->isStale($workerRanAt)) {
+                $needsSetup = $workerRanAt === null;
                 $problems[] = $workerRanAt
                     ? 'The queue worker last processed a job '.$workerRanAt->diffForHumans().'. Waiting emails are not being sent.'
                     : 'The queue worker has not processed any jobs yet. Waiting emails are not being sent.';
@@ -47,6 +51,11 @@ class GetQueueStatus
 
         return new QueueStatusData(
             healthy: $problems === [],
+            summary: match (true) {
+                $problems === [] => null,
+                $needsSetup => 'It needs to be configured.',
+                default => 'It has stopped running and needs to be checked.',
+            },
             problems: $problems,
             connection: $connection,
             waiting: $waiting,

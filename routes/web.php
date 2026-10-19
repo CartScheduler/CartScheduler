@@ -28,6 +28,7 @@ use App\Http\Controllers\PreviewEmailTemplateController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ReportTagsController;
 use App\Http\Controllers\ReportTagsSortOrderController;
+use App\Http\Controllers\ResendNotificationController;
 use App\Http\Controllers\ResendWelcomeEmailController;
 use App\Http\Controllers\RetryFailedJobsController;
 use App\Http\Controllers\SaveShiftReportController;
@@ -177,6 +178,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::get('/settings', ShowGeneralSettingsController::class)->name('admin.settings');
 
             Route::get('/notifications', ShowNotificationLogsController::class)->name('admin.notifications.index');
+            Route::post('/notifications/{notificationLog}/resend', ResendNotificationController::class)
+                ->name('admin.notifications.resend');
             Route::get('/queue', ShowQueueController::class)->name('admin.queue.index');
             Route::post('/queue/failed/{uuid}/retry', RetryFailedJobsController::class)
                 ->where('uuid', '[0-9a-f-]{36}|all')

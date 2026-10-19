@@ -10,10 +10,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 class QueueStatusData extends Data
 {
     /**
-     * @param  list<string>  $problems  Plain-English reasons the queue isn't working. Empty when healthy.
+     * @param  ?string  $summary  A short, non-technical sentence for when the queue isn't working.
+     * @param  list<string>  $problems  Technical reasons the queue isn't working, for an administrator. Empty when healthy.
      */
     public function __construct(
         public bool $healthy,
+        public ?string $summary,
         #[LiteralTypeScriptType('Array<string>')]
         public array $problems,
         public string $connection,

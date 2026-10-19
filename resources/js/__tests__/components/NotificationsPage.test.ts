@@ -3,10 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import List from "@/Pages/Admin/Notifications/List.vue";
 
 const routerGet = vi.fn();
+const routerPost = vi.fn();
+const routerVisit = vi.fn();
 
 vi.mock("@inertiajs/vue3", () => ({
   Link: { props: ["href"], template: "<a :href='href'><slot /></a>" },
-  router: { get: (...args: unknown[]) => routerGet(...args) },
+  router: {
+    get: (...args: unknown[]) => routerGet(...args),
+    post: (...args: unknown[]) => routerPost(...args),
+    visit: (...args: unknown[]) => routerVisit(...args),
+  },
 }));
 
 vi.mock("primevue/select", () => ({
@@ -23,6 +29,12 @@ vi.mock("primevue/select", () => ({
 
 const stubs = {
   PageHeader: { template: "<div><slot /></div>" },
+  BackButton: { emits: ["click"], template: "<button @click=\"$emit('click', $event)\">Back</button>" },
+  PButton: {
+    props: ["label"],
+    emits: ["click"],
+    template: "<button @click=\"$emit('click')\">{{ label }}</button>",
+  },
   PInputText: {
     props: ["modelValue"],
     emits: ["update:modelValue"],
@@ -43,6 +55,9 @@ const log = (overrides: Partial<App.Data.NotificationLogData> = {}): App.Data.No
   status_label: "Sent",
   is_stalled: false,
   attempts: 1,
+  later_attempts: 0,
+  later_in_progress: false,
+  can_resend: false,
   created_at: "2026-02-01T10:00:00+11:00",
   sent_at: "2026-02-01T10:00:05+11:00",
   ...overrides,
@@ -64,16 +79,18 @@ const renderPage = (logs: App.Data.NotificationLogData[], filters: Filters = emp
       periods: [{ value: "10m", label: "Last 10 minutes" }, { value: "1h", label: "Last hour" }],
     },
   },
-  global: { stubs, mocks: { route: (name: string) => `/${name}` } },
+  global: { stubs, mocks: { route: (name: string, param?: number) => `/${name}${param ? `/${param}` : ""}` } },
 });
 
 beforeEach(() => {
   routerGet.mockClear();
-  vi.stubGlobal("route", (name: string) => `/${name}`);
+  routerPost.mockClear();
+  routerVisit.mockClear();
+  vi.stubGlobal("route", (name: string, param?: number) => `/${name}${param ? `/${param}` : ""}`);
 });
 
 describe("Notifications page", () => {
-  it("lists each notification with a status stamp, recipient and plain-English error", () => {
+  it("lists each notification with its status, recipient and plain-English error", () => {
     renderPage([
       log(),
       log({ id: 2, status: "failed", status_label: "Failed", error_summary: "Couldn't connect to the mail server." }),
@@ -82,8 +99,9 @@ describe("Notifications page", () => {
     const rows = screen.getByTestId("notification-rows").querySelectorAll("li");
     expect(rows).toHaveLength(2);
     expect(rows[0]!.textContent).toContain("Vera Volunteer · vera@example.test");
-    expect(rows[0]!.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("success");
-    expect(rows[1]!.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("danger");
+    expect(rows[0]!.querySelector("[data-status]")?.getAttribute("data-status")).toBe("sent");
+    expect(rows[0]!.querySelector("[data-status]")?.textContent?.trim()).toBe("Sent");
+    expect(rows[1]!.querySelector("[data-status]")?.getAttribute("data-status")).toBe("failed");
     expect(rows[1]!.textContent).toContain("Couldn't connect to the mail server.");
   });
 
@@ -130,5 +148,39 @@ describe("Notifications page", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
     expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", {}, expect.anything());
+  });
+
+  it("offers to send a failed email again when every attempt failed", async () => {
+    renderPage([log({ id: 5, status: "failed", status_label: "Failed", attempts: 3, later_attempts: 2, can_resend: true })]);
+
+    const followUp = screen.getByTestId("failed-follow-up");
+    expect(followUp.textContent).toContain("Tried 3 times.");
+    expect(followUp.textContent).toContain("2 later attempts also failed.");
+
+    await fireEvent.click(screen.getByRole("button", { name: "Send again" }));
+
+    expect(routerPost).toHaveBeenCalledWith("/admin.notifications.resend/5", {}, expect.objectContaining({ preserveScroll: true }));
+  });
+
+  it("shows when a failed email was sent successfully later", () => {
+    renderPage([log({ id: 5, status: "failed", status_label: "Failed", later_attempts: 1, later_sent_at: "2026-02-02T09:00:00+11:00" })]);
+
+    const followUp = screen.getByTestId("failed-follow-up");
+    expect(followUp.textContent).toContain("Sent successfully on");
+    expect(screen.queryByRole("button", { name: "Send again" })).toBeNull();
+  });
+
+  it("explains when a failed email can't be sent again", () => {
+    renderPage([log({ id: 5, type: "password-reset", status: "failed", status_label: "Failed" })]);
+
+    expect(screen.getByTestId("failed-follow-up").textContent).toContain("This email can't be sent again from here.");
+  });
+
+  it("goes back to the dashboard", async () => {
+    renderPage([log()]);
+
+    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(routerVisit).toHaveBeenCalledWith("/admin.dashboard");
   });
 });

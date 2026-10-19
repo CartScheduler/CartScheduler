@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\GetLaterNotificationAttempts;
 use App\Actions\GetNotificationStats;
 use App\Data\NotificationLogData;
 use App\Enums\NotificationStatus;
@@ -19,19 +20,24 @@ class ShowNotificationLogsController extends Controller
 {
     use EnsuresAllowedSettingsUser;
 
-    public function __invoke(ListNotificationLogsRequest $request, GetNotificationStats $getNotificationStats): Response
-    {
+    public function __invoke(
+        ListNotificationLogsRequest $request,
+        GetNotificationStats $getNotificationStats,
+        GetLaterNotificationAttempts $getLaterNotificationAttempts,
+    ): Response {
         $this->ensureAllowedSettingsUser($request);
 
         $filters = $request->filters();
 
         $logs = $this->filteredQuery($filters)
-            ->with('notifiable')
+            ->with(['notifiable', 'shiftUsers'])
             ->latest('updated_at')
             ->latest('id')
             ->paginate(25)
-            ->withQueryString()
-            ->through(fn (NotificationLog $log) => NotificationLogData::fromModel($log));
+            ->withQueryString();
+
+        $laterAttempts = $getLaterNotificationAttempts->execute($logs->getCollection());
+        $logs->through(fn (NotificationLog $log) => NotificationLogData::fromModel($log, $laterAttempts[$log->id] ?? null));
 
         return Inertia::render('Admin/Notifications/List', [
             'logs' => $logs,

@@ -37,6 +37,7 @@ const notificationStats: App.Data.NotificationStatsData = {
 
 const queueStatus: App.Data.QueueStatusData = {
   healthy: false,
+  summary: "It needs to be configured.",
   problems: ["The scheduler has never run."],
   connection: "database",
   waiting: 4,
@@ -98,7 +99,7 @@ describe("Admin Dashboard", () => {
     expect(pollStart).not.toHaveBeenCalled();
   });
 
-  it("shows sent counts and a failed stamp that links to the failed notifications", () => {
+  it("shows sent counts and a failed badge that links to the failed notifications", () => {
     const { getByTestId } = renderDashboard({ notificationStats, queueStatus });
     const panel = getByTestId("notifications-panel");
 
@@ -107,18 +108,19 @@ describe("Admin Dashboard", () => {
     expect(panel.textContent).toContain("40");
     const failed = getByTestId("notifications-failed");
     expect(failed.textContent).toContain("3 failed");
+    expect(failed.querySelector("[data-status='failed']")).not.toBeNull();
     expect(failed.getAttribute("href")).toBe("/admin.notifications.index?status=failed&period=7d");
     expect(pollStart).toHaveBeenCalled();
   });
 
-  it("shows a red queue indicator with the problem and job counts", () => {
+  it("shows a red queue indicator with a plain message and job counts", () => {
     const { getByTestId } = renderDashboard({ notificationStats, queueStatus });
     const panel = getByTestId("queue-panel");
 
     expect(panel.getAttribute("href")).toBe("/admin.queue.index");
     expect(panel.querySelector("[data-healthy]")?.getAttribute("data-healthy")).toBe("false");
-    expect(panel.textContent).toContain("Not working");
-    expect(panel.textContent).toContain("The scheduler has never run.");
+    expect(panel.textContent).toContain("The queue is not working. It needs to be configured.");
+    expect(panel.textContent).not.toContain("The scheduler has never run.");
     expect(panel.textContent).toContain("5 waiting");
     expect(panel.textContent).toContain("2 failed");
   });
@@ -129,16 +131,17 @@ describe("Admin Dashboard", () => {
       queueStatus: { ...queueStatus, healthy: true, problems: [], failed: 0 },
     });
 
-    expect(getByTestId("queue-panel").textContent).toContain("Working");
-    expect(getByTestId("notifications-panel").textContent).toContain("All sent");
+    const queuePanel = getByTestId("queue-panel");
+    expect(queuePanel.querySelector("[data-healthy]")?.getAttribute("data-healthy")).toBe("true");
+    expect(queuePanel.textContent).toContain("Emails are being sent in the background.");
   });
 
-  it("hides the all-sent stamp when nothing has been sent", () => {
-    const { getByTestId } = renderDashboard({
-      notificationStats: { ...notificationStats, sent_last_24_hours: 0, failed_last_7_days: 0 },
+  it("shows no badge when nothing has failed", () => {
+    const { queryByTestId } = renderDashboard({
+      notificationStats: { ...notificationStats, failed_last_7_days: 0 },
       queueStatus,
     });
 
-    expect(getByTestId("notifications-panel").textContent).not.toContain("All sent");
+    expect(queryByTestId("notifications-failed")).toBeNull();
   });
 });

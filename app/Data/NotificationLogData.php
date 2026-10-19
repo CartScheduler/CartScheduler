@@ -3,10 +3,12 @@
 namespace App\Data;
 
 use App\Actions\DescribeJobFailure;
+use App\Actions\ResendNotification;
 use App\Enums\NotificationStatus;
 use App\Enums\NotificationType;
 use App\Models\NotificationLog;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -32,11 +34,19 @@ class NotificationLogData extends Data
         public ?string $queued_at,
         public ?string $sent_at,
         public ?string $failed_at,
+        public int $later_attempts,
+        public ?string $later_sent_at,
+        public bool $later_in_progress,
+        public bool $can_resend,
     ) {}
 
-    public static function fromModel(NotificationLog $log): self
+    /**
+     * @param  array{count: int, sent_at: ?Carbon, in_progress: bool}|null  $laterAttempts  From GetLaterNotificationAttempts.
+     */
+    public static function fromModel(NotificationLog $log, ?array $laterAttempts = null): self
     {
         $isStalled = $log->isStalled();
+        $isFailed = $isStalled || $log->status === NotificationStatus::Failed;
         $describer = app(DescribeJobFailure::class);
         $user = $log->notifiable instanceof User ? $log->notifiable : null;
 
@@ -63,6 +73,13 @@ class NotificationLogData extends Data
             queued_at: $log->queued_at?->toIso8601String(),
             sent_at: $log->sent_at?->toIso8601String(),
             failed_at: $log->failed_at?->toIso8601String(),
+            later_attempts: $laterAttempts['count'] ?? 0,
+            later_sent_at: ($laterAttempts['sent_at'] ?? null)?->toIso8601String(),
+            later_in_progress: $laterAttempts['in_progress'] ?? false,
+            can_resend: $isFailed
+                && ($laterAttempts['sent_at'] ?? null) === null
+                && ! ($laterAttempts['in_progress'] ?? false)
+                && app(ResendNotification::class)->canResend($log),
         );
     }
 }

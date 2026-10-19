@@ -171,6 +171,10 @@ declare namespace App.Data {
     queued_at?: string;
     sent_at?: string;
     failed_at?: string;
+    later_attempts: number;
+    later_sent_at?: string;
+    later_in_progress: boolean;
+    can_resend: boolean;
   };
   export type NotificationStatsData = {
     sent_last_10_minutes: number;
@@ -199,6 +203,7 @@ declare namespace App.Data {
   };
   export type QueueStatusData = {
     healthy: boolean;
+    summary?: string;
     problems: Array<string>;
     connection: string;
     waiting: number;

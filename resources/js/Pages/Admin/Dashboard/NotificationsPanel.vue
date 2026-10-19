@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from "@inertiajs/vue3";
-import StatusStamp from "@/Components/StatusStamp.vue";
+import FailedBadge from "@/Components/FailedBadge.vue";
 
 const { stats } = defineProps<{
   stats: App.Data.NotificationStatsData;
@@ -22,12 +22,11 @@ const counts = [
       </div>
       <Link v-if="stats.failed_last_7_days > 0"
             :href="route('admin.notifications.index', { status: 'failed', period: '7d' })"
-            class="subtle-zoom transition-transform duration-300"
+            class="hover:underline decoration-red-500"
             :aria-label="`${stats.failed_last_7_days} failed in the last 7 days. Show failed notifications`"
             data-testid="notifications-failed">
-        <StatusStamp :label="`${stats.failed_last_7_days} failed`" tone="danger" />
+        <FailedBadge :label="`${stats.failed_last_7_days} failed`" />
       </Link>
-      <StatusStamp v-else-if="stats.sent_last_24_hours > 0" label="All sent" tone="success" />
     </div>
 
     <div class="grid grid-cols-3 gap-2">

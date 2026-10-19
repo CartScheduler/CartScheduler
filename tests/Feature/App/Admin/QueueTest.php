@@ -107,6 +107,19 @@ test('a failed job can be retried and its notification is shown as queued again'
         ->and($log->failed_at)->toBeNull();
 });
 
+test('resending a notification from the log retries its failed job instead of sending a duplicate', function () {
+    [$uuid, $log] = addFailedWelcomeJob('RuntimeException: boom', User::factory()->enabled()->create(['password' => null]));
+
+    $this->actingAs($this->admin)
+        ->post("/admin/notifications/{$log->id}/resend")
+        ->assertSessionHas('flash.bannerStyle', 'success');
+
+    expect(DB::table('failed_jobs')->where('uuid', $uuid)->exists())->toBeFalse()
+        ->and(DB::table('jobs')->count())->toBe(1)
+        ->and(NotificationLog::query()->count())->toBe(1)
+        ->and($log->refresh()->status)->toBe(NotificationStatus::Queued);
+});
+
 test('all failed jobs can be retried at once', function () {
     addFailedWelcomeJob('RuntimeException: one');
     addFailedWelcomeJob('RuntimeException: two');

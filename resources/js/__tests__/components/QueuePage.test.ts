@@ -5,17 +5,27 @@ import Show from "@/Pages/Admin/Queue/Show.vue";
 const routerPost = vi.fn();
 const routerDelete = vi.fn();
 
+const routerVisit = vi.fn();
+const copy = vi.fn();
+
 vi.mock("@inertiajs/vue3", () => ({
   Link: { props: ["href"], template: "<a :href='href'><slot /></a>" },
   router: {
     post: (...args: unknown[]) => routerPost(...args),
     delete: (...args: unknown[]) => routerDelete(...args),
+    visit: (...args: unknown[]) => routerVisit(...args),
   },
   usePoll: vi.fn(),
 }));
 
+vi.mock("@vueuse/core", async () => {
+  const { ref } = await import("vue");
+  return { useClipboard: () => ({ copy, copied: ref(false) }) };
+});
+
 const stubs = {
   PageHeader: { template: "<div><slot /></div>" },
+  BackButton: { emits: ["click"], template: "<button @click=\"$emit('click', $event)\">Back</button>" },
   PButton: {
     props: ["label"],
     emits: ["click"],
@@ -60,6 +70,8 @@ const renderPage = (queueStatus = status()) => render(Show, {
 beforeEach(() => {
   routerPost.mockClear();
   routerDelete.mockClear();
+  routerVisit.mockClear();
+  copy.mockClear();
   vi.stubGlobal("route", (name: string, param?: string) => `/${name}${param ? `/${param}` : ""}`);
 });
 
@@ -67,15 +79,40 @@ describe("Queue page", () => {
   it("shows a green status when the queue is working", () => {
     renderPage();
 
-    expect(screen.getByTestId("queue-health").textContent).toContain("The queue is working");
+    expect(screen.getByTestId("queue-health").textContent).toContain("The queue is working.");
   });
 
-  it("explains why the queue is not working", () => {
-    renderPage(status({ healthy: false, problems: ["The scheduler has never run."] }));
+  it("gives a plain message and keeps the technical reasons behind more details", async () => {
+    renderPage(status({ healthy: false, summary: "It needs to be configured.", problems: ["The scheduler has never run."] }));
 
     const health = screen.getByTestId("queue-health");
-    expect(health.textContent).toContain("The queue is not working");
-    expect(health.textContent).toContain("The scheduler has never run.");
+    expect(health.textContent).toContain("The queue is not working.");
+    expect(health.textContent).toContain("It needs to be configured.");
+    expect(health.textContent).not.toContain("The scheduler has never run.");
+
+    await fireEvent.click(screen.getByRole("button", { name: "More details" }));
+
+    const details = screen.getByTestId("queue-details");
+    expect(details.textContent).toContain("Copy these details and send them to your administrator.");
+    expect(details.textContent).toContain("- The scheduler has never run.");
+    expect(details.textContent).toContain("Connection: database");
+  });
+
+  it("copies the details for an administrator", async () => {
+    renderPage(status({ healthy: false, summary: "It needs to be configured.", problems: ["The scheduler has never run."] }));
+
+    await fireEvent.click(screen.getByRole("button", { name: "More details" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
+
+    expect(copy).toHaveBeenCalledWith(expect.stringContaining("Queue status: not working\n- The scheduler has never run."));
+  });
+
+  it("goes back to the dashboard", async () => {
+    renderPage();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+    expect(routerVisit).toHaveBeenCalledWith("/admin.dashboard");
   });
 
   it("lists failed jobs in plain English with who they were for", () => {

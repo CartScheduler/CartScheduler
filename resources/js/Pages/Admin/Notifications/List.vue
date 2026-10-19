@@ -4,9 +4,9 @@ import { watchDebounced } from "@vueuse/core";
 import { format, parseISO } from "date-fns";
 import PSelect from "primevue/select";
 import { reactive, ref } from "vue";
-import StatusStamp from "@/Components/StatusStamp.vue";
+import FailedBadge from "@/Components/FailedBadge.vue";
 import JetLabel from "@/Jetstream/Label.vue";
-import notificationStatusTone from "@/Utils/notificationStatusTone";
+import notificationStatusTone, { statusToneTextClass } from "@/Utils/notificationStatusTone";
 
 type Option = { value: string; label: string };
 type Filters = {
@@ -66,11 +66,28 @@ const hasFilters = () => Object.values(filters).some((value) => value !== null &
 watchDebounced(() => filters.search, applyFilters, { debounce: 400 });
 
 const formatDate = (value: string | null | undefined) => (value ? format(parseISO(value), "d MMM yyyy, h:mm a") : "—");
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+const resending = ref<number | null>(null);
+
+const resend = (log: App.Data.NotificationLogData) => {
+  resending.value = log.id;
+  router.post(route("admin.notifications.resend", log.id), {}, {
+    preserveScroll: true,
+    onFinish: () => (resending.value = null),
+  });
+};
+
+const backToDashboard = () => router.visit(route("admin.dashboard"));
 </script>
 
 <template>
   <PageHeader title="Notifications">
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Notifications</h2>
+    <div class="flex justify-between">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Notifications</h2>
+      <BackButton class="mx-3" @click.prevent="backToDashboard" />
+    </div>
   </PageHeader>
 
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 grid gap-4">
@@ -202,7 +219,13 @@ const formatDate = (value: string | null | undefined) => (value ? format(parseIS
                   :aria-expanded="expanded === log.id"
                   @click="expanded = expanded === log.id ? null : log.id">
             <span class="row-span-2 sm:row-span-1">
-              <StatusStamp :label="log.status_label" :tone="notificationStatusTone(log.status)" size="small" />
+              <FailedBadge v-if="log.status === 'failed'" :label="log.status_label" />
+              <span v-else
+                    class="text-sm font-medium"
+                    :class="statusToneTextClass[notificationStatusTone(log.status)]"
+                    :data-status="log.status">
+                {{ log.status_label }}
+              </span>
             </span>
             <span class="min-w-0">
               <span class="block font-medium truncate">{{ log.subject || log.type_label }}</span>
@@ -218,6 +241,30 @@ const formatDate = (value: string | null | undefined) => (value ? format(parseIS
           <p v-if="log.error_summary" class="mt-2 sm:ml-[7.5rem] text-sm text-red-700 dark:text-red-300">
             {{ log.error_summary }}
           </p>
+
+          <div v-if="log.status === 'failed'"
+               class="mt-1 sm:ml-[7.5rem] flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-300"
+               data-testid="failed-follow-up">
+            <span>Tried {{ plural(Math.max(log.attempts, 1), "time") }}.</span>
+            <span v-if="log.later_sent_at" class="text-green-700 dark:text-green-400">
+              Sent successfully on {{ formatDate(log.later_sent_at) }}.
+            </span>
+            <span v-else-if="log.later_in_progress">Another attempt is being sent.</span>
+            <span v-else-if="log.later_attempts">
+              {{ log.later_attempts === 1 ? "A later attempt also failed." : `${log.later_attempts} later attempts also failed.` }}
+            </span>
+            <PButton v-if="log.can_resend"
+                     label="Send again"
+                     icon="iconify mdi--email-fast-outline"
+                     size="small"
+                     severity="secondary"
+                     variant="outlined"
+                     :loading="resending === log.id"
+                     @click="resend(log)" />
+            <span v-else-if="!log.later_sent_at && !log.later_in_progress" class="text-gray-500 dark:text-gray-400">
+              This email can't be sent again from here.
+            </span>
+          </div>
 
           <dl v-if="expanded === log.id"
               class="mt-3 sm:ml-[7.5rem] grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-md bg-sub-panel dark:bg-sub-panel-dark p-3 text-sm">

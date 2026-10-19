@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Link, router, usePoll } from "@inertiajs/vue3";
+import { useClipboard } from "@vueuse/core";
 import { format, formatDistanceToNow, parseISO } from "date-fns";
-import { ref } from "vue";
-import StatusStamp from "@/Components/StatusStamp.vue";
+import { computed, ref } from "vue";
+import FailedBadge from "@/Components/FailedBadge.vue";
 
 type Paginated<T> = {
   data: T[];
@@ -13,7 +14,7 @@ type Paginated<T> = {
   next_page_url: string | null;
 };
 
-const { failedJobs } = defineProps<{
+const { status, failedJobs } = defineProps<{
   status: App.Data.QueueStatusData;
   failedJobs: Paginated<App.Data.FailedJobData>;
   pendingJobs: App.Data.PendingJobData[];
@@ -49,12 +50,36 @@ const formatDate = (value: string) => format(parseISO(value), "d MMM yyyy, h:mm 
 const ago = (value: string | null | undefined) => (value ? `${formatDistanceToNow(parseISO(value))} ago` : "never");
 
 const stateLabel = { waiting: "Waiting", processing: "In progress", delayed: "Retrying later" } as const;
-const stateTone = { waiting: "warning", processing: "info", delayed: "neutral" } as const;
+const stateClass = {
+  waiting: "text-amber-700 dark:text-amber-300",
+  processing: "text-sky-700 dark:text-sky-300",
+  delayed: "text-gray-500 dark:text-gray-400",
+} as const;
+
+const showDetails = ref(false);
+const { copy, copied } = useClipboard({ legacy: true });
+
+/** Technical details an administrator needs, as plain text so they can be pasted into a message. */
+const details = computed(() => [
+  `Queue status: ${status.healthy ? "working" : "not working"}`,
+  ...status.problems.map((problem) => `- ${problem}`),
+  `Connection: ${status.connection}`,
+  `Scheduler last ran: ${status.scheduler_last_ran_at ?? "never"}`,
+  `Worker last ran: ${status.worker_last_ran_at ?? "never"}`,
+  `Jobs: ${status.waiting} waiting, ${status.processing} in progress, ${status.delayed} retrying later, ${status.failed} failed`,
+  `Site: ${window.location.origin}`,
+  `Checked: ${new Date().toISOString()}`,
+].join("\n"));
+
+const backToDashboard = () => router.visit(route("admin.dashboard"));
 </script>
 
 <template>
   <PageHeader title="Queue">
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Background Queue</h2>
+    <div class="flex justify-between">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Background Queue</h2>
+      <BackButton class="mx-3" @click.prevent="backToDashboard" />
+    </div>
   </PageHeader>
 
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 grid gap-4">
@@ -63,22 +88,35 @@ const stateTone = { waiting: "warning", processing: "info", delayed: "neutral" }
                ? 'border-green-500/60 bg-green-50 dark:bg-green-950/30'
                : 'border-red-500/60 bg-red-50 dark:bg-red-950/30'"
              data-testid="queue-health">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="h-4 w-4 rounded-full" :class="status.healthy ? 'bg-green-500' : 'bg-red-500 animate-pulse'" />
-          <h3 class="text-lg font-semibold">
-            {{ status.healthy ? "The queue is working" : "The queue is not working" }}
-          </h3>
-        </div>
-        <StatusStamp :label="status.healthy ? 'Working' : 'Not working'" :tone="status.healthy ? 'success' : 'danger'" />
+      <div class="flex items-center gap-3">
+        <span class="h-4 w-4 shrink-0 rounded-full" :class="status.healthy ? 'bg-green-500' : 'bg-red-500 animate-pulse'" />
+        <h3 class="text-lg font-semibold">
+          {{ status.healthy ? "The queue is working." : "The queue is not working." }}
+        </h3>
       </div>
-      <ul v-if="status.problems.length" class="list-disc pl-6 text-sm text-red-800 dark:text-red-200 grid gap-1">
-        <li v-for="problem in status.problems" :key="problem">{{ problem }}</li>
-      </ul>
-      <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
-        <span>Scheduler last ran: {{ ago(status.scheduler_last_ran_at) }}</span>
-        <span>Worker last ran: {{ ago(status.worker_last_ran_at) }}</span>
-        <span>Connection: <code>{{ status.connection }}</code></span>
+      <p v-if="!status.healthy && status.summary" class="text-red-800 dark:text-red-200">{{ status.summary }}</p>
+      <div>
+        <PButton :label="showDetails ? 'Hide details' : 'More details'"
+                 :icon="showDetails ? 'iconify mdi--chevron-up' : 'iconify mdi--chevron-down'"
+                 size="small"
+                 severity="secondary"
+                 variant="text"
+                 :aria-expanded="showDetails"
+                 @click="showDetails = !showDetails" />
+      </div>
+      <div v-if="showDetails"
+           class="grid gap-2 rounded-md bg-panel dark:bg-panel-dark border std-border p-3 text-sm"
+           data-testid="queue-details">
+        <p v-if="!status.healthy">Copy these details and send them to your administrator.</p>
+        <pre class="whitespace-pre-wrap break-words font-mono text-xs text-gray-700 dark:text-gray-300">{{ details }}</pre>
+        <div>
+          <PButton :label="copied ? 'Copied' : 'Copy details'"
+                   :icon="copied ? 'iconify mdi--check' : 'iconify mdi--content-copy'"
+                   size="small"
+                   severity="secondary"
+                   variant="outlined"
+                   @click="copy(details)" />
+        </div>
       </div>
     </section>
 
@@ -122,7 +160,7 @@ const stateTone = { waiting: "warning", processing: "info", delayed: "neutral" }
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <StatusStamp label="Failed" tone="danger" size="small" />
+                <FailedBadge />
                 <span class="font-medium">{{ job.name }}</span>
               </div>
               <div class="mt-1 text-sm text-gray-600 dark:text-gray-300">
@@ -181,7 +219,7 @@ const stateTone = { waiting: "warning", processing: "info", delayed: "neutral" }
       <ul v-else class="divide-y std-border border-y std-border" data-testid="pending-jobs">
         <li v-for="job in pendingJobs" :key="job.id" class="py-2 flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2 min-w-0">
-            <StatusStamp :label="stateLabel[job.state]" :tone="stateTone[job.state]" size="small" />
+            <span class="text-sm font-medium" :class="stateClass[job.state]">{{ stateLabel[job.state] }}</span>
             <span class="font-medium truncate">{{ job.name }}</span>
             <span v-if="job.recipient" class="text-sm text-gray-600 dark:text-gray-300 truncate">to {{ job.recipient }}</span>
           </div>
