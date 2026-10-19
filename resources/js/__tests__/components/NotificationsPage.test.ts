@@ -186,9 +186,16 @@ describe("Notifications page", () => {
   });
 
   it("explains when a failed email can't be sent again", () => {
-    renderPage([log({ id: 5, type: "password-reset", status: "failed", status_label: "Failed" })]);
+    renderPage([log({
+      id: 5,
+      type: "password-reset",
+      status: "failed",
+      status_label: "Failed",
+      cannot_resend_reason: "Password reset links expire, so a new link is needed.",
+    })]);
 
-    expect(screen.getByTestId("failed-follow-up").textContent).toContain("This email can't be sent again from here.");
+    expect(screen.getByTestId("failed-follow-up").textContent).toContain("Password reset links expire, so a new link is needed.");
+    expect(screen.queryByRole("button", { name: "Send again" })).toBeNull();
   });
 
   it("links back to the dashboard", () => {

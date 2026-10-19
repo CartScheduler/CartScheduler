@@ -68,23 +68,67 @@ test('a failed shift email is sent again for its upcoming assignments', function
             && $notification->period['start'] === now()->addDays(3)->format('j F Y'));
 });
 
-test('emails that cannot be rebuilt are not sent again', function (NotificationLog $log) {
+test('emails that cannot be rebuilt are not sent again, with the reason why', function (NotificationLog $log, string $reason) {
     Notification::fake();
 
     $this->actingAs($this->admin)
         ->post("/admin/notifications/{$log->id}/resend")
-        ->assertSessionHas('flash.bannerStyle', 'danger');
+        ->assertSessionHas('flash.bannerStyle', 'danger')
+        ->assertSessionHas('flash.banner', fn (string $banner) => str_contains($banner, $reason));
 
     Notification::assertNothingSent();
+
+    $this->actingAs($this->admin)
+        ->get('/admin/notifications')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('logs.data', fn ($logs) => collect($logs)->contains(fn ($row) => $row['id'] === $log->id
+                && $row['can_resend'] === false
+                && ($log->status->value === 'sent'
+                    ? $row['cannot_resend_reason'] === null
+                    : str_contains((string) $row['cannot_resend_reason'], $reason)))));
 })->with([
-    'already sent' => fn () => NotificationLog::factory()
-        ->forUser(User::factory()->enabled()->create(['password' => null]))->create(),
-    'welcome email for someone who has logged in' => fn () => NotificationLog::factory()
-        ->forUser(User::factory()->enabled()->create())->failed()->create(),
-    'password reset' => fn () => NotificationLog::factory()
-        ->forUser(User::factory()->enabled()->create())->ofType(NotificationType::PasswordReset)->failed()->create(),
-    'shift email for past shifts' => fn () => failedShiftEmailFor(now()->subDays(2)->toDateString())[2],
-    'no recipient record' => fn () => NotificationLog::factory()->failed()->create(),
+    'already sent' => [
+        fn () => NotificationLog::factory()->forUser(User::factory()->enabled()->create(['password' => null]))->create(),
+        "doesn't need sending again",
+    ],
+    'welcome email for someone who has logged in' => [
+        fn () => NotificationLog::factory()->forUser(User::factory()->enabled()->create(['name' => 'Lou Login']))->failed()->create(),
+        'Lou Login already has a password',
+    ],
+    'password reset' => [
+        fn () => NotificationLog::factory()->forUser(User::factory()->enabled()->create(['name' => 'Pat Reset']))
+            ->ofType(NotificationType::PasswordReset)->failed()->create(),
+        "Use \"Send Password Reset Email\" on Pat Reset's user page",
+    ],
+    'email verification' => [
+        fn () => NotificationLog::factory()->forUser(User::factory()->enabled()->create())->ofType(NotificationType::VerifyEmail)->failed()->create(),
+        'Verification links expire',
+    ],
+    'team invitation' => [
+        fn () => NotificationLog::factory()->forUser(User::factory()->enabled()->create())->ofType(NotificationType::TeamInvitation)->failed()->create(),
+        'send a new invitation instead',
+    ],
+    'shift email for past shifts' => [
+        fn () => failedShiftEmailFor(now()->subDays(2)->toDateString())[2],
+        'already happened or have been removed',
+    ],
+    'shift email for a disabled account' => [
+        function () {
+            $log = failedShiftEmailFor(now()->addDays(2)->toDateString())[2];
+            $log->notifiable->update(['is_enabled' => false, 'name' => 'Dee Disabled']);
+
+            return $log;
+        },
+        "Dee Disabled's account is disabled",
+    ],
+    'deleted account' => [
+        fn () => NotificationLog::factory()->failed()->create(['notifiable_type' => (new User)->getMorphClass(), 'notifiable_id' => 999999]),
+        'has been deleted',
+    ],
+    'no account' => [
+        fn () => NotificationLog::factory()->failed()->create(),
+        "wasn't linked to anyone's account",
+    ],
 ]);
 
 test('a failed email that was later sent successfully is not sent again', function () {

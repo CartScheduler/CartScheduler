@@ -38,6 +38,7 @@ class NotificationLogData extends Data
         public ?string $later_sent_at,
         public bool $later_in_progress,
         public bool $can_resend,
+        public ?string $cannot_resend_reason,
     ) {}
 
     /**
@@ -47,6 +48,10 @@ class NotificationLogData extends Data
     {
         $isStalled = $log->isStalled();
         $isFailed = $isStalled || $log->status === NotificationStatus::Failed;
+        $canBeRetried = $isFailed
+            && ($laterAttempts['sent_at'] ?? null) === null
+            && ! ($laterAttempts['in_progress'] ?? false);
+        $cannotResendReason = $canBeRetried ? app(ResendNotification::class)->reasonItCannotBeResent($log) : null;
         $describer = app(DescribeJobFailure::class);
         $user = $log->notifiable instanceof User ? $log->notifiable : null;
 
@@ -76,10 +81,8 @@ class NotificationLogData extends Data
             later_attempts: $laterAttempts['count'] ?? 0,
             later_sent_at: ($laterAttempts['sent_at'] ?? null)?->toIso8601String(),
             later_in_progress: $laterAttempts['in_progress'] ?? false,
-            can_resend: $isFailed
-                && ($laterAttempts['sent_at'] ?? null) === null
-                && ! ($laterAttempts['in_progress'] ?? false)
-                && app(ResendNotification::class)->canResend($log),
+            can_resend: $canBeRetried && $cannotResendReason === null,
+            cannot_resend_reason: $canBeRetried ? $cannotResendReason : null,
         );
     }
 }

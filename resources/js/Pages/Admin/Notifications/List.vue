@@ -295,8 +295,8 @@ const resend = (log: App.Data.NotificationLogData) => {
                      variant="outlined"
                      :loading="resending === log.id"
                      @click="resend(log)" />
-            <span v-else-if="!log.later_sent_at && !log.later_in_progress" class="text-gray-500 dark:text-gray-400">
-              This email can't be sent again from here.
+            <span v-else-if="log.cannot_resend_reason" class="text-gray-500 dark:text-gray-400">
+              {{ log.cannot_resend_reason }}
             </span>
           </div>
 

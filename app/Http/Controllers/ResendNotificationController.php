@@ -31,8 +31,10 @@ class ResendNotificationController extends Controller
         $notificationLog->load(['notifiable', 'shiftUsers']);
         $laterAttempts = $getLaterNotificationAttempts->execute(collect([$notificationLog]));
 
-        if (! NotificationLogData::fromModel($notificationLog, $laterAttempts[$notificationLog->id] ?? null)->can_resend) {
-            return $this->banner("This email can't be sent again from here.", 'danger');
+        $data = NotificationLogData::fromModel($notificationLog, $laterAttempts[$notificationLog->id] ?? null);
+
+        if (! $data->can_resend) {
+            return $this->banner($data->cannot_resend_reason ?? "This email doesn't need sending again.", 'danger');
         }
 
         try {

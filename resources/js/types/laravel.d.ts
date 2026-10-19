@@ -175,6 +175,7 @@ declare namespace App.Data {
     later_sent_at?: string;
     later_in_progress: boolean;
     can_resend: boolean;
+    cannot_resend_reason?: string;
   };
   export type NotificationStatsData = {
     sent_last_10_minutes: number;
