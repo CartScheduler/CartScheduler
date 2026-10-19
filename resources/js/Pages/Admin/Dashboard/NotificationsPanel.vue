@@ -27,7 +27,7 @@ const counts = [
             data-testid="notifications-failed">
         <StatusStamp :label="`${stats.failed_last_7_days} failed`" tone="danger" />
       </Link>
-      <StatusStamp v-else label="All sent" tone="success" />
+      <StatusStamp v-else-if="stats.sent_last_24_hours > 0" label="All sent" tone="success" />
     </div>
 
     <div class="grid grid-cols-3 gap-2">

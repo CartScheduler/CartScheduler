@@ -132,4 +132,13 @@ describe("Admin Dashboard", () => {
     expect(getByTestId("queue-panel").textContent).toContain("Working");
     expect(getByTestId("notifications-panel").textContent).toContain("All sent");
   });
+
+  it("hides the all-sent stamp when nothing has been sent", () => {
+    const { getByTestId } = renderDashboard({
+      notificationStats: { ...notificationStats, sent_last_24_hours: 0, failed_last_7_days: 0 },
+      queueStatus,
+    });
+
+    expect(getByTestId("notifications-panel").textContent).not.toContain("All sent");
+  });
 });
