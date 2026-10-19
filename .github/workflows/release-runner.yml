@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - beta-*
+      - "v[0-9]*"
     tags:
       - "v*"
   pull_request:
