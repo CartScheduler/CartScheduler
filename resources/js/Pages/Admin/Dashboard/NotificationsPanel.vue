@@ -21,7 +21,7 @@ const counts = [
         <div class="text-sm text-gray-600 dark:text-gray-300">Emails sent by the system.</div>
       </div>
       <Link v-if="stats.failed_last_7_days > 0"
-            :href="route('admin.notifications.index', { status: 'failed', period: '7d', unresolved: 1 })"
+            :href="route('admin.notifications.index', { status: 'failed', period: '7d', resolution: 'unresolved' })"
             class="hover:underline decoration-red-500"
             :aria-label="`${stats.failed_last_7_days} failed in the last 7 days and still not sent. Show them`"
             data-testid="notifications-failed">

@@ -17,7 +17,7 @@ type Filters = {
   period: string | null;
   from: string | null;
   to: string | null;
-  unresolved: boolean;
+  resolution: string | null;
 };
 type Paginated<T> = {
   data: T[];
@@ -47,11 +47,9 @@ const expanded = ref<number | null>(null);
 
 const applyFilters = () => {
   if (filters.status !== "failed") {
-    filters.unresolved = false;
+    filters.resolution = null;
   }
-  const query = Object.fromEntries(Object.entries(filters)
-    .filter(([, value]) => value !== null && value !== "" && value !== false)
-    .map(([key, value]) => [key, value === true ? 1 : value]));
+  const query = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== null && value !== ""));
   router.get(route("admin.notifications.index"), query, { preserveState: true, preserveScroll: true, replace: true });
 };
 
@@ -63,16 +61,27 @@ const setPeriod = (period: string | null) => {
 };
 
 const clearFilters = () => {
-  Object.assign(filters, { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, unresolved: false });
+  Object.assign(filters, { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, resolution: null });
   applyFilters();
 };
 
-const hasFilters = () => Object.values(filters).some((value) => value !== null && value !== "" && value !== false);
+const hasFilters = () => Object.values(filters).some((value) => value !== null && value !== "");
 
 const showUnresolvedFailures = () => {
   filters.status = "failed";
-  filters.unresolved = true;
+  filters.resolution = "unresolved";
   setPeriod("7d");
+};
+
+const resolutions = [
+  { value: null, label: "All failures" },
+  { value: "unresolved", label: "Still not sent" },
+  { value: "resolved", label: "Resolved (sent later)" },
+] as const;
+
+const setResolution = (resolution: string | null) => {
+  filters.resolution = resolution;
+  applyFilters();
 };
 
 watchDebounced(() => filters.search, applyFilters, { debounce: 400 });
@@ -126,7 +135,7 @@ const resend = (log: App.Data.NotificationLogData) => {
       </button>
       <button type="button"
               class="card text-left transition-colors"
-              :class="filters.status === 'failed' && filters.unresolved && filters.period === '7d' ? 'ring-2 ring-red-500' : ''"
+              :class="filters.status === 'failed' && filters.resolution === 'unresolved' && filters.period === '7d' ? 'ring-2 ring-red-500' : ''"
               @click="showUnresolvedFailures">
         <div class="text-3xl font-semibold tabular-nums"
              :class="stats.failed_last_7_days ? 'text-red-600 dark:text-red-400' : ''">
@@ -202,10 +211,19 @@ const resend = (log: App.Data.NotificationLogData) => {
         </div>
       </div>
 
-      <label v-if="filters.status === 'failed'" class="flex items-center gap-2 text-sm">
-        <PCheckbox v-model="filters.unresolved" binary input-id="notification-unresolved" @change="applyFilters" />
-        Hide emails that were sent successfully later
-      </label>
+      <div v-if="filters.status === 'failed'" class="flex flex-wrap gap-2" role="group" aria-label="Failures">
+        <button v-for="resolution in resolutions"
+                :key="resolution.label"
+                type="button"
+                class="rounded-full border px-3 py-1 text-sm transition-colors"
+                :class="filters.resolution === resolution.value
+                  ? 'border-red-500 bg-red-500 text-white'
+                  : 'std-border hover:bg-neutral-100 dark:hover:bg-slate-800'"
+                :aria-pressed="filters.resolution === resolution.value"
+                @click="setResolution(resolution.value)">
+          {{ resolution.label }}
+        </button>
+      </div>
 
       <div v-if="options.channels.length > 1" class="max-w-xs">
         <JetLabel for="notification-channel" value="Channel" />

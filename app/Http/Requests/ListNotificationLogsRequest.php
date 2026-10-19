@@ -9,6 +9,11 @@ use Illuminate\Validation\Rule;
 class ListNotificationLogsRequest extends FormRequest
 {
     /**
+     * For failed rows: whether the email was later sent successfully.
+     */
+    public const array RESOLUTIONS = ['unresolved', 'resolved'];
+
+    /**
      * Quick time filters, in minutes.
      */
     public const array PERIODS = [
@@ -37,12 +42,12 @@ class ListNotificationLogsRequest extends FormRequest
             'period' => ['nullable', Rule::in(array_keys(self::PERIODS))],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'unresolved' => ['nullable', 'boolean'],
+            'resolution' => ['nullable', Rule::in(self::RESOLUTIONS)],
         ];
     }
 
     /**
-     * @return array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string, unresolved: bool}
+     * @return array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string, resolution: ?string}
      */
     public function filters(): array
     {
@@ -56,7 +61,7 @@ class ListNotificationLogsRequest extends FormRequest
             'period' => $validated['period'] ?? null,
             'from' => $validated['from'] ?? null,
             'to' => $validated['to'] ?? null,
-            'unresolved' => (bool) ($validated['unresolved'] ?? false),
+            'resolution' => $validated['resolution'] ?? null,
         ];
     }
 }

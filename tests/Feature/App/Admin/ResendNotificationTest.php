@@ -156,7 +156,7 @@ test('admins not on the settings list cannot resend', function () {
     $this->actingAs($otherAdmin)->post("/admin/notifications/{$log->id}/resend")->assertNotFound();
 });
 
-test('failures later sent successfully are left out of the failed count and the unresolved filter', function () {
+test('failures later sent successfully are left out of the failed count and split by the resolution filter', function () {
     $resolvedUser = User::factory()->enabled()->create();
     $resolved = NotificationLog::factory()->forUser($resolvedUser)->failed()->create();
     NotificationLog::factory()->forUser($resolvedUser)->create();
@@ -173,12 +173,19 @@ test('failures later sent successfully are left out of the failed count and the 
     $orphan = NotificationLog::factory()->failed()->create();
 
     $this->actingAs($this->admin)
-        ->get('/admin/notifications?status=failed&unresolved=1')
+        ->get('/admin/notifications?status=failed&resolution=unresolved')
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('stats.failed_last_7_days', 4)
-            ->where('filters.unresolved', true)
+            ->where('filters.resolution', 'unresolved')
             ->where('logs.data', fn ($logs) => collect($logs)->pluck('id')->sort()->values()->all()
                 === collect([$failedAgain->id, $latestFailure->id, $otherType->id, $orphan->id])->sort()->values()->all()));
+
+    $this->actingAs($this->admin)
+        ->get('/admin/notifications?status=failed&resolution=resolved')
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('filters.resolution', 'resolved')
+            ->has('logs.data', 1)
+            ->where('logs.data.0.id', $resolved->id));
 
     $this->actingAs($this->admin)
         ->get('/admin/notifications?status=failed')
@@ -196,5 +203,12 @@ test('a shift email only counts as resolved by a later email about the same assi
     $resend = NotificationLog::factory()->forUser($user)->ofType(NotificationType::ShiftAssignmentsReleased)->create();
     $resend->shiftUsers()->attach($assignment);
 
-    expect(NotificationLog::query()->failedOrStalled()->unresolved()->exists())->toBeFalse();
+    expect(NotificationLog::query()->failedOrStalled()->unresolved()->exists())->toBeFalse()
+        ->and(NotificationLog::query()->failedOrStalled()->resolved()->pluck('id')->all())->toBe([$log->id]);
+});
+
+test('an unknown resolution filter is rejected', function () {
+    $this->actingAs($this->admin)
+        ->get('/admin/notifications?status=failed&resolution=maybe')
+        ->assertSessionHasErrors('resolution');
 });

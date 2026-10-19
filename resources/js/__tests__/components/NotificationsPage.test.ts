@@ -26,11 +26,6 @@ vi.mock("primevue/select", () => ({
 }));
 
 const stubs = {
-  PCheckbox: {
-    props: ["modelValue", "inputId"],
-    emits: ["update:modelValue", "change"],
-    template: "<input type='checkbox' :id='inputId' :checked='modelValue' @change=\"$emit('update:modelValue', $event.target.checked); $emit('change')\" />",
-  },
   PageHeader: { template: "<div><slot /></div>" },
   BackButton: { props: ["href"], template: "<a :href='href'>Back</a>" },
   PButton: {
@@ -66,9 +61,9 @@ const log = (overrides: Partial<App.Data.NotificationLogData> = {}): App.Data.No
   ...overrides,
 });
 
-type Filters = Record<"status" | "type" | "channel" | "search" | "period" | "from" | "to", string | null> & { unresolved: boolean };
+type Filters = Record<"status" | "type" | "channel" | "search" | "period" | "from" | "to", string | null> & { resolution: string | null };
 
-const emptyFilters: Filters = { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, unresolved: false };
+const emptyFilters: Filters = { status: null, type: null, channel: null, search: null, period: null, from: null, to: null, resolution: null };
 
 const renderPage = (logs: App.Data.NotificationLogData[], filters: Filters = emptyFilters) => render(List, {
   props: {
@@ -130,18 +125,25 @@ describe("Notifications page", () => {
 
     await fireEvent.click(screen.getByText("Failed and still not sent (last 7 days)"));
 
-    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", period: "7d", unresolved: 1 }, expect.anything());
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", period: "7d", resolution: "unresolved" }, expect.anything());
   });
 
-  it("can hide failures that were sent later, only while showing failures", async () => {
+  it("filters failures by whether they were sent later, only while showing failures", async () => {
     renderPage([log()], { ...emptyFilters, status: "failed" });
 
-    await fireEvent.click(screen.getByLabelText("Hide emails that were sent successfully later"));
-    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", unresolved: 1 }, expect.anything());
+    await fireEvent.click(screen.getByRole("button", { name: "Resolved (sent later)" }));
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", resolution: "resolved" }, expect.anything());
 
+    await fireEvent.click(screen.getByRole("button", { name: "Still not sent" }));
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed", resolution: "unresolved" }, expect.anything());
+
+    await fireEvent.click(screen.getByRole("button", { name: "All failures" }));
+    expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "failed" }, expect.anything());
+
+    await fireEvent.click(screen.getByRole("button", { name: "Still not sent" }));
     await fireEvent.update(screen.getByLabelText("Status"), "sent");
     expect(routerGet).toHaveBeenLastCalledWith("/admin.notifications.index", { status: "sent" }, expect.anything());
-    expect(screen.queryByLabelText("Hide emails that were sent successfully later")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Still not sent" })).toBeNull();
   });
 
   it("shows technical details when a row is opened", async () => {

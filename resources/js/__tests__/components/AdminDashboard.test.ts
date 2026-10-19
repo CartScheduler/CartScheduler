@@ -109,7 +109,7 @@ describe("Admin Dashboard", () => {
     const failed = getByTestId("notifications-failed");
     expect(failed.textContent).toContain("3 failed");
     expect(failed.querySelector("[data-status='failed']")).not.toBeNull();
-    expect(failed.getAttribute("href")).toBe("/admin.notifications.index?status=failed&period=7d&unresolved=1");
+    expect(failed.getAttribute("href")).toBe("/admin.notifications.index?status=failed&period=7d&resolution=unresolved");
     expect(pollStart).toHaveBeenCalled();
   });
 

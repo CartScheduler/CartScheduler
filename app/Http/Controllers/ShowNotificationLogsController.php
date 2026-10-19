@@ -70,7 +70,7 @@ class ShowNotificationLogsController extends Controller
     }
 
     /**
-     * @param  array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string, unresolved: bool}  $filters
+     * @param  array{status: ?string, type: ?string, channel: ?string, search: ?string, period: ?string, from: ?string, to: ?string, resolution: ?string}  $filters
      * @return Builder<NotificationLog>
      */
     private function filteredQuery(array $filters): Builder
@@ -79,7 +79,8 @@ class ShowNotificationLogsController extends Controller
 
         return NotificationLog::query()
             ->when($status === NotificationStatus::Failed, fn (Builder $query) => $query->failedOrStalled())
-            ->when($filters['unresolved'], fn (Builder $query) => $query->unresolved())
+            ->when($filters['resolution'] === 'unresolved', fn (Builder $query) => $query->unresolved())
+            ->when($filters['resolution'] === 'resolved', fn (Builder $query) => $query->resolved())
             ->when($status && $status !== NotificationStatus::Failed, fn (Builder $query) => $query->where('status', $status))
             ->when($filters['type'], fn (Builder $query, string $type) => $query->where('type', $type))
             ->when($filters['channel'], fn (Builder $query, string $channel) => $query->where('channel', $channel))

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NotificationStatus;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -83,16 +84,36 @@ class NotificationLog extends Model
     }
 
     /**
-     * Excludes rows whose email was later sent successfully to the same person: same type and, for
-     * emails about assignments, at least one of the same assignments. Matches GetLaterNotificationAttempts.
+     * Rows whose email was never sent successfully afterwards.
      *
      * @param  Builder<NotificationLog>  $query
      */
     public function scopeUnresolved(Builder $query): void
     {
+        $query->whereNotExists($this->sentLater());
+    }
+
+    /**
+     * Rows whose email was sent successfully afterwards, for example by "Send again".
+     *
+     * @param  Builder<NotificationLog>  $query
+     */
+    public function scopeResolved(Builder $query): void
+    {
+        $query->whereExists($this->sentLater());
+    }
+
+    /**
+     * A later, successful send to the same person: same type and, for emails about assignments, at
+     * least one of the same assignments. Matches GetLaterNotificationAttempts.
+     *
+     * @return Closure(QueryBuilder): QueryBuilder
+     */
+    private function sentLater(): Closure
+    {
         $table = $this->getTable();
 
-        $query->whereNotExists(fn (QueryBuilder $later) => $later
+        return fn (QueryBuilder $later) => $later
             ->from("$table as later")
             ->whereColumn('later.type', "$table.type")
             ->whereColumn('later.notifiable_type', "$table.notifiable_type")
@@ -109,7 +130,7 @@ class NotificationLog extends Model
                         ->on('theirs.subject_type', '=', 'own.subject_type')
                         ->on('theirs.subject_id', '=', 'own.subject_id'))
                     ->whereColumn('own.notification_log_id', "$table.id")
-                    ->whereColumn('theirs.notification_log_id', 'later.id'))));
+                    ->whereColumn('theirs.notification_log_id', 'later.id')));
     }
 
     /**
