@@ -15,20 +15,20 @@ class AdminAvailableShiftsController extends Controller
     public function __construct(
         private readonly GetLocationsForShifts $getLocationsForShifts,
         private readonly GetAvailableShiftsCount $getAvailableShiftsCount,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request, string $shiftDate)
     {
         $returnData = [
             'freeShifts' => [],
-            'locations'  => [],
+            'locations' => [],
         ];
 
         try {
             $selectedDate = Carbon::parse($shiftDate)->endOfDay();
         } catch (InvalidFormatException $e) {
             Bugsnag::notifyException($e);
+
             return $returnData;
         }
 
@@ -43,7 +43,7 @@ class AdminAvailableShiftsController extends Controller
         );
 
         $returnData['freeShifts'] = $freeShiftsCount;
-        $returnData['locations']  = LocationData::collect($locations);
+        $returnData['locations'] = LocationData::collect($locations);
 
         return $returnData;
     }

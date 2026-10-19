@@ -14,6 +14,5 @@ class FilledShiftData extends Data
         public string $date,
         public int $shifts_filled,
         public int $shifts_available,
-    ) {
-    }
+    ) {}
 }

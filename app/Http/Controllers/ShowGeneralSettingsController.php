@@ -5,20 +5,20 @@ namespace App\Http\Controllers;
 use App\Settings\GeneralSettings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ShowGeneralSettingsController extends Controller
 {
-    public function __construct(private readonly GeneralSettings $settings)
-    {
-    }
+    public function __construct(private readonly GeneralSettings $settings) {}
 
     /**
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     * @throws HttpException
+     * @throws NotFoundHttpException
      */
     public function __invoke(Request $request)
     {
-        if (!in_array($request->user()->getKey(), $this->settings->allowedSettingsUsers, true)) {
+        if (! in_array($request->user()->getKey(), $this->settings->allowedSettingsUsers, true)) {
             abort(404);
         }
 

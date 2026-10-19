@@ -10,9 +10,7 @@ use Pixelated\Streamline\Events\NextAvailableVersionUpdated;
  */
 readonly class StreamlineNextAvailableVersionUpdatedListener
 {
-    public function __construct(private GeneralSettings $settings)
-    {
-    }
+    public function __construct(private GeneralSettings $settings) {}
 
     public function __invoke(NextAvailableVersionUpdated $event): void
     {

@@ -60,7 +60,7 @@ test('admin can access admin dashboard and get correct data', function () {
         ['date' => '2023-01-18', 'shifts_filled' => 0, 'shifts_available' => 20],
     ];
 
-    Cache::expects('flexibleWithEnum')->times(4)->andReturn(
+    Cache::expects('flexible')->times(4)->andReturn(
         $userCount,
         $locationCount,
         $shiftFilledData,
@@ -80,7 +80,7 @@ test('admin can access admin dashboard and get correct data', function () {
 
     $this->travelTo('2023-01-05 09:00:00');
 
-    Cache::expects('flexibleWithEnum')->times(4)->andReturn(
+    Cache::expects('flexible')->times(4)->andReturn(
         $userCount,
         $locationCount,
         $shiftFilledData,

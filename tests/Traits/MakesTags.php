@@ -17,11 +17,11 @@ trait MakesTags
         $sortOrder = 0;
         foreach (range(0, $count - 1) as $ignored) {
             // Not using a factory because Tags are a 3rd party model
-            $name   = $this->faker->name;
+            $name = $this->faker->name;
             $tags[] = Tag::create([
-                'name'         => $name,
-                'slug'         => $this->faker->slug(),
-                'type'         => 'reports',
+                'name' => $name,
+                'slug' => $this->faker->slug(),
+                'type' => 'reports',
                 'order_column' => $sortOrder++,
             ]);
         }

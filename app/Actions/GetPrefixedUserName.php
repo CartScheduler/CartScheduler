@@ -8,6 +8,6 @@ class GetPrefixedUserName
 {
     public function execute(User $user): string
     {
-        return ($user->gender === 'male' ? 'Bro' : 'Sis') . ' ' . $user->name;
+        return ($user->gender === 'male' ? 'Bro' : 'Sis').' '.$user->name;
     }
 }

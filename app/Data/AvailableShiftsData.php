@@ -15,9 +15,8 @@ class AvailableShiftsData extends Data
         public Collection $shifts,
         #[LiteralTypeScriptType('{[date: string]: App.Data.AvailableShiftMetaData}')]
         public Collection $freeShifts,
-        /** @var Collection<\App\Data\LocationData> */
+        /** @var Collection<LocationData> */
         public Collection $locations,
         public string $maxDateReservation,
-    ) {
-    }
+    ) {}
 }

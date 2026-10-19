@@ -102,8 +102,16 @@ const hasLink = ref(false);
     @apply mb-3;
   }
 
+  h3, h4, h5, h6 {
+    @apply mt-4 mb-2;
+  }
+
+  > :first-child {
+    @apply mt-0;
+  }
+
   ul, ol {
-    @apply pl-5;
+    @apply mb-3 pl-5;
     li p {
       @apply mb-0.5;
     }

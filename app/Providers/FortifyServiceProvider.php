@@ -18,24 +18,18 @@ class FortifyServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
-     *
-     * @return void
      */
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap any application services.
-     *
-     * @return void
      */
     public function boot(): void
     {
         Fortify::authenticateUsing(static function (Request $request) {
             $user = User::where('email', $request->get('email'))
-                        ->where('is_enabled', '=', true)
-                        ->first();
+                ->where('is_enabled', '=', true)
+                ->first();
 
             if ($user && Hash::check($request->get('password'), $user->password)) {
                 return $user;
@@ -50,11 +44,11 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         RateLimiter::for('login', static function (Request $request) {
-            $email = (string)$request->get('email');
+            $email = (string) $request->get('email');
 
-            return Limit::perMinute(5)->by($email . $request->ip());
+            return Limit::perMinute(5)->by($email.$request->ip());
         });
 
-        RateLimiter::for('two-factor', static fn(Request $request) => Limit::perMinute(5)->by($request->session()->get('login.id')));
+        RateLimiter::for('two-factor', static fn (Request $request) => Limit::perMinute(5)->by($request->session()->get('login.id')));
     }
 }

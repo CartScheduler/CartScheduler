@@ -12,10 +12,9 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class EndpointUpdatedException extends HttpException
 {
-
     public static function wrap(string $message): Closure
     {
-        return static fn() => self::throw($message);
+        return static fn () => self::throw($message);
     }
 
     /**

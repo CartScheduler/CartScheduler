@@ -32,6 +32,7 @@ declare module 'vue' {
     EasyDataTable: typeof import('./../Components/EasyDataTable.vue')['default']
     EmptySlot: typeof import('./../Components/Icons/EmptySlot.vue')['default']
     FadeTransition: typeof import('./../Components/Transitions/FadeTransition.vue')['default']
+    FailedBadge: typeof import('./../Components/FailedBadge.vue')['default']
     FileUpload: typeof import('./../Components/Form/FileUpload.vue')['default']
     Filter: typeof import('./../Components/Icons/Filter.vue')['default']
     HeadingButton: typeof import('./../Components/EditorToolbar/HeadingButton.vue')['default']

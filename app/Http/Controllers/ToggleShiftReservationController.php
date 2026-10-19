@@ -12,10 +12,8 @@ class ToggleShiftReservationController extends Controller
 {
     public function __construct(
         private readonly ToggleShiftReservationControllerRules $toggleShiftReservationControllerRules,
-        private readonly ToggleUserOntoShift                   $toggleUserOntoShift,
-    )
-    {
-    }
+        private readonly ToggleUserOntoShift $toggleUserOntoShift,
+    ) {}
 
     public function __invoke(Request $request)
     {
@@ -27,6 +25,7 @@ class ToggleShiftReservationController extends Controller
         $data = $request->validate($this->toggleShiftReservationControllerRules->execute($user, $request->all()));
 
         $status = $this->toggleUserOntoShift->execute($user, $data);
+
         return match ($status) {
             ToggleReservationStatus::RESERVATION_MADE => response('Reservation made', 200),
             ToggleReservationStatus::RESERVATION_REMOVED => response('Reservation removed', 200),

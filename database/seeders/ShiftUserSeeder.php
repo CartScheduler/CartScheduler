@@ -27,11 +27,11 @@ class ShiftUserSeeder extends Seeder
         try {
 
             $locations->each(/**
-             * @throws \Exception
+             * @throws Exception
              */ function (Location $location) {
                 $maxUsers = $location->max_volunteers;
-                $shifts   = $location->shifts;
-                /** @var \App\Models\Shift $shift */
+                $shifts = $location->shifts;
+                /** @var Shift $shift */
                 foreach ($shifts as $shift) {
                     $dates = $this->mapDates($shift);
 
@@ -45,7 +45,8 @@ class ShiftUserSeeder extends Seeder
                             $userId = User::inRandomOrder()->first()->id;
                             if ($alreadyMappedUsers->search($userId) !== false) {
                                 // user has already been mapped to this shift
-                                --$i;
+                                $i--;
+
                                 continue;
                             }
 
@@ -92,14 +93,14 @@ class ShiftUserSeeder extends Seeder
 
     private function generateDates(): void
     {
-        $days  = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         $dates = [];
         foreach ($days as $day) {
             $dates[$day] = collect(new DatePeriod(
                 Carbon::parse("first $day of this month"),
                 CarbonInterval::week(),
                 Carbon::parse("last $day of next month")
-            ))->map(static fn($date) => $date->format('Y-m-d'))->toArray();
+            ))->map(static fn ($date) => $date->format('Y-m-d'))->toArray();
         }
         $this->dates = $dates;
     }

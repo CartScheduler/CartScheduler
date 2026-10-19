@@ -15,7 +15,7 @@ class ReportsController extends Controller
     {
         return Inertia::render('Admin/Reports/List', [
             'locations' => IdAndNameData::collect(Location::get(['id', 'name'])),
-            'reports'   => ReportsData::collect(
+            'reports' => ReportsData::collect(
                 Report::query()
                     ->with(['tags'])
                     ->where('shift_date', '>=', now()->subMonths(2)->toDateString())

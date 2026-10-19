@@ -15,8 +15,7 @@ class ExportShiftAssignmentData extends Data
         public string $start_time,
         public string $end_time,
         public string $location,
-    ) {
-    }
+    ) {}
 
     public static function fromShiftUser(ShiftUser $shiftUser): self
     {

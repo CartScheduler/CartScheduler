@@ -6,6 +6,7 @@ use App\Models\Location;
 use App\Models\User;
 use App\Models\UserAvailability;
 use App\Models\UserVacation;
+use App\Notifications\UserAccountCreatedNotification;
 use App\Settings\GeneralSettings;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -88,12 +89,12 @@ test('admin can add new user and user receives email', function () {
 
     $userData = $user->makeVisible('role', 'mobile_phone')->toArray();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/', $userData)
         ->assertRedirect()
         ->assertSessionHas('flash.message', "$user->name was successfully created.");
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentTimes(UserAccountCreatedNotification::class, 1);
 
     $this->assertDatabaseCount('users', 2);
 });
@@ -116,7 +117,7 @@ test('admin adds new user with bad data fails', function () {
         'is_unrestricted' => 'invalid unrestricted',
     ];
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/', $userData)
         ->assertUnprocessable()
@@ -134,7 +135,7 @@ test('admin adds new user with bad data fails', function () {
             'is_unrestricted',
         ]);
     $this->assertDatabaseCount('users', 1);
-    Mail::assertNothingSent();
+    Notification::assertNothingSent();
 });
 
 test('restrict admin user disallow remove admin rights', function () {
@@ -218,7 +219,7 @@ test('admin can send password reset email', function () {
         ->assertOk()
         ->assertJsonPath('message', 'A password reset link has been sent to the user.');
     Notification::assertSentToTimes($user, ResetPassword::class);
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('password reset too many requests', function () {
@@ -238,7 +239,7 @@ test('password reset too many requests', function () {
             ->assertStatus($i < 2 ? 200 : 429)
             ->assertContainsStringIgnoringCase('message', $expected);
     }
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('password reset unhandled password response', function () {
@@ -255,42 +256,48 @@ test('password reset unhandled password response', function () {
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertserverError()
         ->assertContainsStringIgnoringCase('message', 'unknown error');
-    Mail::assertNothingSent();
+    Notification::assertNotSentTo($user, UserAccountCreatedNotification::class);
 });
 
 test('admin can resend welcome email', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
     $user = User::factory()->enabled()->state(['password' => null])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertOk()
         ->assertJsonPath('message', 'Welcome email was sent');
 
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentToTimes($user, UserAccountCreatedNotification::class, 1);
 });
 
 test('resend welcome email is correct', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
     $user = User::factory()->enabled()->state(['password' => null])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson("/admin/resend-welcome-email?user_id={$user->getKey()}")
         ->assertOk()
         ->assertJsonPath('message', 'Welcome email was sent');
 
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentToTimes($user, UserAccountCreatedNotification::class, 1);
 });
 
 test('welcome email is correct', function () {
-    $user = User::factory()->enabled()->state(['password' => null])->create();
+    // The name is pinned rather than faked. Blade escapes the apostrophe to
+    // &#039;, then the Markdown mailable's CommonMark pass decodes it back to
+    // a bare apostrophe - CommonMark re-escapes &, < and > on output, but not
+    // quotes. assertSeeInHtml escapes its expectation by default, so it would
+    // look for &#039; and not find it. Faker only sometimes produces a name
+    // with an apostrophe, which made this fail intermittently on CI.
+    $user = User::factory()->enabled()->state(['name' => "Prof. Reina O'Connell", 'password' => null])->create();
 
     $textMatch = "Dear $user->name, an account has been created for you on the ".config('app.name').' Public Witnessing web application.';
     $mailable = (new UserAccountCreated($user))
         ->assertHasSubject(config('app.name').' Account Activation')
-        ->assertSeeInHtml($textMatch)
+        ->assertSeeInHtml($textMatch, escape: false)
         ->assertSeeInText($textMatch);
 
     $render = $mailable->render();
@@ -544,6 +551,7 @@ test('does attach spouse', function () {
         ->create();
 
     $userData = $users[0]->makeVisible(['role', 'mobile_phone'])->toArray();
+    $userData['marital_status'] = 'married';
     $userData['spouse_id'] = $users[1]->getKey();
 
     $this->actingAs($admin)
@@ -564,13 +572,14 @@ test('does detach spouse', function () {
     $male = User::factory()->enabled()->male()->create();
     $female = User::factory()->enabled()->female()->create();
 
-    $male->update(['spouse_id' => $female->getKey()]);
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
     $female = $female->fresh();
 
     expect($female->id)->toBe($male->spouse_id);
     expect($male->id)->toBe($female->spouse_id);
 
     $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['spouse_id'] = null;
 
     $this->actingAs($admin)
         ->putJson("/admin/users/{$male->getKey()}", $maleData)
@@ -586,13 +595,246 @@ test('does detach spouse', function () {
     expect($female->spouse)->toBeNull();
 });
 
+test('does not detach spouse when the spouse is omitted from the request', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create();
+    $female = User::factory()->enabled()->female()->create();
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['marital_status'] = 'married';
+    $maleData['name'] = 'Updated Name';
+
+    expect($maleData)->not->toHaveKey('spouse_id');
+
+    $this->actingAs($admin)
+        ->putJson("/admin/users/{$male->getKey()}", $maleData)
+        ->assertRedirect();
+
+    $male = $male->fresh();
+    $female = $female->fresh();
+
+    expect($male->name)->toBe('Updated Name');
+    expect($male->spouse_id)->toBe($female->getKey());
+    expect($female->spouse_id)->toBe($male->getKey());
+});
+
+test('can resubmit the spouse already attached to the user', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create();
+    $female = User::factory()->enabled()->female()->create();
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['marital_status'] = 'married';
+    $maleData['spouse_id'] = $female->getKey();
+
+    $this->actingAs($admin)
+        ->putJson("/admin/users/{$male->getKey()}", $maleData)
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($male->fresh()->spouse_id)->toBe($female->getKey());
+    expect($female->fresh()->spouse_id)->toBe($male->getKey());
+});
+
+test('changing spouse detaches the previous spouse and attaches the new one', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $firstWife = User::factory()->enabled()->female()->create();
+    $secondWife = User::factory()->enabled()->female()->create(['marital_status' => 'single']);
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $firstWife->getKey()]);
+
+    $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['marital_status'] = 'married';
+    $maleData['spouse_id'] = $secondWife->getKey();
+
+    $this->actingAs($admin)
+        ->putJson("/admin/users/{$male->getKey()}", $maleData)
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $secondWife = $secondWife->fresh();
+
+    expect($male->fresh()->spouse_id)->toBe($secondWife->getKey());
+    expect($secondWife->spouse_id)->toBe($male->getKey());
+    expect($secondWife->marital_status)->toBe('married');
+    expect($firstWife->fresh()->spouse_id)->toBeNull();
+});
+
+test('admin can add new user with a spouse', function () {
+    Mail::fake();
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $wife = User::factory()->enabled()->female()->create();
+
+    $this->actingAs($admin)
+        ->postJson('/admin/users', [
+            'name' => 'New Husband',
+            'email' => 'new.husband@example.com',
+            'role' => Role::User->value,
+            'gender' => 'male',
+            'mobile_phone' => '0400 000 000',
+            'marital_status' => 'married',
+            'spouse_id' => $wife->getKey(),
+            'is_enabled' => true,
+            'is_unrestricted' => true,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $husband = User::where('email', 'new.husband@example.com')->firstOrFail();
+
+    expect($husband->spouse_id)->toBe($wife->getKey());
+    expect($wife->fresh()->spouse_id)->toBe($husband->getKey());
+});
+
+test('spouse candidates are the opposite gender and not attached to another user', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->male()->create(['name' => 'Admin']);
+    $husband = User::factory()->enabled()->male()->create(['name' => 'Husband']);
+    $wife = User::factory()->enabled()->female()->create(['name' => 'Wife']);
+    $otherHusband = User::factory()->enabled()->male()->create(['name' => 'Other Husband']);
+    $takenWife = User::factory()->enabled()->female()->create(['name' => 'Taken Wife']);
+    $singleSister = User::factory()->enabled()->female()->create(['name' => 'Anna Single']);
+
+    $husband->update(['marital_status' => 'married', 'spouse_id' => $wife->getKey()]);
+    $otherHusband->update(['marital_status' => 'married', 'spouse_id' => $takenWife->getKey()]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.spouse-candidates.get', ['gender' => 'male', 'user_id' => $husband->getKey()]))
+        ->assertOk()
+        ->assertExactJson([
+            ['id' => $singleSister->getKey(), 'name' => 'Anna Single'],
+            ['id' => $wife->getKey(), 'name' => 'Wife'],
+        ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.spouse-candidates.get', ['gender' => 'male']))
+        ->assertOk()
+        ->assertExactJson([
+            ['id' => $singleSister->getKey(), 'name' => 'Anna Single'],
+        ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.spouse-candidates.get', ['gender' => 'female', 'user_id' => $singleSister->getKey()]))
+        ->assertOk()
+        ->assertExactJson([
+            ['id' => $admin->getKey(), 'name' => 'Admin'],
+        ]);
+});
+
+test('spouse candidates require a valid gender', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.spouse-candidates.get'))
+        ->assertInvalid(['gender']);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.spouse-candidates.get', ['gender' => 'other']))
+        ->assertInvalid(['gender']);
+});
+
+test('non admin users cannot retrieve spouse candidates', function () {
+    $user = User::factory()->enabled()->male()->create();
+
+    $this->actingAs($user)
+        ->getJson(route('admin.spouse-candidates.get', ['gender' => 'male']))
+        ->assertForbidden();
+});
+
+test('setting marital status to anything but married detaches the spouse from both users', function (string $maritalStatus) {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $maleData = $male->makeVisible(['role', 'mobile_phone'])->toArray();
+    $maleData['marital_status'] = $maritalStatus;
+    $maleData['spouse_id'] = $female->getKey();
+
+    $this->actingAs($admin)
+        ->putJson("/admin/users/{$male->getKey()}", $maleData)
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $male = $male->fresh();
+
+    expect($male->marital_status)->toBe($maritalStatus);
+    expect($male->spouse_id)->toBeNull();
+    expect($female->fresh()->spouse_id)->toBeNull();
+})->with(['single', 'separated', 'divorced', 'widowed']);
+
+test('the model detaches the spouse when the marital status is no longer married', function () {
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+    expect($female->fresh()->spouse_id)->toBe($male->getKey());
+
+    $female->fresh()->update(['marital_status' => 'widowed']);
+
+    expect($female->fresh()->spouse_id)->toBeNull();
+    expect($male->fresh()->spouse_id)->toBeNull();
+});
+
+test('a new user who is not married is not attached to a spouse', function () {
+    Mail::fake();
+    $wife = User::factory()->enabled()->female()->create();
+
+    $husband = User::unguarded(static fn () => User::create([
+        'uuid' => Str::uuid(),
+        'name' => 'New Husband',
+        'email' => 'new.husband@example.com',
+        'role' => Role::User->value,
+        'gender' => 'male',
+        'mobile_phone' => '0400000000',
+        'marital_status' => 'single',
+        'spouse_id' => $wife->getKey(),
+    ]));
+
+    expect($husband->fresh()->spouse_id)->toBeNull();
+    expect($wife->fresh()->spouse_id)->toBeNull();
+});
+
+test('admin can view a user as json', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $this->actingAs($admin)
+        ->getJson(route('admin.users.show', $female))
+        ->assertOk()
+        ->assertJson([
+            'id' => $female->getKey(),
+            'name' => $female->name,
+            'email' => $female->email,
+            'gender' => 'female',
+            'marital_status' => 'married',
+            'spouse' => ['id' => $male->getKey(), 'name' => $male->name],
+        ]);
+});
+
+test('non admin users cannot view another user as json', function () {
+    $user = User::factory()->enabled()->create();
+    $other = User::factory()->enabled()->create();
+
+    $this->actingAs($user)
+        ->getJson(route('admin.users.show', $other))
+        ->assertForbidden();
+});
+
 test('cannot attach user who is already a spouse', function () {
     $admin = User::factory()->enabled()->adminRoleUser()->create();
     $male = User::factory()->enabled()->male()->create();
     $male2 = User::factory()->enabled()->male()->create();
     $female = User::factory()->enabled()->female()->create();
 
-    $male->update(['spouse_id' => $female->getKey()]);
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
     $female = $female->fresh();
 
     expect($female->id)->toBe($male->spouse_id);
@@ -600,6 +842,7 @@ test('cannot attach user who is already a spouse', function () {
     expect($male2->spouse_id)->toBeNull();
 
     $male2Data = $male2->makeVisible(['role', 'mobile_phone'])->toArray();
+    $male2Data['marital_status'] = 'married';
     $male2Data['spouse_id'] = $female->getKey();
 
     $this->actingAs($admin)
@@ -618,4 +861,156 @@ test('can only attach user of opposite gender', function () {
     $this->actingAs($admin)
         ->putJson("/admin/users/{$male->getKey()}", $userData)
         ->assertInvalid(['spouse_id' => 'The spouse id needs a user who is not male']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Escaping in the welcome email
+|--------------------------------------------------------------------------
+|
+| The mailable is Markdown, so a name passes through two stages: Blade's
+| e() escapes it, then CommonMark parses the result. CommonMark decodes the
+| entities Blade produced and re-escapes only &, < and > on its way out, so
+| quotes arrive at the recipient as literal characters. That is safe in text
+| content, but it is easy to assume otherwise - assertSeeInHtml escapes its
+| expectation by default, which is what made the apostrophe case fail.
+|
+*/
+
+dataset('specialCharacterNameProvider', function () {
+    return [
+        'apostrophe stays literal' => ["Reina O'Connell", "Reina O'Connell"],
+        'double quote stays literal' => ['Ann "Annie" Lee', 'Ann "Annie" Lee'],
+        'ampersand becomes an entity' => ['Tom & Jerry', 'Tom &amp; Jerry'],
+        'angle brackets become entities' => ['a < b > c', 'a &lt; b &gt; c'],
+        'an entity in the name is escaped again' => ['AT&amp;T', 'AT&amp;amp;T'],
+        'accented characters are left alone' => ['Renée Müller', 'Renée Müller'],
+    ];
+});
+
+test('the welcome email escapes the characters that matter in a name', function (string $name, string $expected) {
+    $user = User::factory()->enabled()->state(['name' => $name, 'password' => null])->create();
+
+    // escape: false, because $expected is already written as the HTML we want
+    // to find. Letting the assertion escape it would re-encode the quotes that
+    // CommonMark deliberately leaves bare.
+    (new UserAccountCreated($user))->assertSeeInHtml("Dear $expected, an account has been created for you", escape: false);
+})->with('specialCharacterNameProvider');
+
+test('a script tag in a name cannot reach the welcome email as markup', function () {
+    $user = User::factory()->enabled()->state(['name' => '<script>alert(1)</script>', 'password' => null])->create();
+
+    $html = (new UserAccountCreated($user))->render();
+
+    expect($html)->toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
+        ->and(stripos($html, '<script'))->toBeFalse()
+        ->and(stripos($html, 'javascript:'))->toBeFalse();
+});
+
+test('admin can attach a spouse on its own', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['name' => 'Single Man', 'marital_status' => 'single']);
+    $female = User::factory()->enabled()->female()->create(['name' => 'Single Woman', 'marital_status' => 'single']);
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), ['spouse_id' => $female->getKey()])
+        ->assertOk()
+        ->assertExactJson(['spouse' => ['id' => $female->getKey(), 'name' => 'Single Woman']]);
+
+    $male = $male->fresh();
+    $female = $female->fresh();
+
+    expect($male->spouse_id)->toBe($female->getKey());
+    expect($female->spouse_id)->toBe($male->getKey());
+    // Holding a spouse is what says they are married
+    expect($male->marital_status)->toBe('married');
+    expect($female->marital_status)->toBe('married');
+});
+
+test('admin can disconnect a spouse on its own', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), ['spouse_id' => null])
+        ->assertOk()
+        ->assertExactJson(['spouse' => null]);
+
+    expect($male->fresh()->spouse_id)->toBeNull();
+    expect($female->fresh()->spouse_id)->toBeNull();
+    // Disconnecting says nothing about whether they are still married
+    expect($male->fresh()->marital_status)->toBe('married');
+});
+
+test('the spouse-only endpoint leaves the rest of the record alone', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['name' => 'Unchanged', 'marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), [
+            'spouse_id' => $female->getKey(),
+            'name' => 'Renamed',
+            'role' => Role::Admin->value,
+        ])
+        ->assertOk();
+
+    expect($male->fresh()->name)->toBe('Unchanged');
+    expect($male->fresh()->role)->toBe(Role::User->value);
+});
+
+test('the spouse-only endpoint rejects a spouse of the same gender', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create();
+    $otherMale = User::factory()->enabled()->male()->create();
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), ['spouse_id' => $otherMale->getKey()])
+        ->assertInvalid(['spouse_id']);
+
+    expect($male->fresh()->spouse_id)->toBeNull();
+});
+
+test('the spouse-only endpoint rejects a spouse attached to someone else', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'single']);
+    $otherMale = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $takenFemale = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $otherMale->update(['marital_status' => 'married', 'spouse_id' => $takenFemale->getKey()]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), ['spouse_id' => $takenFemale->getKey()])
+        ->assertInvalid(['spouse_id']);
+
+    expect($male->fresh()->spouse_id)->toBeNull();
+    expect($takenFemale->fresh()->spouse_id)->toBe($otherMale->getKey());
+});
+
+test('the spouse-only endpoint accepts the spouse already attached to the user', function () {
+    $admin = User::factory()->enabled()->adminRoleUser()->create();
+    $male = User::factory()->enabled()->male()->create(['marital_status' => 'married']);
+    $female = User::factory()->enabled()->female()->create(['marital_status' => 'married']);
+
+    $male->update(['marital_status' => 'married', 'spouse_id' => $female->getKey()]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('admin.users.spouse.update', $male), ['spouse_id' => $female->getKey()])
+        ->assertOk();
+
+    expect($male->fresh()->spouse_id)->toBe($female->getKey());
+});
+
+test('non admin users cannot change a spouse', function () {
+    $user = User::factory()->enabled()->male()->create();
+    $female = User::factory()->enabled()->female()->create();
+
+    $this->actingAs($user)
+        ->patchJson(route('admin.users.spouse.update', $user), ['spouse_id' => $female->getKey()])
+        ->assertForbidden();
+
+    expect($user->fresh()->spouse_id)->toBeNull();
 });

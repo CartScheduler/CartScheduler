@@ -35,6 +35,7 @@ class ShiftAvailabilityException extends RuntimeException
     public function setExceptionType(int $exceptionType): ShiftAvailabilityException
     {
         $this->exceptionType = $exceptionType;
+
         return $this;
     }
 }

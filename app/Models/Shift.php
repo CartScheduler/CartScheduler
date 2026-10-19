@@ -43,16 +43,16 @@ class Shift extends Model
     protected function casts(): array
     {
         return [
-            'day_monday'     => 'boolean',
-            'day_tuesday'    => 'boolean',
-            'day_wednesday'  => 'boolean',
-            'day_thursday'   => 'boolean',
-            'day_friday'     => 'boolean',
-            'day_saturday'   => 'boolean',
-            'day_sunday'     => 'boolean',
-            'is_enabled'     => 'boolean',
+            'day_monday' => 'boolean',
+            'day_tuesday' => 'boolean',
+            'day_wednesday' => 'boolean',
+            'day_thursday' => 'boolean',
+            'day_friday' => 'boolean',
+            'day_saturday' => 'boolean',
+            'day_sunday' => 'boolean',
+            'is_enabled' => 'boolean',
             'available_from' => 'datetime',
-            'available_to'   => 'datetime',
+            'available_to' => 'datetime',
         ];
     }
 
@@ -60,8 +60,8 @@ class Shift extends Model
     protected function availableFrom(): Attribute
     {
         return Attribute::make(
-            get: static fn(?string $value) => $value ? Carbon::parse($value)->format('Y-m-d') : null,
-            set: static fn(?string $value) => $value ? Carbon::parse($value)->startOfDay() : null,
+            get: static fn (?string $value) => $value ? Carbon::parse($value)->format('Y-m-d') : null,
+            set: static fn (?string $value) => $value ? Carbon::parse($value)->startOfDay() : null,
         );
     }
 
@@ -69,8 +69,8 @@ class Shift extends Model
     protected function availableTo(): Attribute
     {
         return Attribute::make(
-            get: static fn(?string $value) => $value ? Carbon::parse($value)->format('Y-m-d') : null,
-            set: static fn(?string $value) => $value ? Carbon::parse($value)->endOfDay() : null,
+            get: static fn (?string $value) => $value ? Carbon::parse($value)->format('Y-m-d') : null,
+            set: static fn (?string $value) => $value ? Carbon::parse($value)->endOfDay() : null,
         );
     }
 
@@ -78,7 +78,7 @@ class Shift extends Model
     protected function startHour(): Attribute
     {
         return Attribute::make(
-            get: static fn(?string $value, array $attributes) => Str::of($attributes['start_time'])->before(':')->toInteger(),
+            get: static fn (?string $value, array $attributes) => Str::of($attributes['start_time'])->before(':')->toInteger(),
         );
     }
 
@@ -86,7 +86,7 @@ class Shift extends Model
     protected function endHour(): Attribute
     {
         return Attribute::make(
-            get: static fn(?string $value, array $attributes) => Str::of($attributes['end_time'])->before(':')->toInteger(),
+            get: static fn (?string $value, array $attributes) => Str::of($attributes['end_time'])->before(':')->toInteger(),
         );
     }
 
@@ -106,17 +106,16 @@ class Shift extends Model
     }
 
     /**
-     * @param \Illuminate\Support\Collection<int, \App\Models\User|int> $users
-     * @param \Illuminate\Support\Carbon|string $date
-     * @return \Illuminate\Support\Collection
+     * @param  Collection<int, User|int>  $users
      */
     public function attachUsersOnDate(Collection $users, Carbon|string $date): Collection
     {
-        $isValid = $users->where(fn($user) => is_numeric($user->id) || $user instanceof User)->count();
+        $isValid = $users->where(fn ($user) => is_numeric($user->id) || $user instanceof User)->count();
         if ($isValid > 0 && $isValid !== $users->count()) {
             throw new InvalidArgumentException('The collection must contain only numeric IDs or persisted User instances');
         }
-        return $users->each(fn($user) => $this->users()->attach($user, ['shift_date' => $date]));
+
+        return $users->each(fn ($user) => $this->users()->attach($user, ['shift_date' => $date]));
     }
 
     public function attachUserOnDate(User|int $user, Carbon|string $date): void

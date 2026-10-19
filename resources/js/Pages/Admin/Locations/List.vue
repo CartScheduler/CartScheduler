@@ -89,9 +89,10 @@ const transitionDelayStyle = (index: number) => `animation-delay: -${(index * 0.
 
 <template>
   <PageHeader title="Locations">
-    <div class="flex justify-between">
+    <div class="flex flex-wrap items-center justify-between gap-y-3">
       <h2 class="text-xl leading-tight font-semibold text-gray-800 dark:text-gray-200">Locations</h2>
-      <div class="flex">
+      <BackButton class="mx-3 sm:order-last" :href="route('admin.dashboard')" />
+      <div class="flex w-full sm:w-auto sm:ml-auto">
         <PButton outline
                  :severity="isSortingMode ? 'danger' : 'secondary'"
                  class="mx-3"

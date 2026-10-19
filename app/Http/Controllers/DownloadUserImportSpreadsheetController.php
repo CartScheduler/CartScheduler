@@ -9,13 +9,12 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class DownloadUserImportSpreadsheetController extends Controller
 {
-    public function __construct(private readonly GeneralSettings $settings)
-    {
-    }
+    public function __construct(private readonly GeneralSettings $settings) {}
 
     public function __invoke()
     {
         $siteName = Str::snake($this->settings->siteName);
-        return Excel::download((new UsersExport())->excludeData(), "$siteName-user_import_template.xlsx");
+
+        return Excel::download((new UsersExport)->excludeData(), "$siteName-user_import_template.xlsx");
     }
 }

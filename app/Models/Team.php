@@ -10,6 +10,7 @@ use Laravel\Jetstream\Team as JetstreamTeam;
 
 /**
  * Not used for now
+ *
  * @codeCoverageIgnore
  */
 class Team extends JetstreamTeam
@@ -36,10 +37,9 @@ class Team extends JetstreamTeam
         'updated' => TeamUpdated::class,
         'deleted' => TeamDeleted::class,
     ];
+
     /**
      * The attributes that should be cast.
-     *
-     * @return array
      */
     protected function casts(): array
     {

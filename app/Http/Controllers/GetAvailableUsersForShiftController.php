@@ -9,18 +9,16 @@ use Illuminate\Http\Request;
 
 class GetAvailableUsersForShiftController extends Controller
 {
-    public function __construct(private readonly GetAvailableUsersForShift $getUsersForShift)
-    {
-    }
+    public function __construct(private readonly GetAvailableUsersForShift $getUsersForShift) {}
 
     public function __invoke(Request $request, Shift $shift)
     {
         $request->validate([
-            'date'                        => ['required', 'date'],
-            'showAll'                     => ['nullable', 'boolean'],
-            'showOnlyResponsibleBros'     => ['nullable', 'boolean'],
-            'hidePublishers'              => ['nullable', 'boolean'],
-            'showOnlyElders'              => ['nullable', 'boolean'],
+            'date' => ['required', 'date'],
+            'showAll' => ['nullable', 'boolean'],
+            'showOnlyResponsibleBros' => ['nullable', 'boolean'],
+            'hidePublishers' => ['nullable', 'boolean'],
+            'showOnlyElders' => ['nullable', 'boolean'],
             'showOnlyMinisterialServants' => ['nullable', 'boolean'],
         ]);
 
@@ -28,7 +26,7 @@ class GetAvailableUsersForShiftController extends Controller
             $this->getUsersForShift->execute(
                 shift: $shift,
                 date: $request->date('date'),
-                showOnlyAvailable: !$request->boolean('showAll'),
+                showOnlyAvailable: ! $request->boolean('showAll'),
                 showOnlyResponsibleBros: $request->boolean('showOnlyResponsibleBros'),
                 hidePublishers: $request->boolean('hidePublishers'),
                 showOnlyElders: $request->boolean('showOnlyElders'),

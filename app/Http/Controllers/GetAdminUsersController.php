@@ -15,6 +15,7 @@ class GetAdminUsersController extends Controller
             ->where('role', 'admin')
             ->where('is_enabled', true)
             ->get();
+
         return AdminUserData::collect($adminUsers);
     }
 }

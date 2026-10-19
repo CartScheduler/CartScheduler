@@ -2,9 +2,7 @@
 
 namespace App\Data;
 
-use Illuminate\Support\Collection;
 use Spatie\LaravelData\Data;
-use Spatie\LaravelData\Optional;
 use Spatie\TypeScriptTransformer\Attributes\LiteralTypeScriptType;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -20,7 +18,6 @@ class OutstandingReportsData extends Data
         #[LiteralTypeScriptType('TwentyFourHourTime')]
         public string $end_time,
         public ?int $requires_brother = 0,
-        public ?string $location_name,
-    ) {
-    }
+        public ?string $location_name = null,
+    ) {}
 }

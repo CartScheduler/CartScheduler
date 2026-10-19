@@ -20,7 +20,7 @@ class GetUserValidationUtils
     {
         $data['mobile_phone'] = isset($data['mobile_phone'])
             ? Str::of($data['mobile_phone'])
-                ->tap(fn(string $value) => Str::startsWith($value, '+') ? "0$value" : $value)
+                ->tap(fn (string $value) => Str::startsWith($value, '+') ? "0$value" : $value)
                 ->replaceMatches('/[^A-Za-z0-9]++/', '')
                 ->trim()
                 ->toString()
@@ -44,19 +44,19 @@ class GetUserValidationUtils
             }
         }
 
-        if (!isset($data['year_of_birth'])) {
+        if (! isset($data['year_of_birth'])) {
             $data['year_of_birth'] = null;
         }
-        if (!isset($data['appointment'])) {
+        if (! isset($data['appointment'])) {
             $data['appointment'] = null;
         }
-        if (!isset($data['serving_as'])) {
+        if (! isset($data['serving_as'])) {
             $data['serving_as'] = null;
         }
-        if (!isset($data['marital_status'])) {
+        if (! isset($data['marital_status'])) {
             $data['marital_status'] = null;
         }
-        if (!isset($data['spouse_id'])) {
+        if (! isset($data['spouse_id'])) {
             $data['spouse_id'] = null;
         }
 
@@ -68,7 +68,7 @@ class GetUserValidationUtils
 
     protected function tidyBoolean(array &$data, string $fieldName): void
     {
-        if (!isset($data[$fieldName])
+        if (! isset($data[$fieldName])
             || trim((string) $data[$fieldName]) === '0'
             || strtolower(trim((string) $data[$fieldName])) === 'false') {
             $data[$fieldName] = false;
@@ -81,46 +81,46 @@ class GetUserValidationUtils
     public function rules(): array
     {
         return [
-            'id'                  => ['sometimes', 'integer'],
-            'name'                => ['required', 'string', 'max:255'],
-            'email'               => ['required', 'email', 'max:255'],
-            'role'                => ['required', 'string', Rule::enum(Role::class)],
-            'gender'              => ['required', 'string', 'in:male,female'],
-            'mobile_phone'        => ['required', 'string', 'regex:/^([0-9\+\-\s]+)$/', 'min:8', 'max:15'],
-            'year_of_birth'       => [
-                'nullable', 'integer', 'min:' . Carbon::now()->year - 100, 'max:' . Carbon::now()->year
+            'id' => ['sometimes', 'integer'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'role' => ['required', 'string', Rule::enum(Role::class)],
+            'gender' => ['required', 'string', 'in:male,female'],
+            'mobile_phone' => ['required', 'string', 'regex:/^([0-9\+\-\s]+)$/', 'min:8', 'max:15'],
+            'year_of_birth' => [
+                'nullable', 'integer', 'min:'.Carbon::now()->year - 100, 'max:'.Carbon::now()->year,
             ],
-            'appointment'         => ['nullable', 'string', Rule::enum(Appointment::class)],
-            'serving_as'          => ['nullable', 'string', Rule::enum(ServingAs::class)],
-            'spouse_id'           => [
+            'appointment' => ['nullable', 'string', Rule::enum(Appointment::class)],
+            'serving_as' => ['nullable', 'string', Rule::enum(ServingAs::class)],
+            'spouse_id' => [
                 'nullable', 'integer', 'exists:users,id', 'unique:users,spouse_id', new SpouseIsOppositeGenderRule,
             ],
-            'marital_status'      => ['nullable', 'string', Rule::enum(MaritalStatus::class)],
+            'marital_status' => ['nullable', 'string', Rule::enum(MaritalStatus::class)],
             'responsible_brother' => ['nullable', 'boolean'],
-            'is_unrestricted'     => ['boolean'],
+            'is_unrestricted' => ['boolean'],
         ];
     }
 
     public function extraValidation(bool $isPrecognitive, ?string $key = '', ?array $fields = null): Closure
     {
         return static function (Validator $validator) use ($isPrecognitive, $key, $fields) {
-            if (!$fields) {
+            if (! $fields) {
                 $fields = $validator->validated();
             }
 
-            if ($key && !Str::endsWith($key, '.')) {
+            if ($key && ! Str::endsWith($key, '.')) {
                 $key .= '.';
             }
 
             if (
-                isset($fields['gender'], $fields['appointment']) && !$isPrecognitive && $fields['gender'] === 'female' && $fields['appointment']
+                isset($fields['gender'], $fields['appointment']) && ! $isPrecognitive && $fields['gender'] === 'female' && $fields['appointment']
             ) {
                 $validator->errors()->add("{$key}gender", 'A sister user cannot have an appointment.');
             }
             if (
-                !$isPrecognitive
+                ! $isPrecognitive
                 && isset($fields['is_unrestricted'], $fields['role'])
-                && !$fields['is_unrestricted']
+                && ! $fields['is_unrestricted']
                 && $fields['role'] === Role::Admin->value
             ) {
                 $validator->errors()->add("{$key}is_unrestricted", 'Restricted users cannot be an administrator.');

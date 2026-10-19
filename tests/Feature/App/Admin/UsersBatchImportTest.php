@@ -1,13 +1,13 @@
 <?php
 
 use App\Exports\UsersExport;
-use App\Mail\UserAccountCreated;
 use App\Models\User;
+use App\Notifications\UserAccountCreatedNotification;
 use App\Settings\GeneralSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 use League\Csv\Reader;
@@ -34,7 +34,7 @@ test('only admin can load import users page', function () {
 test('admin can batch import three users and users receive emails', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/import',
             ['file' => new UploadedFile(
@@ -55,14 +55,14 @@ test('admin can batch import three users and users receive emails', function () 
     expect($uploaded[0]->spouse->getKey())->toBe($uploaded[1]->getKey());
     expect($uploaded[2]->spouse)->toBeNull();
 
-    Mail::assertSent(UserAccountCreated::class, 3);
+    Notification::assertSentTimes(UserAccountCreatedNotification::class, 3);
 });
 
 test('admin batch import handles failed validation properly', function () {
     $admin = User::factory()->adminRoleUser()->state(['is_enabled' => true])->create();
     $this->assertDatabaseCount('users', 1);
 
-    Mail::fake();
+    Notification::fake();
 
     $this->travelTo('2024-06-01');
     $this->actingAs($admin)
@@ -87,7 +87,7 @@ test('admin batch import handles failed validation properly', function () {
 
     $this->assertDatabaseCount('users', 1);
 
-    Mail::assertNothingOutgoing();
+    Notification::assertNothingSent();
 });
 
 test('admin batch import handles duplicate users properly', function () {
@@ -96,7 +96,7 @@ test('admin batch import handles duplicate users properly', function () {
     // The next user will be duplicated in the import and should be updated
     User::factory()->female()->state(['id' => 2, 'email' => 'lee@example.com', 'is_enabled' => true])->create();
 
-    Mail::fake();
+    Notification::fake();
     $this->actingAs($admin)
         ->postJson('/admin/users/import',
             ['file' => new UploadedFile(
@@ -116,7 +116,7 @@ test('admin batch import handles duplicate users properly', function () {
     expect($uploaded[0]->spouse->getKey())->toBe($uploaded[1]->getKey());
 
     // Should only be one email sent because the duplicate user was updated
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentTimes(UserAccountCreatedNotification::class, 1);
 });
 
 test('admin can download user import spreadsheet template', function () {

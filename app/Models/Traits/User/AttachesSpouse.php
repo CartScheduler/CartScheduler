@@ -9,25 +9,38 @@ trait AttachesSpouse
     public static function attachSpouse(User $user): void
     {
         if ($user->spouse_id) {
-            $spouse                 = User::find($user->spouse_id);
-            $spouse->spouse_id      = $user->id;
+            $spouse = User::find($user->spouse_id);
+            $spouse->spouse_id = $user->id;
             $spouse->marital_status = 'married';
             $spouse->saveQuietly();
         }
     }
 
+    /**
+     * Only a married user can have a spouse. Clearing `spouse_id` here, before the
+     * `updating` event, lets `detachSpouse()` release the former spouse as well.
+     */
+    public static function clearSpouseUnlessMarried(User $user): void
+    {
+        if ($user->spouse_id !== null && $user->marital_status !== 'married') {
+            $user->spouse_id = null;
+        }
+    }
+
     public static function detachSpouse(User $user): void
     {
-        $dirty    = $user->getDirty();
-        $original = $user->getOriginal();
+        $originalSpouseId = $user->getOriginal('spouse_id');
         if (
-            array_key_exists('spouse_id', $dirty) &&
-            $dirty['spouse_id'] === null &&
-            $original['spouse_id'] !== null
+            $user->isDirty('spouse_id') &&
+            $originalSpouseId !== null &&
+            (int) $user->spouse_id !== (int) $originalSpouseId
         ) {
-            $spouse            = User::find($original['spouse_id']);
-            $spouse->spouse_id = null;
-            $spouse->saveQuietly();
+            // Covers both removing the spouse and swapping to a different one
+            $spouse = User::find($originalSpouseId);
+            if ($spouse && (int) $spouse->spouse_id === (int) $user->id) {
+                $spouse->spouse_id = null;
+                $spouse->saveQuietly();
+            }
         }
     }
 }

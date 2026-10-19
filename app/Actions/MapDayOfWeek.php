@@ -11,7 +11,7 @@ class MapDayOfWeek
     {
         $dayOfWeek = Str::upper($dayOfWeek);
 
-        if (!in_array($dayOfWeek, ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'])) {
+        if (! in_array($dayOfWeek, ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'])) {
             throw new InvalidArgumentException('Invalid day of week');
         }
 

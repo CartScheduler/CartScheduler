@@ -13,6 +13,5 @@ class ReportTagData extends Data
         public int|Optional $id,
         public string $name,
         public ?int $order_column = null,
-    ) {
-    }
+    ) {}
 }

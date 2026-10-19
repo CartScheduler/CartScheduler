@@ -48,8 +48,9 @@ class UpdateGeneralSettingsRequest extends FormRequest
             return '12am';
         }
         if ($value > 12) {
-            return $value - 12 . 'pm';
+            return $value - 12 .'pm';
         }
+
         return "{$value}am";
     }
 }

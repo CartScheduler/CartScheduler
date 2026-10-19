@@ -20,12 +20,13 @@ class UserVacationFactory extends Factory
     public function definition(): array
     {
         $startDate = CarbonImmutable::instance(fake()->dateTimeBetween('now', '+6 months'));
+
         return [
-            'start_date'  => $startDate,
-            'end_date'    => $startDate->add(fake()->numberBetween(1, 30), 'day'),
+            'start_date' => $startDate,
+            'end_date' => $startDate->add(fake()->numberBetween(1, 30), 'day'),
             'description' => fake()->sentence(),
-            'created_at'  => Carbon::now(),
-            'updated_at'  => Carbon::now(),
+            'created_at' => Carbon::now(),
+            'updated_at' => Carbon::now(),
         ];
     }
 }

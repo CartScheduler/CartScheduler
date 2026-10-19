@@ -42,6 +42,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="BUGSNAG_NOTIFY_RELEASE_STAGES" value="production"/>
         <env name="RAY_ENABLED" value="true"/>
         <env name="SEND_CACHE_TO_RAY" value="false"/>
         <env name="SEND_DUMPS_TO_RAY" value="true"/>

@@ -1,10 +1,10 @@
 <?php
 
 use App\Console\Commands\CreateUserCommand;
-use App\Mail\UserAccountCreated;
 use App\Models\User;
+use App\Notifications\UserAccountCreatedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 
 uses(RefreshDatabase::class);
 
@@ -36,7 +36,7 @@ test('create user command sends email verification', function () {
         'phone' => '1234567890',
         'gender' => 'male',
     ];
-    Mail::fake();
+    Notification::fake();
     $this->assertDatabaseCount('users', 0);
     $this->artisan(CreateUserCommand::class, $userData)
         ->expectsOutput('User MailTest User created successfully')
@@ -48,7 +48,7 @@ test('create user command sends email verification', function () {
         'email' => 'mailtest@example.com',
         'role' => 'admin',
     ]);
-    Mail::assertSent(UserAccountCreated::class, 1);
+    Notification::assertSentTimes(UserAccountCreatedNotification::class, 1);
 });
 
 test('create multiple users', function () {

@@ -14,29 +14,37 @@ class SpouseIsOppositeGenderRule implements DataAwareRule, ValidationRule
     public function setData(array $data): static
     {
         $this->data = $data;
+
         return $this;
     }
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (!is_numeric($value)) {
-            $fail("The :attribute should an integer");
+        if (! is_numeric($value)) {
+            $fail('The :attribute should an integer');
+
+            return;
         }
 
         $spouse = User::find((int) $value);
-        if (!$spouse) {
-            $fail("The :attribute does not exist in the database");
+        if (! $spouse) {
+            $fail('The :attribute does not exist in the database');
+
+            return;
         }
 
-        $user = User::find((int) $this->data['id']);
+        // Prefer the submitted gender, so a new user, or one whose gender is changing, is checked correctly
+        $gender = $this->data['gender'] ?? (isset($this->data['id']) ? User::find((int) $this->data['id'])?->gender : null);
 
-        if (!$user) {
-            $fail('The :attribute needs a user id to be sent with it');
+        if (! $gender) {
+            $fail('The :attribute needs a user gender to be sent with it');
+
+            return;
         }
 
         if (
-            (strtolower($user->gender) === 'male' && $spouse->gender === 'female') ||
-            (strtolower($user->gender) === 'female' && $spouse->gender === 'male')
+            (strtolower($gender) === 'male' && $spouse->gender === 'female') ||
+            (strtolower($gender) === 'female' && $spouse->gender === 'male')
         ) {
             return;
         }

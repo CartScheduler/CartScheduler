@@ -25,18 +25,18 @@ class GetOutstandingReports
                 'locations.requires_brother',
                 'locations.name as location_name',
             ])
-            ->when($user !== null, fn(Builder $query) => $query->addSelect('su.user_id'))
+            ->when($user !== null, fn (Builder $query) => $query->addSelect('su.user_id'))
             ->from('shift_user', 'su')
             ->join('shifts', 'shifts.id', '=', 'su.shift_id')
             ->join('locations', 'locations.id', '=', 'shifts.location_id')
-            ->leftJoin('reports as r', fn(JoinClause $join) => $join
+            ->leftJoin('reports as r', fn (JoinClause $join) => $join
                 ->on('r.shift_id', '=', 'su.shift_id')
                 ->on('r.shift_date', '=', 'su.shift_date')
             )
             ->whereTodayOrBefore('su.shift_date')
             ->whereNull('r.shift_id') // Makes sure there are no reports
-            ->when($user !== null, fn(Builder $query) => $query->where('user_id', $user->id))
-            ->when($user === null, fn(Builder $query) => $query->groupBy([
+            ->when($user !== null, fn (Builder $query) => $query->where('user_id', $user->id))
+            ->when($user === null, fn (Builder $query) => $query->groupBy([
                 'su.shift_id',
                 'su.shift_date',
                 'shifts.start_time',

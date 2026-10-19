@@ -129,31 +129,51 @@ onMounted(() => {
   </div>
 </template>
 
+<!--
+  Descriptions are injected with v-html, so they never receive this component's
+  scoped attribute. :deep() is what lets the spacing reach those headings and
+  paragraphs — without it, Tailwind's reset leaves them flush together.
+-->
 <!--suppress CssUnusedSymbol -->
-<style scoped>
-.description {
-    p {
-        @apply mb-3;
-    }
+<style scoped lang="postcss">
+.description :deep(p) {
+    @apply mb-3;
+}
 
-    ul, ol {
-        @apply pl-5;
+.description :deep(h3),
+.description :deep(h4),
+.description :deep(h5),
+.description :deep(h6) {
+    @apply mt-4 mb-2;
+}
 
-        li p {
-            @apply mb-0.5;
-        }
-    }
+.description :deep(> :first-child) {
+    @apply mt-0;
+}
 
-    ul {
-        @apply list-disc;
-    }
+.description :deep(ul),
+.description :deep(ol) {
+    @apply mb-3 pl-5;
+}
 
-    ol {
-        @apply list-decimal;
-    }
+.description :deep(li p) {
+    @apply mb-0.5;
+}
 
-    strong {
-        @apply font-bold
-    }
+.description :deep(ul) {
+    @apply list-disc;
+}
+
+.description :deep(ol) {
+    @apply list-decimal;
+}
+
+.description :deep(blockquote),
+.description :deep(pre) {
+    @apply mb-3;
+}
+
+.description :deep(strong) {
+    @apply font-bold;
 }
 </style>

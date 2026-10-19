@@ -21,7 +21,5 @@ class ReportMetadataData extends Data
         public string $submitted_by_phone,
         #[TypeScriptType(['id' => 'int', 'name' => 'string'])]
         public Collection $associates,
-    )
-    {
-    }
+    ) {}
 }

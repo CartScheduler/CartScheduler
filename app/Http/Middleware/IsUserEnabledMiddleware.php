@@ -12,7 +12,7 @@ class IsUserEnabledMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->user() && !$request->user()->is_enabled) {
+        if ($request->user() && ! $request->user()->is_enabled) {
             $guards = array_keys(config('auth.guards'));
 
             foreach ($guards as $guard) {
@@ -25,8 +25,10 @@ class IsUserEnabledMiddleware
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthorised'], Response::HTTP_UNAUTHORIZED);
             }
+
             return redirect('/');
         }
+
         return $next($request);
     }
 }

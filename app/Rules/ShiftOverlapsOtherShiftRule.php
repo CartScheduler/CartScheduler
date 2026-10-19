@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 class ShiftOverlapsOtherShiftRule implements DataAwareRule, ValidationRule
 {
     private array $data;
+
     private array $shiftTimeBounds;
 
     public function validate(string $attribute, mixed $value, Closure $fail): void

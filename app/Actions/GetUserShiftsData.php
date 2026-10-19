@@ -17,15 +17,14 @@ class GetUserShiftsData
      *
      * Parameters line up with those in cart-scheduler config
      *
-     * @param string $startDate YYYY-MM-DD
-     * @param string $endDate YYYY-MM-DD
-     * @param User $user
+     * @param  string  $startDate  YYYY-MM-DD
+     * @param  string  $endDate  YYYY-MM-DD
      * @return Collection<string, Collection<int, Collection<UserShiftData>>>
      */
     public function execute(string $startDate, string $endDate, User $user): Collection
     {
         $query = /** @lang MySQL */
-            "
+            '
                 WITH RECURSIVE dates (date) AS
                    (SELECT :startDate
                     UNION ALL
@@ -74,19 +73,20 @@ class GetUserShiftsData
                 ORDER BY dates.date,
                          locations.name,
                          shifts.start_time
-                ";
+                ';
 
-        $params  = ['startDate' => $startDate, 'endDate' => $endDate, 'userId' => $user->id];
+        $params = ['startDate' => $startDate, 'endDate' => $endDate, 'userId' => $user->id];
         $results = DB::select($query, $params);
+
         return collect($results)
             ->map(function (stdClass $shift) {
                 return UserShiftData::from($shift);
             })
-            ->filter(fn(UserShiftData $shift) => $shift->volunteer_id === $user->id)
+            ->filter(fn (UserShiftData $shift) => $shift->volunteer_id === $user->id)
             // Group first by shift date and then by shift id: [[shift_date => [shift_id => UserShiftData]]]
             ->groupBy([
-                fn(UserShiftData $shift) => $shift->shift_date->format('Y-m-d'),
-                fn(UserShiftData $shift) => $shift->shift_id,
+                fn (UserShiftData $shift) => $shift->shift_date->format('Y-m-d'),
+                fn (UserShiftData $shift) => $shift->shift_id,
             ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Actions\GetUserValidationUtils;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,15 +15,20 @@ class UserRequest extends FormRequest
     }
 
     /**
-     * @throws \Illuminate\Contracts\Container\BindingResolutionException
+     * @throws BindingResolutionException
      */
     public function prepareForValidation(): void
     {
         $validationUtils = app()->make(GetUserValidationUtils::class);
 
-        $this->merge(
-            $validationUtils->prepare($this->all())
-        );
+        $preparedData = $validationUtils->prepare($this->all());
+
+        // A request without a spouse must leave the existing link alone, rather than detaching it
+        if (! $this->exists('spouse_id') && $preparedData['spouse_id'] === null) {
+            unset($preparedData['spouse_id']);
+        }
+
+        $this->merge($preparedData);
     }
 
     /**
@@ -33,10 +39,18 @@ class UserRequest extends FormRequest
     public function rules(): array
     {
         $validationUtils = app()->make(GetUserValidationUtils::class);
-        $rules           = $validationUtils->rules();
+        $rules = $validationUtils->rules();
 
-        $rules['email'][]      = Rule::unique('users')->ignore($this->get('id'));
+        $rules['email'][] = Rule::unique('users')->ignore($this->get('id'));
         $rules['is_enabled'][] = ['boolean'];
+
+        // Resubmitting the spouse already attached to this user is not a conflict
+        $rules['spouse_id'] = array_map(
+            fn (mixed $rule) => $rule === 'unique:users,spouse_id'
+                ? Rule::unique('users', 'spouse_id')->ignore($this->get('id'))
+                : $rule,
+            $rules['spouse_id'],
+        );
 
         return $rules;
     }
@@ -44,7 +58,7 @@ class UserRequest extends FormRequest
     public function after(): array
     {
         return [
-            (app()->make(GetUserValidationUtils::class))->extraValidation($this->isPrecognitive())
+            (app()->make(GetUserValidationUtils::class))->extraValidation($this->isPrecognitive()),
         ];
     }
 
@@ -54,9 +68,9 @@ class UserRequest extends FormRequest
 
         return [
             'mobile_phone.regex' => "The mobile phone can contain only numbers and spaces. $formatMsg",
-            'mobile_phone.min'   => $formatMsg,
-            'mobile_phone.max'   => $formatMsg,
-            'spouse_id.unique'   => "The 'spouse' has already been attached to another user",
+            'mobile_phone.min' => $formatMsg,
+            'mobile_phone.max' => $formatMsg,
+            'spouse_id.unique' => "The 'spouse' has already been attached to another user",
         ];
     }
 }

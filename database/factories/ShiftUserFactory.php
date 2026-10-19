@@ -16,8 +16,8 @@ class ShiftUserFactory extends Factory
         $shift = Shift::inRandomOrder()->first();
 
         return [
-            'shift_id'   => $shift->id,
-            'user_id'    => User::inRandomOrder()->first(['id'])->id,
+            'shift_id' => $shift->id,
+            'user_id' => User::inRandomOrder()->first(['id'])->id,
             'shift_date' => $shift->available_from
                 ? $shift->available_from->addDay()
                 : date('Y-m-d', strtotime('tomorrow')),

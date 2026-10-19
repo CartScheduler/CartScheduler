@@ -16,9 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class GetAvailableUsersForShift
 {
-    public function __construct(private readonly GeneralSettings $settings)
-    {
-    }
+    public function __construct(private readonly GeneralSettings $settings) {}
 
     /** @noinspection UnknownColumnInspection */
     public function execute(Shift $shift, Carbon $date, bool $showOnlyAvailable, bool $showOnlyResponsibleBros, bool $hidePublishers, bool $showOnlyElders, bool $showOnlyMinisterialServants): Collection
@@ -30,10 +28,10 @@ class GetAvailableUsersForShift
         return User::query()
             ->distinct()
             ->select(['users.*', 'last_shift_date', 'last_shift_start_time', 'last_location_name'])
-            ->when($this->settings->enableUserAvailability, fn(Builder $query) => $query
+            ->when($this->settings->enableUserAvailability, fn (Builder $query) => $query
                 ->addSelect(['filled_sundays', 'filled_mondays', 'filled_tuesdays', 'filled_wednesdays', 'filled_thursdays', 'filled_fridays', 'filled_saturdays'])
                 ->addSelect(['num_sundays', 'num_mondays', 'num_tuesdays', 'num_wednesdays', 'num_thursdays', 'num_fridays', 'num_saturdays', 'comments'])
-                ->tap(fn(Builder $query) => $this->getDayCounts($query, $date))
+                ->tap(fn (Builder $query) => $this->getDayCounts($query, $date))
                 ->leftJoin(table: 'user_availabilities', first: 'users.id', operator: '=', second: 'user_availabilities.user_id')
             )
             ->leftJoinSub(
@@ -43,13 +41,13 @@ class GetAvailableUsersForShift
                     ->selectRaw('MAX(shifts.start_time) as last_shift_start_time')
                     ->selectRaw("SUBSTRING_INDEX(GROUP_CONCAT(locations.name ORDER BY shift_date DESC, shifts.start_time DESC SEPARATOR '||'), '||', 1) as last_location_name")
                     ->from('shift_user')
-                    ->join(table: 'shifts', first: fn(JoinClause $join) => $join
+                    ->join(table: 'shifts', first: fn (JoinClause $join) => $join
                         ->on('shift_user.shift_id', '=', 'shifts.id')
                         ->where('shifts.is_enabled', true)
-                    // Note, not "excluding" 'shifts.available_from' and 'shifts.available_to' here, because we want
-                    // to include shifts that are disabled by the date.
+                        // Note, not "excluding" 'shifts.available_from' and 'shifts.available_to' here, because we want
+                        // to include shifts that are disabled by the date.
                     )
-                    ->join(table: 'locations', first: fn(JoinClause $join) => $join
+                    ->join(table: 'locations', first: fn (JoinClause $join) => $join
                         ->on('shifts.location_id', '=', 'locations.id')
                         ->where('locations.is_enabled', true)
                     )
@@ -59,8 +57,8 @@ class GetAvailableUsersForShift
                 operator: '=',
                 second: 'users.id')
             ->where('users.is_enabled', true)
-            ->whereDoesntHave('bookings', fn(Builder $query) => $query
-                ->join(table: 'shifts', first: fn(JoinClause $join) => $join
+            ->whereDoesntHave('bookings', fn (Builder $query) => $query
+                ->join(table: 'shifts', first: fn (JoinClause $join) => $join
                     ->on('shift_user.shift_id', '=', 'shifts.id')
                     ->where('shifts.is_enabled', true)
                 )
@@ -69,38 +67,38 @@ class GetAvailableUsersForShift
                 ->where('shifts.is_enabled', true)
                 ->where('locations.is_enabled', true)
                 ->whereIn('shift_id', $overlappingShifts)
-                ->when($canOnlyBrothersRegister, fn(Builder $query) => $query
+                ->when($canOnlyBrothersRegister, fn (Builder $query) => $query
                     ->where('users.gender', 'male')
                 )
             )
-            ->when($canOnlyBrothersRegister, fn(Builder $query) => $query
+            ->when($canOnlyBrothersRegister, fn (Builder $query) => $query
                 ->where('users.gender', 'male')
             )
-            ->when($this->settings->enableUserAvailability && $showOnlyAvailable, fn(Builder $query) => $query
-                ->tap(fn(Builder $query) => $this->queryIsAvailableOnDayOfWeek($query, $date))
-                ->tap(fn(Builder $query) => $this->queryIsAvailableAtHour($query, $date, $shift->start_hour))
-                ->tap(fn(Builder $query) => $this->queryIsAvailableAtHour($query, $date, $shift->end_hour))
+            ->when($this->settings->enableUserAvailability && $showOnlyAvailable, fn (Builder $query) => $query
+                ->tap(fn (Builder $query) => $this->queryIsAvailableOnDayOfWeek($query, $date))
+                ->tap(fn (Builder $query) => $this->queryIsAvailableAtHour($query, $date, $shift->start_hour))
+                ->tap(fn (Builder $query) => $this->queryIsAvailableAtHour($query, $date, $shift->end_hour))
                 ->leftJoin(table: 'user_vacations', first: 'users.id', operator: '=', second: 'user_vacations.user_id')
-                ->withCount(['vacations as vacations_count' => fn(Builder $query) => $query
+                ->withCount(['vacations as vacations_count' => fn (Builder $query) => $query
                     ->where('start_date', '<=', $date)
-                    ->where('end_date', '>=', $date)
+                    ->where('end_date', '>=', $date),
                 ])
                 ->having('vacations_count', '=', 0)
             )
-            ->when($this->settings->enableUserLocationChoices && $showOnlyAvailable, fn(Builder $query) => $query
+            ->when($this->settings->enableUserLocationChoices && $showOnlyAvailable, fn (Builder $query) => $query
                 ->leftJoin(table: 'user_roster_locations', first: 'users.id', operator: '=', second: 'user_roster_locations.user_id')
                 ->where('user_roster_locations.location_id', $shift->location_id)
             )
-            ->when($showOnlyResponsibleBros, fn(Builder $query) => $query
+            ->when($showOnlyResponsibleBros, fn (Builder $query) => $query
                 ->where('users.responsible_brother', true)
             )
-            ->when($hidePublishers, fn(Builder $query) => $query
+            ->when($hidePublishers, fn (Builder $query) => $query
                 ->where('users.serving_as', '!=', ServingAs::Publisher->value)
             )
-            ->when($showOnlyElders, fn(Builder $query) => $query
+            ->when($showOnlyElders, fn (Builder $query) => $query
                 ->where('users.appointment', '=', Appointment::Elder->value)
             )
-            ->when($showOnlyMinisterialServants, fn(Builder $query) => $query
+            ->when($showOnlyMinisterialServants, fn (Builder $query) => $query
                 ->where('users.appointment', '=', Appointment::MinisterialServant->value)
             )
             ->get();
@@ -140,7 +138,7 @@ class GetAvailableUsersForShift
             ->where('start_time', '<', $shift->end_time)
             ->where('end_time', '>', $shift->start_time)
             ->get()
-            ->map(fn(Shift $shift) => $shift->getKey());
+            ->map(fn (Shift $shift) => $shift->getKey());
     }
 
     /**
@@ -152,34 +150,33 @@ class GetAvailableUsersForShift
     {
         /** @noinspection UnknownColumnInspection */
         return $query->leftJoinSub(DB::query()
-            ->selectRaw("user_id")
-            ->selectRaw("SUM(num_sundays) AS filled_sundays")
-            ->selectRaw("SUM(num_mondays) AS filled_mondays")
-            ->selectRaw("SUM(num_tuesdays) AS filled_tuesdays")
-            ->selectRaw("SUM(num_wednesdays) AS filled_wednesdays")
-            ->selectRaw("SUM(num_thursdays) AS filled_thursdays")
-            ->selectRaw("SUM(num_fridays) AS filled_fridays")
-            ->selectRaw("SUM(num_saturdays) AS filled_saturdays")
-            ->fromSub(fn(\Illuminate\Database\Query\Builder $query) => $query
-                ->selectRaw("user_id")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 1, 1, 0) AS num_sundays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 2, 1, 0) AS num_mondays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 3, 1, 0) AS num_tuesdays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 4, 1, 0) AS num_wednesdays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 5, 1, 0) AS num_thursdays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 6, 1, 0) AS num_fridays")
-                ->selectRaw("IF(DAYOFWEEK(shift_user.shift_date) = 7, 1, 0) AS num_saturdays")
+            ->selectRaw('user_id')
+            ->selectRaw('SUM(num_sundays) AS filled_sundays')
+            ->selectRaw('SUM(num_mondays) AS filled_mondays')
+            ->selectRaw('SUM(num_tuesdays) AS filled_tuesdays')
+            ->selectRaw('SUM(num_wednesdays) AS filled_wednesdays')
+            ->selectRaw('SUM(num_thursdays) AS filled_thursdays')
+            ->selectRaw('SUM(num_fridays) AS filled_fridays')
+            ->selectRaw('SUM(num_saturdays) AS filled_saturdays')
+            ->fromSub(fn (\Illuminate\Database\Query\Builder $query) => $query
+                ->selectRaw('user_id')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 1, 1, 0) AS num_sundays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 2, 1, 0) AS num_mondays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 3, 1, 0) AS num_tuesdays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 4, 1, 0) AS num_wednesdays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 5, 1, 0) AS num_thursdays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 6, 1, 0) AS num_fridays')
+                ->selectRaw('IF(DAYOFWEEK(shift_user.shift_date) = 7, 1, 0) AS num_saturdays')
                 ->from('shift_user')
                 ->join(table: 'shifts', first: 'shift_user.shift_id', operator: '=', second: 'shifts.id')
                 ->join(table: 'locations', first: 'shifts.location_id', operator: '=', second: 'locations.id')
                 ->whereBetween('shift_date', [$date->clone()->startOfMonth(), $date->clone()->endOfMonth()])
                 ->where('shifts.is_enabled', true)
                 ->where('locations.is_enabled', true)
-                ->groupBy('user_id', 'shift_date')
-                , as: "shift_count")
+                ->groupBy('user_id', 'shift_date'), as: 'shift_count')
             ->groupBy('user_id'),
-            as: "filled_shifts",
-            first: "filled_shifts.user_id",
+            as: 'filled_shifts',
+            first: 'filled_shifts.user_id',
             operator: '=',
             second: 'users.id');
     }
@@ -187,14 +184,14 @@ class GetAvailableUsersForShift
     private function canOnlyBrothersBook(Shift $shift, Carbon $date): bool
     {
         $location = $shift->load('location')->location;
-        if (!$location->requires_brother) {
+        if (! $location->requires_brother) {
             return false;
         }
 
         $sistersReservedCount = ShiftUser::with('user')
             ->whereRelation(
                 'user',
-                fn(Builder $query) => $query->where('gender', '=', 'female')
+                fn (Builder $query) => $query->where('gender', '=', 'female')
             )
             ->where('shift_id', $shift->id)
             ->where('shift_date', $date)
@@ -211,6 +208,6 @@ class GetAvailableUsersForShift
      */
     private function getDayOfWeekForDate(Carbon $date): string
     {
-        return 'day_' . strtolower($date->format('l'));
+        return 'day_'.strtolower($date->format('l'));
     }
 }

@@ -25,8 +25,7 @@ class ExportUserAvailabilityData extends Data
         public int $num_saturdays,
         public int $num_sundays,
         public ?string $comments,
-    ) {
-    }
+    ) {}
 
     public static function fromUserAvailability(UserAvailability $availability): self
     {

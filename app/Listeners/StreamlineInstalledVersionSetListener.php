@@ -10,9 +10,7 @@ use Pixelated\Streamline\Events\InstalledVersionSet;
  */
 readonly class StreamlineInstalledVersionSetListener
 {
-    public function __construct(private GeneralSettings $settings)
-    {
-    }
+    public function __construct(private GeneralSettings $settings) {}
 
     public function __invoke(InstalledVersionSet $event): void
     {

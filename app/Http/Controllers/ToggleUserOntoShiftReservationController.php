@@ -7,19 +7,18 @@ use App\Actions\ToggleUserOntoShift;
 use App\Enums\ToggleReservationStatus;
 use App\Http\Controllers\ValidationRules\ToggleShiftReservationControllerRules;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
 class ToggleUserOntoShiftReservationController extends Controller
 {
     public function __construct(
         private readonly ToggleShiftReservationControllerRules $toggleShiftReservationControllerRules,
-        private readonly ToggleUserOntoShift                   $toggleUserOntoShift,
-    )
-    {
-    }
+        private readonly ToggleUserOntoShift $toggleUserOntoShift,
+    ) {}
 
     /**
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * @throws ModelNotFoundException
      */
     public function __invoke(Request $request)
     {
@@ -30,7 +29,7 @@ class ToggleUserOntoShiftReservationController extends Controller
 
         $rules = $this->toggleShiftReservationControllerRules->execute($user, $request->all(), true);
 
-        $data   = $request->validate($rules);
+        $data = $request->validate($rules);
         $status = $this->toggleUserOntoShift->execute($user, $data);
 
         return match ($status) {

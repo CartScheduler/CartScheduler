@@ -1,8 +1,8 @@
 /**
- * jsdom implements no layout, and so leaves `Element.prototype.scrollTo` and
- * `scrollBy` undefined — calling either throws. Both are universally supported
- * in browsers, so this stands in for them rather than the code guarding a call
- * that cannot actually be missing in production.
+ * jsdom implements no layout, and so leaves `Element.prototype.scrollTo`,
+ * `scrollBy` and `scrollIntoView` undefined — calling any of them throws. All
+ * are universally supported in browsers, so this stands in for them rather than
+ * the code guarding a call that cannot actually be missing in production.
  *
  * The offsets are applied directly: there is nothing to animate, so `behavior`
  * is accepted and ignored.
@@ -40,4 +40,9 @@ if (!Element.prototype.scrollTo) {
 
 if (!Element.prototype.scrollBy) {
   Element.prototype.scrollBy = scrollBy;
+}
+
+if (!Element.prototype.scrollIntoView) {
+  // Without layout there is nothing to bring into view, so this only has to exist.
+  Element.prototype.scrollIntoView = function() {};
 }

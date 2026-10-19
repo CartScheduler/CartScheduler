@@ -17,22 +17,22 @@ class UserVacation extends Model
     public function prunable(): Builder
     {
         /** @noinspection PhpIncompatibleReturnTypeInspection */
-        return static::where('end_date', '<', now()->subMonths(3));
+        return static::where('end_date', '<', now()->subDays(30));
     }
 
     protected function startDate(): Attribute
     {
         return Attribute::make(
-            get: fn($value) => Carbon::parse($value)->format('Y-m-d'),
-            set: fn($value) => $this->attributes['start_date'] = Carbon::parse($value)->startOfDay()
+            get: fn ($value) => Carbon::parse($value)->format('Y-m-d'),
+            set: fn ($value) => $this->attributes['start_date'] = Carbon::parse($value)->startOfDay()
         );
     }
 
     protected function endDate(): Attribute
     {
         return Attribute::make(
-            get: fn($value) => Carbon::parse($value)->format('Y-m-d'),
-            set: fn($value) => $this->attributes['end_date'] = Carbon::parse($value)->endOfDay()
+            get: fn ($value) => Carbon::parse($value)->format('Y-m-d'),
+            set: fn ($value) => $this->attributes['end_date'] = Carbon::parse($value)->endOfDay()
         );
     }
 

@@ -13,7 +13,7 @@ class GetOutstandingReportCount
             ->distinct()
             ->select('su.shift_date', 'su.shift_id')
             ->from('shift_user', 'su')
-            ->leftJoin('reports as r', fn(JoinClause $join) => $join
+            ->leftJoin('reports as r', fn (JoinClause $join) => $join
                 ->on('r.shift_id', '=', 'su.shift_id')
                 ->on('r.shift_date', '=', 'su.shift_date')
             )

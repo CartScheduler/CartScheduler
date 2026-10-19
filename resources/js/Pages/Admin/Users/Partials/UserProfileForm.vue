@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { Link, router } from "@inertiajs/vue3";
+import { router } from "@inertiajs/vue3";
 import { isAxiosError } from "axios";
 import { useConfirm } from "primevue";
-import { nextTick, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import useToast from "@/Composables/useToast";
 import JetFormSection from "@/Jetstream/FormSection.vue";
 import JetInputError from "@/Jetstream/InputError.vue";
 import JetLabel from "@/Jetstream/Label.vue";
+import {
+  appointmentOptions,
+  genderOptions,
+  maritalStatusOptions,
+  servingAsOptions,
+} from "@/Pages/Admin/Users/Lib/userFieldOptions";
+import SpouseDetailsDialog from "@/Pages/Admin/Users/Partials/SpouseDetailsDialog.vue";
+import SpouseSelectDialog from "@/Pages/Admin/Users/Partials/SpouseSelectDialog.vue";
 import blockNavigation from "@/Utils/blockNavigation";
 import precognitiveForm from "@/Utils/precognitiveForm.js";
 
@@ -37,6 +45,7 @@ const form = precognitiveForm({
   mobile_phone: props.user.mobile_phone,
   year_of_birth: props.user.year_of_birth,
   marital_status: props.user.marital_status,
+  spouse_id: props.user.spouse?.id ?? null,
   appointment: props.user.appointment,
   serving_as: props.user.serving_as,
   responsible_brother: props.user.responsible_brother,
@@ -46,21 +55,103 @@ const form = precognitiveForm({
 
 const { resetNavigationBlock } = blockNavigation(form);
 
-const saveAction = () => {
+/**
+ * Kept apart from `form.spouse_id` so that stepping away from "married" and back
+ * again, before saving, restores the chosen spouse rather than losing it.
+ */
+const selectedSpouse = ref<App.Data.SpouseAdminData | null>(props.user.spouse ?? null);
+const isSpouseDialogVisible = ref(false);
+const isSpouseDetailsVisible = ref(false);
+
+const isSavingSpouse = ref(false);
+
+/**
+ * The spouse has just been saved by itself, so it is no longer an unsaved change.
+ * Inertia recalculates `isDirty` only when the form data changes, which is why moving
+ * the baseline is followed by a change here — otherwise the form stays dirty.
+ */
+const resetSpouseBaseline = (spouseId: number | null) => {
+  form.defaults("spouse_id", spouseId);
+  form.spouse_id = spouseId === null ? 0 : null;
+  form.spouse_id = spouseId;
+};
+
+/**
+ * Attaching and detaching are each confirmed in their own dialog, so an existing record
+ * is written there and then. This endpoint touches nothing but the pair of spouse links,
+ * which leaves the rest of the form free to stay unsaved.
+ */
+const persistSpouse = async (spouse: App.Data.SpouseAdminData | null) => {
+  const previousSpouse = selectedSpouse.value;
+  selectedSpouse.value = spouse;
+
+  if (props.action !== "edit") {
+    return;
+  }
+
+  isSavingSpouse.value = true;
+  try {
+    await axios.patch(route("admin.users.spouse.update", props.user.id), { spouse_id: spouse?.id ?? null });
+    resetSpouseBaseline(spouse?.id ?? null);
+    toast.success(
+      spouse ? `${spouse.name} was linked as the spouse.` : `${previousSpouse?.name} was disconnected as the spouse.`,
+      "Success!",
+      { group: "bottom" },
+    );
+  } catch (e) {
+    selectedSpouse.value = previousSpouse;
+    toast.error(
+      isAxiosError(e) ? e.response?.data.message : "The spouse could not be saved. Please try again.",
+      "Not Saved!",
+      { group: "bottom" },
+    );
+  } finally {
+    isSavingSpouse.value = false;
+  }
+};
+
+const onSpouseSelected = (spouse: App.Data.SpouseAdminData) => {
+  void persistSpouse(spouse);
+};
+
+const disconnectSpouse = () => {
+  void persistSpouse(null);
+};
+
+watch([() => form.marital_status, selectedSpouse], ([maritalStatus, spouse]) => {
+  form.spouse_id = maritalStatus === "married" ? spouse?.id ?? null : null;
+});
+
+const saveAction = (afterSaved?: () => void) => {
   form.submit({
     errorBag: "updateUserData",
     preserveScroll: true,
-    onSuccess: () => toast.success(
-      `${form.name} was saved.`,
-      "Success!",
-      { group: "bottom" },
-    ),
-    onError: () => toast.error(
-      `${form.name} could not be saved. Please check the validation messages`,
-      "Not Saved!",
-      { group: "bottom" },
-    ),
+    onSuccess: () => {
+      toast.success(
+        `${form.name} was saved.`,
+        "Success!",
+        { group: "bottom" },
+      );
+      afterSaved?.();
+    },
+    onError: () => {
+      // The validation messages are on the form, which the sheet would otherwise cover.
+      isSpouseDetailsVisible.value = false;
+      toast.error(
+        `${form.name} could not be saved. Please check the validation messages`,
+        "Not Saved!",
+        { group: "bottom" },
+      );
+    },
   });
+};
+
+const editSpouse = (spouseId: number) => {
+  router.visit(route("admin.users.edit", spouseId));
+};
+
+const saveAndEditSpouse = (spouseId: number) => {
+  saveAction(() => editSpouse(spouseId));
 };
 
 const listRouteAction = () => {
@@ -139,6 +230,16 @@ watch([() => form.is_unrestricted, () => form.role], ([isUnrestricted, role]) =>
     });
   }
 });
+watch(() => form.gender, () => {
+  if (selectedSpouse.value) {
+    selectedSpouse.value = null;
+    toast.warning(
+      "The gender has changed, so the spouse has been removed. Please select the spouse again if needed.",
+      "Oops!",
+      { group: "center" },
+    );
+  }
+});
 watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
   if (appointment && gender === "female") {
     void nextTick(() => {
@@ -154,7 +255,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
 </script>
 
 <template>
-  <JetFormSection @submitted="saveAction">
+  <JetFormSection @submitted="saveAction()">
     <template #title>
       Profile Information
     </template>
@@ -228,10 +329,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                      v-model="form.gender"
                      option-label="label"
                      option-value="value"
-                     :options="[
-                       { label: 'Male', value: 'male' },
-                       { label: 'Female', value: 'female' },
-                     ]"
+                     :options="genderOptions"
                      @change="form.validate('gender')" />
             <JetInputError :message="form.errors['gender']" class="mt-2" />
           </div>
@@ -245,10 +343,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                      v-model="form.appointment"
                      option-label="label"
                      option-value="value"
-                     :options="[
-                       { label: 'Ministerial Servant', value: 'ministerial servant' },
-                       { label: 'Elder', value: 'elder' },
-                     ]" />
+                     :options="appointmentOptions" />
             <JetInputError :message="form.errors['appointment']" class="mt-2" />
           </div>
           <div class="flex flex-col">
@@ -260,14 +355,7 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                      v-model="form.serving_as"
                      option-label="label"
                      option-value="value"
-                     :options=" [
-                       { label: 'Field Missionary', value: 'field missionary' },
-                       { label: 'Special Pioneer', value: 'special pioneer' },
-                       { label: 'Regular Pioneer', value: 'regular pioneer' },
-                       { label: 'Circuit Overseer', value: 'circuit overseer' },
-                       { label: 'Bethelite', value: 'bethel family member' },
-                       { label: 'Publisher', value: 'publisher' },
-                     ]" />
+                     :options="servingAsOptions" />
             <JetInputError :message="form.errors['serving_as']" class="mt-2" />
           </div>
           <div class="flex flex-col">
@@ -279,20 +367,28 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                      v-model="form.marital_status"
                      option-label="label"
                      option-value="value"
-                     :options="[
-                       { label: 'Single', value: 'single' },
-                       { label: 'Married', value: 'married' },
-                       { label: 'Separated', value: 'separated' },
-                       { label: 'Divorced', value: 'divorced' },
-                       { label: 'Widowed', value: 'widowed' },
-                     ]" />
-            <span v-if="user.spouse?.name" class="text-sm">
-              Spouse:
-              <Link :href="route('admin.users.edit', user.spouse.id)">
-                {{ user.spouse.name }}
-              </Link>
-            </span>
+                     :options="maritalStatusOptions" />
             <JetInputError :message="form.errors['marital_status']" class="mt-2" />
+            <div v-if="form.marital_status === 'married'"
+                 class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+                 data-testid="spouse-links">
+              <span v-if="selectedSpouse">
+                Spouse:
+                <button type="button"
+                        class="cursor-pointer py-1 underline hover:text-gray-900 dark:hover:text-gray-400"
+                        @click="isSpouseDetailsVisible = true">
+                  {{ selectedSpouse.name }}
+                </button>
+              </span>
+
+              <button v-else
+                      type="button"
+                      class="cursor-pointer py-1 underline hover:text-gray-900 dark:hover:text-gray-400"
+                      @click="isSpouseDialogVisible = true">
+                Select Spouse
+              </button>
+            </div>
+            <JetInputError :message="form.errors['spouse_id']" class="mt-2" />
           </div>
           <div class="mt-3 sm:col-span-2">
             <!-- Responsible Brother -->
@@ -393,9 +489,23 @@ watch([() => form.gender, () => form.appointment], ([gender, appointment]) => {
                     :success="form.wasSuccessful"
                     :failure="form.hasErrors"
                     :errors="form.errors"
-                    @click.prevent="saveAction" />
+                    @click.prevent="saveAction()" />
     </template>
   </JetFormSection>
+
+  <SpouseSelectDialog v-model:visible="isSpouseDialogVisible"
+                      :gender="form.gender"
+                      :user-id="user.id"
+                      @select="onSpouseSelected" />
+
+  <SpouseDetailsDialog v-model:visible="isSpouseDetailsVisible"
+                       :spouse="selectedSpouse"
+                       :has-unsaved-changes="form.isDirty"
+                       :is-saving="form.processing || isSavingSpouse"
+                       @edit="editSpouse"
+                       :saves-on-disconnect="action === 'edit'"
+                       @save-and-edit="saveAndEditSpouse"
+                       @disconnect="disconnectSpouse" />
 
   <PConfirmPopup />
 </template>

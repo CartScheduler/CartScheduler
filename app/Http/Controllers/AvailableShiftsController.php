@@ -20,19 +20,18 @@ class AvailableShiftsController extends Controller
         private readonly GetUserShiftsData $getUserShiftsData,
         private readonly GetAvailableShiftsCount $getAvailableShiftsCount,
         private readonly GetMaxShiftReservationDateAllowed $getMaxShiftReservationDateAllowed
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request, string $shiftDate)
     {
-        $user             = $request->user();
-        $endDate          = $this->getMaxShiftReservationDateAllowed->execute()->endOfDay();
+        $user = $request->user();
+        $endDate = $this->getMaxShiftReservationDateAllowed->execute()->endOfDay();
         $formattedEndDate = $endDate->toDateString();
 
         $returnData = [
-            'locations'          => [],
-            'shifts'             => [],
-            'freeShifts'         => [],
+            'locations' => [],
+            'shifts' => [],
+            'freeShifts' => [],
             'maxDateReservation' => $formattedEndDate,
         ];
 
@@ -43,6 +42,7 @@ class AvailableShiftsController extends Controller
             }
         } catch (InvalidFormatException $e) {
             Bugsnag::notifyException($e);
+
             return $returnData;
         }
 
@@ -59,15 +59,15 @@ class AvailableShiftsController extends Controller
         );
 
         $formattedStartDate = Carbon::today()->endOfDay()->format('Y-m-d');
-        $shifts             = $this->getUserShiftsData->execute($formattedStartDate, $formattedEndDate, $user);
-        $freeShiftsCount    = $user->is_unrestricted
+        $shifts = $this->getUserShiftsData->execute($formattedStartDate, $formattedEndDate, $user);
+        $freeShiftsCount = $user->is_unrestricted
             ? $this->getAvailableShiftsCount->execute($formattedStartDate, $formattedEndDate)
             : [];
 
         return AvailableShiftsData::from([
-            'locations'          => LocationData::collect($locations),
-            'shifts'             => $shifts,
-            'freeShifts'         => $freeShiftsCount,
+            'locations' => LocationData::collect($locations),
+            'shifts' => $shifts,
+            'freeShifts' => $freeShiftsCount,
             'maxDateReservation' => $formattedEndDate,
         ]);
     }

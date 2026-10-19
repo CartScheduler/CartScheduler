@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Imports\UsersImport;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -14,7 +15,7 @@ use Inertia\Response;
 class UsersImportController extends Controller
 {
     /**
-     * @throws \Illuminate\Auth\Access\AuthorizationException
+     * @throws AuthorizationException
      */
     public function show(): Response
     {
@@ -31,8 +32,8 @@ class UsersImportController extends Controller
 
         $import = UsersImport::importUploadedFiles($request->file('file'));
 
-        $createCount   = $import->getCreateCount();
-        $updateCount   = $import->getUpdateCount();
+        $createCount = $import->getCreateCount();
+        $updateCount = $import->getUpdateCount();
         $createMessage = '';
         $updateMessage = '';
         if ($createCount) {
@@ -43,8 +44,8 @@ class UsersImportController extends Controller
             $updateMessage = "$updateCount users were updated";
             $updateMessage .= $createCount ? '!' : '';
         }
-        Session::flash('flash.title', "Success!");
-        Session::flash('flash.message', $createMessage . $updateMessage);
+        Session::flash('flash.title', 'Success!');
+        Session::flash('flash.message', $createMessage.$updateMessage);
 
         return Redirect::route('admin.users.import.show', status: \Illuminate\Http\Response::HTTP_SEE_OTHER);
     }
