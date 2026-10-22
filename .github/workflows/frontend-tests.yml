@@ -2,7 +2,7 @@ name: Frontend Tests
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, "v[0-9]*" ]
     paths:
       - 'resources/js/**'
       - 'package.json'
@@ -10,7 +10,7 @@ on:
       - 'vitest.config.ts'
       - '.github/workflows/frontend-tests.yml'
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, "v[0-9]*" ]
     paths:
       - 'resources/js/**'
       - 'package.json'
