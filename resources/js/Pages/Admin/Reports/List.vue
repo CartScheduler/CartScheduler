@@ -46,8 +46,9 @@ const filter = computed(() => {
 
 <template>
   <PageHeader title="Reports">
-    <div>
+    <div class="flex justify-between">
       <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Reports</h2>
+      <BackButton class="mx-3" :href="route('admin.dashboard')" />
     </div>
   </PageHeader>
   <div class="flex flex-col gap-4">

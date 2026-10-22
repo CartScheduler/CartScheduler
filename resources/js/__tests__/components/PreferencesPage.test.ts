@@ -39,7 +39,7 @@ const renderPreferences = (isDesktop: boolean) => {
     dispatchEvent: vi.fn(),
   }));
 
-  return render(Preferences, { global: { stubs } });
+  return render(Preferences, { global: { stubs, mocks: { route: (name: string) => `/${name}` } } });
 };
 
 const switchLabel = /Show the calendar\/timeline switch button/;

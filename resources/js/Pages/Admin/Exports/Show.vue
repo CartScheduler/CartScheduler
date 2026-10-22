@@ -64,7 +64,10 @@ const download = (exportItem: Export) => {
 
 <template>
   <PageHeader title="Exports">
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Exports</h2>
+    <div class="flex justify-between">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Exports</h2>
+      <BackButton class="mx-3" :href="route('admin.dashboard')" />
+    </div>
   </PageHeader>
   <div class="flex flex-col gap-4">
     <div class="bg-panel dark:bg-panel-dark border border-neutral-300/75 dark:border-neutral-800 sm:rounded-lg sm:p-6">

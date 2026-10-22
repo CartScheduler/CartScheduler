@@ -104,6 +104,13 @@ To deploy a release requires the following steps:
     ```
         - eg: `* * * * * cd (/home/[MY_ACCOUNT]/[MY_APP] && php artisan schedule:run >> /dev/null 2>&1)`
           <- Note, you may need to replace `php` with `ea-php82` if you're using cPanel
+1. All emails are sent from the queue. In production set `QUEUE_CONNECTION=database`.
+    The scheduler cron above also starts a queue worker every minute, so cPanel and other cron-only hosts need
+    nothing else. Don't add a separate `queue:work` cron as well.
+    If Supervisor (or Forge, systemd) runs a permanent worker instead, set `CA_RUN_QUEUE_WORKER_FROM_SCHEDULER=false`
+    and restart it on deploy with `php artisan queue:restart`.
+    **Admin → Queue** shows whether the scheduler and worker are running, and lets you retry failed jobs.
+    **Admin → Notifications** lists every email sent. Local development can leave `QUEUE_CONNECTION=sync`.
 1. Create the admin user. Note, this can only be run once.:
 ```bash
 php artisan cart-scheduler:create-user "<name>" <email> <phone> <gender> [<password>]
@@ -149,9 +156,8 @@ php composer ziggy
 
 ### Email Testing
 
-For development, the system uses [MailHog](https://github.com/mailhog/MailHog) that can be accessed
-at http://localhost:8025. All emails sent from the system
-will be available in this interface.
+For development, `.env.example` points at [Mailpit](https://github.com/axllent/mailpit) (`MAIL_HOST=mailpit`, port `1025`).
+Open http://localhost:8025 to inspect captured mail. Production should override these (e.g. SES).
 
 ### Notes:
 

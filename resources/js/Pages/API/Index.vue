@@ -11,9 +11,12 @@ defineProps<{
 
 <template>
   <PageHeader title="API Tokens">
-    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-      API Tokens
-    </h2>
+    <div class="flex justify-between">
+      <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        API Tokens
+      </h2>
+      <BackButton class="mx-3" :href="route('dashboard')" />
+    </div>
   </PageHeader>
   <div>
     <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">

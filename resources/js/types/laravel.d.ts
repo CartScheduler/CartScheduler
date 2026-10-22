@@ -31,6 +31,49 @@ declare namespace App.Data {
     locations: Array<App.Data.LocationData>;
     maxDateReservation: string;
   };
+  export type EmailPlaceholderData = {
+    key: string;
+    label: string;
+    description: string;
+    type: string;
+    category: string;
+    value?: string;
+    parent?: string;
+    collection?: string;
+    item?: string;
+  };
+  export type EmailTemplateData = {
+    id: number;
+    key: string;
+    name: string;
+    subject: string;
+    body: string;
+    description?: string;
+    is_system: boolean;
+    updated_at: string;
+    placeholders: Array<App.Data.EmailPlaceholderData>;
+    trigger?: App.Data.EmailTemplateTriggerData;
+    recipients?: App.Data.EmailTemplateRecipientData;
+  };
+  export type EmailTemplateListData = {
+    id: number;
+    key: string;
+    name: string;
+    subject: string;
+    description?: string;
+    is_system: boolean;
+    updated_at: string;
+    trigger?: App.Data.EmailTemplateTriggerData;
+    recipients?: App.Data.EmailTemplateRecipientData;
+  };
+  export type EmailTemplateRecipientData = {
+    summary: string;
+  };
+  export type EmailTemplateTriggerData = {
+    type: App.Enums.EmailTemplateTriggerType;
+    enabled: boolean;
+    summary: string;
+  };
   export type ExtendedUserData = {
     id: number;
     name: string;
@@ -62,6 +105,16 @@ declare namespace App.Data {
     filled_fridays?: number;
     filled_saturdays?: number;
     availability_comments?: string;
+  };
+  export type FailedJobData = {
+    uuid: string;
+    name: string;
+    queue: string;
+    failed_at: string;
+    error_summary: string;
+    error: string;
+    recipient?: string;
+    notification_log_id?: number;
   };
   export type FilledShiftData = {
     date: IsoDate;
@@ -99,6 +152,38 @@ declare namespace App.Data {
     requires_brother: boolean;
     shifts?: Array<App.Data.ShiftData>;
   };
+  export type NotificationLogData = {
+    id: number;
+    type: string;
+    type_label: string;
+    channel: string;
+    recipient?: string;
+    recipient_name?: string;
+    user_id?: number;
+    subject?: string;
+    status: App.Enums.NotificationStatus;
+    status_label: string;
+    is_stalled: boolean;
+    attempts: number;
+    error_summary?: string;
+    error?: string;
+    created_at: string;
+    queued_at?: string;
+    sent_at?: string;
+    failed_at?: string;
+    later_attempts: number;
+    later_sent_at?: string;
+    later_in_progress: boolean;
+    can_resend: boolean;
+    cannot_resend_reason?: string;
+  };
+  export type NotificationStatsData = {
+    sent_last_10_minutes: number;
+    sent_last_hour: number;
+    sent_last_24_hours: number;
+    failed_last_7_days: number;
+    queued: number;
+  };
   export type OutstandingReportsData = {
     shift_id: number;
     shift_date: IsoDate;
@@ -106,6 +191,29 @@ declare namespace App.Data {
     end_time: TwentyFourHourTime;
     requires_brother?: number;
     location_name?: string;
+  };
+  export type PendingJobData = {
+    id: number;
+    name: string;
+    queue: string;
+    state: "waiting" | "processing" | "delayed";
+    attempts: number;
+    queued_at: string;
+    available_at: string;
+    recipient?: string;
+  };
+  export type QueueStatusData = {
+    healthy: boolean;
+    summary?: string;
+    problems: Array<string>;
+    connection: string;
+    waiting: number;
+    processing: number;
+    delayed: number;
+    failed: number;
+    oldest_waiting_since?: string;
+    worker_last_ran_at?: string;
+    scheduler_last_ran_at?: string;
   };
   export type ReportMetadataData = {
     shift_id: number;
@@ -217,9 +325,12 @@ declare namespace App.Data {
 declare namespace App.Enums {
   export type Appointment = "elder" | "ministerial servant";
   export type AvailabilityHours = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23;
-  export type CacheKey = "total-users" | "total-locations" | "shift-filled-data" | "outstanding-reports";
+  export type CacheKey = "total-users" | "total-locations" | "shift-filled-data" | "outstanding-reports" | "queue-heartbeat" | "scheduler-heartbeat";
   export type DBPeriod = "MONTH" | "MONTHS" | "WEEK" | "WEEKS";
+  export type EmailTemplateTriggerType = "system" | "manual";
   export type MaritalStatus = "single" | "married" | "separated" | "divorced" | "widowed";
+  export type NotificationStatus = "queued" | "sending" | "retrying" | "sent" | "failed" | "skipped";
+  export type NotificationType = "shift-assignments-released" | "user-account-created" | "password-reset" | "verify-email" | "team-invitation";
   export type Role = "admin" | "user";
   export type ServingAs = "field missionary" | "special pioneer" | "bethel family member" | "circuit overseer" | "regular pioneer" | "publisher";
 }

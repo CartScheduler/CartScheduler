@@ -41,7 +41,7 @@ const routes: Record<string, string> = {
 /** Where the page sent the browser, instead of actually navigating. */
 let navigatedTo = "";
 
-const renderExports = () => render(Show, { global: { stubs } });
+const renderExports = () => render(Show, { global: { stubs, mocks: { route: (name: string) => routes[name] ?? `/${name}` } } });
 
 const downloadButtonFor = (title: string) => {
   const heading = screen.getByRole("heading", { name: title });

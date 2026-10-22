@@ -10,7 +10,10 @@ defineProps<{
 
 <template>
   <PageHeader title="App Settings">
-    <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Settings</h2>
+    <div class="flex justify-between">
+      <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Settings</h2>
+      <BackButton class="mx-3" :href="route('admin.dashboard')" />
+    </div>
   </PageHeader>
   <div class="max-w-7xl mx-auto pt-10 pb-5 sm:px-6 lg:px-8">
     <!--            <div class="bg-white dark:bg-slate-900 dark:text-white shadow-xl sm:rounded-lg sm:p-6 sm:mb-4"> -->
