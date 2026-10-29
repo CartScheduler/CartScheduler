@@ -6,120 +6,145 @@
 
 ***
 
-## Deployment Issues
-
-For some reason, the deployment has an issue with the `vendor` directory. Specifically around the Laravel Excel package.
-If the Download Users feature fails, delete the vendor package and run `composer install` again:
-
-```bash
-rm -rf vendor && composer install
-```
-
 ## Deployment
 
-### Downloading and Extracting the Release
+Releases are deployed with [Deployer](https://deployer.org) (v8), run from your own computer over SSH. Each deployment
+downloads a GitHub release's `release.zip`, installs the Composer dependencies pinned in `composer.lock`, migrates the
+database and then switches the site over in one step. The previous release stays on disk, so a broken deployment can be
+rolled back in seconds.
 
-You can [download the latest release here](https://github.com/pixelated-au/CartScheduler/releases).
-If using the command line, you can download the release using `wget`:
+On the server, each site ends up looking like this:
 
-```bash
-wget https://github.com/pixelated-au/CartScheduler/releases/latest/download/release.zip
+```
+~/cartapp/
+  releases/41/  42/  43/        ← the 5 most recent releases
+  shared/.env                   ← your configuration, shared by every release
+  shared/storage/               ← uploads, logs and cache, shared by every release
+  current -> releases/43        ← the live release; the web server serves current/public
 ```
 
-Extract the release to a directory on your server. For example you cauld name the directory `smpw_app`
-or `cart-scheduler`.
+Each release also keeps the front-end assets of the releases before it, so volunteers with an older page still open
+(or cached) keep working after an update.
 
-### cPanel Hosting
+### Requirements
 
-cPanel Hosting is a little problematic because the root domain typically needs to be served from the directory
-`~/public_html`. This means the default laravel directory structure which is served from `/public`. If you are serving
-from an addon domain, it's easier because you can setup a directory structure to suit. For example, you could setup a
-domain `mydomain.example.com` and set the directory to `~/mydomain.example.com/public`.
+- **Server:** PHP 8.3 or higher, MySQL or MariaDB, SSH access, and the `curl` and `unzip` commands. Composer is not
+  required; Deployer downloads it if it's missing.
+- **Your computer:** PHP 8.3 or higher and Composer. Install Deployer with:
+    ```bash
+    composer global require deployer/deployer:^8
+    ```
 
-Alternatively, you can setup a simlink to the `public` directory. In the example below, replace `[MY ACCOUNT]` with your
-cPanel account name:
+### 1. Describe your sites
 
-```bash
-mv public_html public_html.bak && ln -s /home/[MY ACCOUNT]/smpw_app/public /home/[MY ACCOUNT]/public_html
+Copy `hosts.yml.example` to `hosts.yml` (it is git-ignored) and add an entry per site. Each site needs SSH key access
+for its account, a `deploy_path`, and an `env` label of `staging` or `prod`:
+
+```yaml
+hosts:
+  my-site:
+    hostname: server1.example.org
+    remote_user: myaccount
+    deploy_path: ~/cartapp
+    labels:
+      env: prod
 ```
 
 > [!IMPORTANT]
-> :warning: If you are using cPanel, in the instructions below, you may need to replace the default PHP version with PHP 8.x by
-> replacing `php` with `ea-php82` in the commands below. You can check the PHP version by running `php -v`. If the
-> version is below 8.1, you will need to use the `ea-php82` command. An example is provided below
+> On cPanel, the default `php` command is often not PHP 8.3. Add `bin/php: /opt/cpanel/ea-php83/root/usr/bin/php`
+> (or the path for your version) to the host so that Composer and Artisan use the right PHP.
 
-### Standard Deployment
+### 2. Point the website at `current/public`
 
-To deploy a release requires the following steps:
+The web server must serve `~/cartapp/current/public`.
 
-1. Download the release from the [releases page](https://github.com/pixelated-au/CartApp/releases)
-1. Extract the release to a folder on the server
-1. *Note: Make sure you are running PHP 8.1 or higher*
-1. Unzip the release.
-    - If using cPanel, you can do this via the File Manager
-1. Copy the `.env.example` file to `.env` and update the values as required.
-    - For cPanel, you can often use sendmail as the mail server. The following settings often work in the mail section:
-    - ```dotenv
-      MAIL_MAILER=sendmail
-      MAIL_HOST=localhost
-      ```
-1. SSH into the server if you haven't yet already.
-1. Make sure the permissions on the installation direcotry are set to 775 and files are set to 644. Navigate to the installed directory and use this:
+- **Addon domain or subdomain:** set the domain's document root to `cartapp/current/public`.
+- **Main cPanel domain:** this must be served from `~/public_html`, so replace it with a symlink. Replace
+  `[MY ACCOUNT]` with your cPanel account name:
     ```bash
-    find . -type d -exec chmod 775 {} \; && find . -type f -exec chmod 644 {} \;
-
+    mv ~/public_html ~/public_html.bak && ln -s /home/[MY ACCOUNT]/cartapp/current/public /home/[MY ACCOUNT]/public_html
     ```
-1. Run the following command to enable the Laravel cache:
-    ```bash
-    php artisan key:generate \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache \
-    && php artisan event:cache \
-    && php artisan storage:link
-    ```
-1. Or for cPanel, if the default system PHP version is not PHP 8.1, you may be able to use the following:
-    ```bash
-    ea-php82 artisan key:generate \
-    && ea-php82 artisan config:cache \
-    && ea-php82 artisan route:cache \
-    && ea-php82 artisan view:cache \
-    && ea-php82 artisan event:cache \
-    && ea-php82 artisan storage:link
-    ```    
 
-> [!TIP]
-> Note: If you are having issues with something not working, it's likely because 'something' has been cached. You may need to run the following command to clear it:_
-> ```bash
-> php artisan optimize:clear
-> ```
+### 3. Create the configuration (new sites only)
 
-1. Run the following command to migrate/install the database:
+Create the directory structure, then upload `.env.example` as the shared `.env` and edit it:
+
+```bash
+dep deploy:setup my-site
+scp .env.example myaccount@server1.example.org:~/cartapp/shared/.env
+```
+
+In `shared/.env`, set at least the `APP_*`, `DB_*` and `MAIL_*` values and `QUEUE_CONNECTION=database`. `APP_KEY`
+needs a random key, which you can generate with:
+
+```bash
+php -r "echo 'base64:'.base64_encode(random_bytes(32)).PHP_EOL;"
+```
+
+On cPanel, sendmail usually works for mail:
+
+```dotenv
+MAIL_MAILER=sendmail
+MAIL_HOST=localhost
+```
+
+### 4. Deploy
+
+```bash
+dep deploy my-site --pre           # latest release, including beta releases
+dep deploy my-site --tag=v3.5.0b   # a specific release
+dep deploy env=prod --pre          # every production site
+dep deploy                         # no site given: deploys to the env=staging sites only
+```
+
+Deployer shows the version it found and asks for confirmation before changing anything. Without `--tag` or `--pre`
+it picks the latest stable (non-beta) release. It refuses to install a version older than the one already installed;
+use `dep rollback` for that, or pass `--allow-downgrade`.
+
+Other useful commands:
+
+```bash
+dep rollback my-site   # switch back to the previous release (database migrations are not reversed)
+dep releases my-site   # list the deployed releases and their versions
+dep ssh my-site        # open a shell in the live release
+```
+
+### 5. Finish setting up a new site
+
+1. Set up a cron job to run the scheduler every minute. On cPanel, replace `php` with the PHP path from step 1:
     ```bash
-    php artisan migrate
+    * * * * * cd ~/cartapp/current && php artisan schedule:run >> /dev/null 2>&1
     ```
-1. Setup the cron job to run the following command every minute:
-    ```bash
-    php artisan schedule:run >> /dev/null 2>&1
-    ```
-        - eg: `* * * * * cd (/home/[MY_ACCOUNT]/[MY_APP] && php artisan schedule:run >> /dev/null 2>&1)`
-          <- Note, you may need to replace `php` with `ea-php82` if you're using cPanel
-1. All emails are sent from the queue. In production set `QUEUE_CONNECTION=database`.
-    The scheduler cron above also starts a queue worker every minute, so cPanel and other cron-only hosts need
-    nothing else. Don't add a separate `queue:work` cron as well.
-    If Supervisor (or Forge, systemd) runs a permanent worker instead, set `CA_RUN_QUEUE_WORKER_FROM_SCHEDULER=false`
-    and restart it on deploy with `php artisan queue:restart`.
+1. All emails are sent from the queue. The scheduler cron above also starts a queue worker every minute, so cPanel
+    and other cron-only hosts need nothing else. Don't add a separate `queue:work` cron as well.
+    If Supervisor (or Forge, systemd) runs a permanent worker instead, set `CA_RUN_QUEUE_WORKER_FROM_SCHEDULER=false`;
+    each deployment restarts it automatically.
     **Admin → Queue** shows whether the scheduler and worker are running, and lets you retry failed jobs.
     **Admin → Notifications** lists every email sent. Local development can leave `QUEUE_CONNECTION=sync`.
-1. Create the admin user. Note, this can only be run once.:
-```bash
-php artisan cart-scheduler:create-user "<name>" <email> <phone> <gender> [<password>]
-```
+1. Create the admin user. Note, this can only be run once. Use `dep ssh my-site`, then:
+    ```bash
+    php artisan cart-scheduler:create-user "<name>" <email> <phone> <gender> [<password>]
+    ```
 1. Navigate to the site and login with the admin user you just created.
-    - If you are having a server issue (eg 500 error), review the log file at `storage/logs/laravel.log`.
-    - If you have this issue: `Your serialized closure might have been modified or it's unsafe to be unserialized`,
-      you may need to run the following command: `php artisan route:clear`
-   
+
+### Moving an existing installation to Deployer
+
+1. Run `dep deploy:setup my-site`.
+1. Copy the existing `.env` to `~/cartapp/shared/.env`, and the existing `storage` directory to
+    `~/cartapp/shared/storage`.
+1. Deploy the version the site is already running, or a newer one: `dep deploy my-site --tag=<version>`.
+1. Point the website at `~/cartapp/current/public` (step 2) and change the cron job's path (step 5).
+1. Once the site is working, delete the old installation directory.
+
+### Troubleshooting
+
+- If you have a server issue (eg 500 error), review the log file at `~/cartapp/shared/storage/logs/laravel.log`.
+- If something isn't working, it's likely because 'something' has been cached. From `dep ssh`, run
+  `php artisan optimize:clear`.
+- If you have this issue: `Your serialized closure might have been modified or it's unsafe to be unserialized`, run
+  `php artisan route:clear`.
+- To reinstall a release, including all of its Composer dependencies, deploy the same version again.
+
 ## Development
 
 This section is for development only and is not required to run the application on a live server.

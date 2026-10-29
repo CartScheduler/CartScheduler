@@ -70,7 +70,6 @@ const details = computed(() => [
   `Site: ${window.location.origin}`,
   `Checked: ${new Date().toISOString()}`,
 ].join("\n"));
-
 </script>
 
 <template>

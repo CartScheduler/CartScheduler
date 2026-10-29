@@ -50,3 +50,7 @@ node_modules/
 # tasks.json
 # tasks/
 /.superpowers
+
+# Deployer
+/hosts.yml
+/.dep

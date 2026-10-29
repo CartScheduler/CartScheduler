@@ -26,7 +26,6 @@ export type InertiaProps = {
     systemShiftStartHour: number;
     systemShiftEndHour: number;
   };
-  hasUpdate?: boolean;
   enableUserAvailability?: boolean;
   needsToUpdateAvailability?: boolean;
   enableUserLocationChoices?: boolean;

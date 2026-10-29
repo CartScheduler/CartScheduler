@@ -336,8 +336,6 @@ declare namespace App.Enums {
 }
 declare namespace App.Settings {
   export type GeneralSettings = { siteName: string;
-    currentVersion: string;
-    availableVersion: string;
     allowedSettingsUsers: Array<number>;
     systemShiftStartHour: number;
     systemShiftEndHour: number;

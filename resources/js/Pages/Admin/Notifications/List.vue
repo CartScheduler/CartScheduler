@@ -99,7 +99,6 @@ const resend = (log: App.Data.NotificationLogData) => {
     onFinish: () => (resending.value = null),
   });
 };
-
 </script>
 
 <template>

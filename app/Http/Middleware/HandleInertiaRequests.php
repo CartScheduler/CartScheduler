@@ -2,7 +2,6 @@
 
 namespace App\Http\Middleware;
 
-use App\Actions\HasNewVersionAvailable;
 use App\Actions\UserNeedsToUpdateAvailability;
 use App\Models\User;
 use App\Settings\GeneralSettings;
@@ -23,7 +22,6 @@ class HandleInertiaRequests extends Middleware
 
     public function __construct(
         private readonly GeneralSettings $settings,
-        private readonly HasNewVersionAvailable $hasNewVersionAvailable,
         private readonly UserNeedsToUpdateAvailability $getNeedsToUpdateAvailability,
     ) {}
 
@@ -64,11 +62,6 @@ class HandleInertiaRequests extends Middleware
             ],
         ];
 
-        $hasUpdate = $this->getHasSoftwareUpdate($user);
-        if ($hasUpdate !== null) {
-            $custom['hasUpdate'] = $hasUpdate;
-        }
-
         if ($this->settings->enableUserAvailability) {
             $custom['enableUserAvailability'] = true;
             $custom['needsToUpdateAvailability'] = $this->getNeedsToUpdateAvailability->execute($user);
@@ -104,20 +97,5 @@ class HandleInertiaRequests extends Middleware
         }
 
         return $permissions;
-    }
-
-    protected function getHasSoftwareUpdate(?User $user): ?bool
-    {
-        if ($user === null) {
-            return null;
-        }
-        if (! Gate::check('admin')) {
-            return null;
-        }
-        if (! in_array($user->id, $this->settings->allowedSettingsUsers, true)) {
-            return null;
-        }
-
-        return $this->hasNewVersionAvailable->execute();
     }
 }

@@ -10,7 +10,6 @@ export type MenuItem = {
   isDropdown?: boolean;
   submenu?: MenuItem[];
   command?: () => void;
-  hasUpdate?: boolean;
 };
 
 const mobileNavOpen = ref(false);

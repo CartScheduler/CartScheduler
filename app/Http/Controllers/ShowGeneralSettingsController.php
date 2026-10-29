@@ -24,6 +24,7 @@ class ShowGeneralSettingsController extends Controller
 
         return Inertia::render('Admin/Settings/Show', [
             'settings' => $this->settings->toArray(),
+            'version' => config('cart-scheduler.version'),
         ]);
     }
 }

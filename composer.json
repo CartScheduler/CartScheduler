@@ -21,7 +21,6 @@
     "laravel/tinker": "^3.0",
     "maatwebsite/excel": "^3.1.69",
     "maennchen/zipstream-php": "^3.1",
-    "pixelated-au/streamline": "dev-main",
     "psr/simple-cache": "^3.0.0",
     "spatie/laravel-activitylog": "^4.7",
     "spatie/laravel-data": "^4.17",
@@ -96,6 +95,9 @@
   },
   "config": {
     "optimize-autoloader": true,
+    "platform": {
+      "php": "8.3.0"
+    },
     "preferred-install": "dist",
     "sort-packages": true,
     "allow-plugins": {

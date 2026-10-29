@@ -72,6 +72,8 @@ jobs:
             tailwind.config.js
             web-types.json
             rector.php
+            deploy.php
+            hosts.yml.example
             /*resources/css/*
             /*resources/js/*
             /*queries/*

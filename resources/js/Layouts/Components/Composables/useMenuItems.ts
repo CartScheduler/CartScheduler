@@ -17,7 +17,6 @@ export default () => {
 
   const permissions = computed(() => page.props.pagePermissions as Permissions);
   const hasAdminMenu = computed(() => permissions.value?.canAdmin);
-  const hasUpdate = computed(() => page.props.hasUpdate as boolean); // For update indicators
 
   const logout = () => {
     router.post(route("logout"));
@@ -89,13 +88,11 @@ export default () => {
         icon: "iconify mdi--settings-outline",
         routeName: "admin.settings",
         href: route("admin.settings"),
-        hasUpdate: hasUpdate.value,
       });
     }
     items.push({
       label: "Administration",
       icon: "iconify mdi--administrator",
-      hasUpdate: hasUpdate.value,
       isDropdown: true,
       submenu: adminSubmenu,
     });
