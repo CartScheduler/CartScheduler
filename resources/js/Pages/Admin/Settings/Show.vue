@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import SoftwareUpdateForm from "./Partials/SoftwareUpdateForm.vue";
+import SoftwareVersion from "./Partials/SoftwareVersion.vue";
 import UpdateAllowedSettingsUsersForm from "./Partials/UpdateAllowedSettingsUsersForm.vue";
 import UpdateGeneralSettingsForm from "./Partials/UpdateGeneralSettingsForm.vue";
 
 defineProps<{
   settings: App.Settings.GeneralSettings;
+  version: string;
 }>();
 </script>
 
@@ -23,7 +24,7 @@ defineProps<{
     <!--                    </li> -->
     <!--                </ul> -->
     <!--            </div> -->
-    <SoftwareUpdateForm :settings="settings" class="mb-10 md:mb-3"/>
+    <SoftwareVersion :version="version" class="mb-10 md:mb-3"/>
     <UpdateGeneralSettingsForm :settings="settings" class="mb-10 md:mb-3"/>
     <UpdateAllowedSettingsUsersForm :settings="settings" class="mb-10 md:mb-3"/>
   </div>

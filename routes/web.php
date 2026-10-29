@@ -2,9 +2,7 @@
 
 use App\Http\Controllers\Admin\Reports\UserAvailabilityReportController;
 use App\Http\Controllers\AdminAvailableShiftsController;
-use App\Http\Controllers\AdminCheckForUpdateController;
 use App\Http\Controllers\AdminDashboardController;
-use App\Http\Controllers\AdminRunSoftwareUpdateController;
 use App\Http\Controllers\AdminUpdateLocationSortOrderController;
 use App\Http\Controllers\AvailableShiftsController;
 use App\Http\Controllers\DeleteFailedJobController;
@@ -209,8 +207,6 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
             Route::get('/admin-users', GetAdminUsersController::class)->name('admin.admin-users.get');
             Route::get('/spouse-candidates', GetSpouseCandidatesController::class)->name('admin.spouse-candidates.get');
             Route::patch('/users/{user}/spouse', UpdateUserSpouseController::class)->name('admin.users.spouse.update');
-            Route::get('/check-update', AdminCheckForUpdateController::class)->name('admin.check-update');
-            Route::post('/do-update', AdminRunSoftwareUpdateController::class)->name('admin.do-update');
             Route::get(
                 '/users-as-spreadsheet',
                 DownloadUsersAsSpreadsheetController::class

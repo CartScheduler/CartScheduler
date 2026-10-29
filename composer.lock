@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "99f45f47d6529b1e282a2967af4a17c4",
+    "content-hash": "292270a2b07c305ec6ea6ff094da0907",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -4719,81 +4719,6 @@
                 "source": "https://github.com/phpstan/phpdoc-parser/tree/2.3.5"
             },
             "time": "2026-08-31T16:05:28+00:00"
-        },
-        {
-            "name": "pixelated-au/streamline",
-            "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/pixelated-au/streamline.git",
-                "reference": "4737530131792676df05fd17eaa252cc48205686"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/pixelated-au/streamline/zipball/4737530131792676df05fd17eaa252cc48205686",
-                "reference": "4737530131792676df05fd17eaa252cc48205686",
-                "shasum": ""
-            },
-            "require": {
-                "ext-zip": "*",
-                "php": ">=8.3",
-                "spatie/laravel-package-tools": "^1.16",
-                "symfony/console": ">=6",
-                "symfony/process": ">=6"
-            },
-            "require-dev": {
-                "andreapollastri/checkpoint": "^1.0",
-                "composer/composer": "^2.8",
-                "laravel/pint": "^1.20",
-                "mikey179/vfsstream": "^1.6.12",
-                "mockery/mockery": "^1.6",
-                "orchestra/testbench": "^10",
-                "pestphp/pest": "^4",
-                "pestphp/pest-plugin-arch": "^4",
-                "pestphp/pest-plugin-laravel": "^4",
-                "php-mock/php-mock-mockery": "^1.4",
-                "roave/security-advisories": "dev-latest",
-                "spatie/laravel-ray": "^1.35"
-            },
-            "default-branch": true,
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Pixelated\\Streamline\\StreamlineServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-0": {
-                    "StreamlineUpdater": "src/Global"
-                },
-                "psr-4": {
-                    "Pixelated\\Streamline\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "description": "Self-update your Laravel deployment",
-            "homepage": "https://github.com/pixelated-au/streamline",
-            "keywords": [
-                "Streamline",
-                "laravel",
-                "pixelated australia"
-            ],
-            "support": {
-                "issues": "https://github.com/pixelated-au/streamline/issues",
-                "source": "https://github.com/pixelated-au/streamline/tree/main"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/Pixelated",
-                    "type": "github"
-                }
-            ],
-            "time": "2026-06-05T02:16:10+00:00"
         },
         {
             "name": "pragmarx/google2fa",
@@ -16388,7 +16313,6 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "pixelated-au/streamline": 20,
         "roave/security-advisories": 20
     },
     "prefer-stable": true,
@@ -16399,5 +16323,8 @@
         "ext-zip": "*"
     },
     "platform-dev": {},
+    "platform-overrides": {
+        "php": "8.3.0"
+    },
     "plugin-api-version": "2.9.0"
 }

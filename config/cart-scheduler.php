@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'version' => env('SELF_UPDATER_VERSION_INSTALLED', '0.0.1'),
+    'version' => is_file(base_path('VERSION')) ? trim((string) file_get_contents(base_path('VERSION'))) : 'dev',
     'shift_reservation_duration' => (int) env('CA_SHIFT_RESERVATION_DURATION', 1),
     'shift_reservation_duration_period' => env('CA_SHIFT_RESERVATION_DURATION_PERIOD', 'MONTH'),
     'release_weekly_shifts_on_day' => env('CA_SHIFT_RESERVATION_WEEK_RELEASE_DAY', 'SUN'),

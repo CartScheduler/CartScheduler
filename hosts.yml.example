@@ -1,0 +1,19 @@
+# Copy to hosts.yml (not committed) and list the sites to deploy to.
+# Every account authorises the same SSH key, so each host only changes remote_user.
+# See deploy.php for usage.
+hosts:
+  smpw-staging:
+    hostname: server1.example.org
+    remote_user: cartstaging
+    deploy_path: ~/cartapp
+    labels:
+      env: staging
+
+  smpw-north:
+    hostname: server1.example.org
+    remote_user: cartnorth
+    deploy_path: ~/cartapp
+    labels:
+      env: prod
+    # cPanel's default `php` may not be the version the site runs; point at the matching binary.
+    # bin/php: /opt/cpanel/ea-php83/root/usr/bin/php

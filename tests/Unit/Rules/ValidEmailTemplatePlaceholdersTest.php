@@ -6,8 +6,6 @@ use App\Settings\GeneralSettings;
 beforeEach(function () {
     GeneralSettings::fake([
         'siteName' => 'SMPW Melbourne',
-        'currentVersion' => 'v0.0.0',
-        'availableVersion' => 'v0.0.0',
         'allowedSettingsUsers' => [],
         'systemShiftStartHour' => 8,
         'systemShiftEndHour' => 16,

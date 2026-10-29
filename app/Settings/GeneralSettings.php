@@ -10,10 +10,6 @@ class GeneralSettings extends Settings
 {
     public string $siteName;
 
-    public string $currentVersion;
-
-    public string $availableVersion;
-
     /** @var int[] */
     public array $allowedSettingsUsers;
 
