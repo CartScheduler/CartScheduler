@@ -77,9 +77,31 @@ jobs:
             /*queries/*
             /*storage/debugbar/*
             /*database/factories/*
-            /*database/seeders/*
             /*tests/*
             /*docker/*
+
+      # Sites migrate from the packaged files, so check the zip itself can migrate a fresh
+      # database. A migration that needs a file the zip leaves out then fails here, not on a site.
+      - name: Setup MySQL
+        uses: shogo82148/actions-setup-mysql@v1
+        with:
+          mysql-version: '8.0'
+
+      - name: Check the release migrates a fresh database
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: release_check
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: |
+          mysql -uroot -h127.0.0.1 -e 'CREATE DATABASE release_check;'
+          unzip -q release.zip -d "$RUNNER_TEMP/release"
+          cd "$RUNNER_TEMP/release"
+          cp .env.example .env
+          composer install --no-ansi --no-interaction --no-progress --prefer-dist --no-dev
+          php artisan key:generate
+          php artisan migrate --force
 
       - name: Upload Release
         uses: ncipollo/release-action@v1
