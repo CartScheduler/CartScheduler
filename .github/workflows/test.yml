@@ -52,8 +52,19 @@ jobs:
       # This runs here rather than in frontend-tests.yml because the types also depend on PHP
       # (vendor/tightenco/ziggy, and laravel.d.ts generated from app/), which that workflow
       # neither installs nor watches.
+      # laravel.d.ts is generated from app/ and committed. Regenerating it must not change it,
+      # otherwise the type check below would run against stale types.
+      - name: Check generated TypeScript types are up to date
+        run: |
+          php artisan typescript:transform
+          git diff --exit-code -- resources/js/types/laravel.d.ts \
+            || { echo "::error::laravel.d.ts is stale. Run 'php artisan typescript:transform' and commit it."; exit 1; }
+
       - name: Check TypeScript types
         run: npm run typecheck
+
+      - name: Lint front end
+        run: npx eslint .
 
       - name: Compile front-end assets
         run: npm run build

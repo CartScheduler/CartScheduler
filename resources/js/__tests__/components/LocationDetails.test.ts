@@ -1,6 +1,6 @@
 import { render } from "@testing-library/vue";
-import { compileStyle } from "vue/compiler-sfc";
 import { describe, expect, it } from "vitest";
+import { compileStyle } from "vue/compiler-sfc";
 import LocationDetails from "@/Pages/Components/Dashboard/LocationDetails.vue";
 import locationDetailsSource from "@/Pages/Components/Dashboard/LocationDetails.vue?raw";
 import type { Location, Shift } from "@/Composables/useLocationFilter";
@@ -12,8 +12,12 @@ import type { AuthUser } from "@/types/laravel-request-helpers";
  */
 const scopeId = "data-v-test";
 
+const styleBlockPattern = /<style[^>]*>([\s\S]*?)<\/style>/;
+const scopedParagraphPattern = /(?:^|[\s,])p\[data-v-test]/;
+const scopedHeadingPattern = /h3\[data-v-test]/;
+
 const descriptionSelectors = () => {
-  const style = locationDetailsSource.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] ?? "";
+  const style = locationDetailsSource.match(styleBlockPattern)?.[1] ?? "";
   const { code, errors } = compileStyle({
     source: style,
     filename: "LocationDetails.vue",
@@ -23,7 +27,7 @@ const descriptionSelectors = () => {
 
   expect(errors).toEqual([]);
 
-  return [...code.matchAll(/([^{}]+)\{/g)].map((match) => (match[1] ?? "").trim());
+  return Array.from(code.matchAll(/([^{}]+)\{/g), (match) => (match[1] ?? "").trim());
 };
 
 const selectorsMatching = (selectors: string[], element: Element | null) => selectors.filter((selector) => {
@@ -87,8 +91,8 @@ describe("LocationDetails", () => {
 
     // `.description p[data-v-…]` never matches v-html, so the gap rules have to
     // be descendants of the description itself.
-    expect(selectors.some((selector) => /(?:^|[\s,])p\[data-v-test]/.test(selector))).toBe(false);
-    expect(selectors.some((selector) => /h3\[data-v-test]/.test(selector))).toBe(false);
+    expect(selectors.some((selector) => scopedParagraphPattern.test(selector))).toBe(false);
+    expect(selectors.some((selector) => scopedHeadingPattern.test(selector))).toBe(false);
     expect(selectorsMatching(selectors, heading).some((selector) => selector.includes("h3"))).toBe(true);
     expect(selectorsMatching(selectors, paragraph).length).toBeGreaterThan(0);
     expect(selectorsMatching(selectors, list).length).toBeGreaterThan(0);

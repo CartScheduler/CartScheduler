@@ -1,10 +1,12 @@
-import { compileStyle } from "vue/compiler-sfc";
 import { describe, expect, it } from "vitest";
+import { compileStyle } from "vue/compiler-sfc";
 import textEditorSource from "@/Components/TextEditor.vue?raw";
+
+const styleBlockPattern = /<style[^>]*>([\s\S]*?)<\/style>/;
 
 describe("TextEditor", () => {
   it("gives headings and paragraphs the same gaps the location view uses", () => {
-    const style = textEditorSource.match(/<style[^>]*>([\s\S]*?)<\/style>/)?.[1] ?? "";
+    const style = textEditorSource.match(styleBlockPattern)?.[1] ?? "";
     const { code, errors } = compileStyle({
       source: style,
       filename: "TextEditor.vue",
