@@ -48,6 +48,13 @@ jobs:
       - name: Install NPM dependencies
         run: npm ci
 
+      # Vite strips types without checking them, so the build alone doesn't catch type errors.
+      # This runs here rather than in frontend-tests.yml because the types also depend on PHP
+      # (vendor/tightenco/ziggy, and laravel.d.ts generated from app/), which that workflow
+      # neither installs nor watches.
+      - name: Check TypeScript types
+        run: npm run typecheck
+
       - name: Compile front-end assets
         run: npm run build
 
