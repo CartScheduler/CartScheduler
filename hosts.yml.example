@@ -2,6 +2,7 @@
 # Every account authorises the same SSH key, so each host only changes remote_user.
 # See deploy.php for usage.
 hosts:
+  # A subdomain or addon domain whose document root is set to cartapp/current/public in cPanel.
   smpw-staging:
     hostname: server1.example.org
     remote_user: cartstaging
@@ -9,10 +10,14 @@ hosts:
     labels:
       env: staging
 
+  # The account's main domain, served from ~/public_html. Deployer keeps public_html as a symlink
+  # to cartapp/current/public. On the first deploy, public_html must not be a real directory.
   smpw-north:
     hostname: server1.example.org
+    # port: 2222
     remote_user: cartnorth
     deploy_path: ~/cartapp
+    webroot: ~/public_html
     labels:
       env: prod
     # cPanel's default `php` may not be the version the site runs; point at the matching binary.

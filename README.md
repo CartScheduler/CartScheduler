@@ -59,10 +59,15 @@ hosts:
 The web server must serve `~/cartapp/current/public`.
 
 - **Addon domain or subdomain:** set the domain's document root to `cartapp/current/public`.
-- **Main cPanel domain:** this must be served from `~/public_html`, so replace it with a symlink. Replace
-  `[MY ACCOUNT]` with your cPanel account name:
+- **Main cPanel domain, or any document root you can't change:** add `webroot` to the host in `hosts.yml`, set to
+  the directory the web server already serves:
+    ```yaml
+        webroot: ~/public_html
+    ```
+  Every deployment keeps that path as a symlink to `current/public`, and `dep rollback` moves it too. If it's still a
+  real directory, the deployment stops before changing anything. Move the directory aside first:
     ```bash
-    mv ~/public_html ~/public_html.bak && ln -s /home/[MY ACCOUNT]/cartapp/current/public /home/[MY ACCOUNT]/public_html
+    mv ~/public_html ~/public_html.bak
     ```
 
 ### 3. Create the configuration (new sites only)
@@ -129,12 +134,23 @@ dep ssh my-site        # open a shell in the live release
 
 ### Moving an existing installation to Deployer
 
+Use a new `deploy_path` that isn't the old installation's directory, such as `~/cartapp` alongside `~/smpw_app`.
+The old installation then keeps serving the site until the switch, and switching back is one command.
+
 1. Run `dep deploy:setup my-site`.
 1. Copy the existing `.env` to `~/cartapp/shared/.env`, and the existing `storage` directory to
     `~/cartapp/shared/storage`.
-1. Deploy the version the site is already running, or a newer one: `dep deploy my-site --tag=<version>`.
-1. Point the website at `~/cartapp/current/public` (step 2) and change the cron job's path (step 5).
-1. Once the site is working, delete the old installation directory.
+1. If the site uses `webroot` (step 2), leave it out of `hosts.yml` for now so the old installation stays live.
+1. Deploy the version the site is already running: `dep deploy my-site --tag=<version>`. Using the same version
+    means no migrations run while the old installation is still live.
+1. Switch the website over:
+    - **With `webroot`:** move the old symlink or directory aside (`mv ~/public_html ~/public_html.bak`), add
+      `webroot` to the host, and deploy the same version again.
+    - **Otherwise:** change the domain's document root to `cartapp/current/public`.
+1. Change the cron job's path (step 5).
+1. To switch back, point the web root at the old installation again, for example
+    `rm ~/public_html && mv ~/public_html.bak ~/public_html`, and restore the cron job.
+1. Once the site is working, delete the old installation directory and the `.bak`.
 
 ### Troubleshooting
 
