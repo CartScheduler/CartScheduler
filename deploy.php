@@ -6,7 +6,8 @@
  * Deploys a GitHub release (release.zip built by CI) into releases/<n>, shares .env and storage/,
  * installs Composer dependencies from composer.lock, migrates, then atomically switches `current`
  * and runs `artisan reload` (which restarts the queue workers).
- * The web server docroot must point at {{deploy_path}}/current/public.
+ * The web server docroot must point at {{deploy_path}}/current/public, or set `webroot` on the host
+ * to a path the docroot already uses (such as ~/public_html) to have it symlinked there.
  *
  * Usage:
  *   dep deploy                          latest stable release to the default selector (staging)
@@ -146,7 +147,28 @@ task('deploy:carry_assets', function () {
     }
 });
 
+/**
+ * For hosts whose web root can't be pointed at current/public, such as cPanel's public_html on the
+ * main domain. Set `webroot` on the host and it is kept as a symlink to current/public. It points at
+ * `current` rather than a release, so a rollback moves it too.
+ */
+desc('Refuses to deploy when the host\'s webroot is a real directory');
+task('deploy:check_webroot', function () {
+    if (has('webroot') && test('[ -e {{webroot}} ] && [ ! -L {{webroot}} ]')) {
+        throw error(get('webroot').' is a directory, not a symlink. Move it aside (mv {{webroot}} {{webroot}}.bak) and deploy again.');
+    }
+});
+
+desc('Points the host\'s webroot symlink at current/public');
+task('deploy:webroot', function () {
+    if (has('webroot')) {
+        run('ln -sfn {{current_path}}/public {{webroot}}');
+    }
+});
+
 before('deploy:info', 'deploy:release_tag');
 before('deploy:lock', 'deploy:check_version');
+before('deploy:lock', 'deploy:check_webroot');
 after('deploy:vendors', 'deploy:carry_assets');
+after('deploy:symlink', 'deploy:webroot');
 after('deploy:failed', 'deploy:unlock');
