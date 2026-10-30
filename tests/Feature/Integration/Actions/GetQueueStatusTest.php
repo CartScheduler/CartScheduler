@@ -73,6 +73,10 @@ test('a stale worker is reported when the scheduler is running', function () {
 });
 
 test('waiting, processing, delayed and failed jobs are counted', function () {
+    // now() is read when the jobs are added and again for the expected value, so freeze the clock to
+    // stop a second boundary between the two from failing the comparison.
+    $this->travelTo(now()->startOfSecond());
+
     addQueuedJob(['available_at' => now()->subMinutes(3)->getTimestamp()]);
     addQueuedJob();
     addQueuedJob(['reserved_at' => now()->getTimestamp(), 'attempts' => 1]);

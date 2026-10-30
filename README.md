@@ -165,6 +165,33 @@ The old installation then keeps serving the site until the switch, and switching
 
 This section is for development only and is not required to run the application on a live server.
 
+### Branches and releases
+
+Each major version has its own long-lived branch (`v4`, `v5`, …). It is created when work on that version starts and
+is never deleted. These are often called release or maintenance branches.
+
+- **`master`** is the development branch for the current stable major version, which is v4 for now. New work branches
+  off `master`, and its pull requests target `master`.
+- **`vX`** (for example `v4`) is where that version's releases are tagged. When `master` is ready for a release, merge
+  it into `v4` and tag the release on `v4`.
+- **Starting the next major version:** create `v5` from `master`. Work for v5 then branches off and targets `v5`, while
+  `master` stays on the stable version (v4).
+- **Carrying v4 changes into v5:** anything added to v4 after `v5` was created must also reach v5. Merge `v4` into
+  `v5` to do this, which is called forward-porting. Use a merge rather than a rebase: `v5` is shared, and rebasing it
+  rewrites published commits, which needs a force-push and breaks everyone else's copy of the branch.
+- **When v5 becomes stable,** merge `v5` into `master`, so `master` becomes the development branch for v5.
+
+Release tags follow the version and its stage. The release workflow marks betas and release candidates as GitHub
+pre-releases automatically:
+
+| Stage             | Tag example | GitHub release | Deploy with                        |
+|-------------------|-------------|----------------|------------------------------------|
+| Beta              | `v4.0.0b`   | Pre-release    | `dep deploy … --pre` or `--tag=…`  |
+| Release candidate | `v4.0.0rc1` | Pre-release    | `dep deploy … --pre` or `--tag=…`  |
+| Stable            | `v4.0.0`    | Latest         | `dep deploy …`                     |
+
+v3 was only released as betas and has no stable release. v4 is the next stable version.
+
 ### Vue Devtools
 
 Vue devtools is enabled in development. You can configure the 'component inspector' to open the respective component
