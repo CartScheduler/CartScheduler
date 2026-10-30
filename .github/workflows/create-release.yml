@@ -109,6 +109,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "release.zip"
-          prerelease: ${{ endsWith(github.ref, 'a') || endsWith(github.ref, 'b') || endsWith(github.ref, 'alpha') || endsWith(github.ref, 'beta') }}
+          # Betas end in b (v4.0.0b) and release candidates carry rc (v4.0.0rc1). Anything else is stable.
+          prerelease: ${{ endsWith(github.ref, 'a') || endsWith(github.ref, 'b') || endsWith(github.ref, 'alpha') || endsWith(github.ref, 'beta') || contains(github.ref_name, 'rc') }}
           generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
